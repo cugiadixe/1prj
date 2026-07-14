@@ -1,0 +1,42 @@
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Visual Studio files
+.vs/
+TestResults/
+*.log
+
+# Node.js
+node_modules/
+dist/
+npm-debug.log
+yarn-error.log
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# SDK install scripts (downloaded by automation)
+dotnet-install.ps1
+
+# Agent artifacts
+walkthrough.md
