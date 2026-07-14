@@ -8,7 +8,7 @@ namespace PTKD.DbMigrator;
 
 class Program
 {
-    static void Main(string[] args)
+    static int Main(string[] args)
     {
         Console.WriteLine("PTKD DbMigrator started.");
         bool dryRun = args.Contains("--dry-run");
@@ -20,13 +20,13 @@ class Program
             .AddUserSecrets<Program>(optional: true)
             .Build();
 
-        string? connectionString = config.GetConnectionString("DefaultConnection")
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        string? connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? config.GetConnectionString("DefaultConnection");
 
         if (string.IsNullOrEmpty(connectionString))
         {
             Console.WriteLine("Error: Connection string not found.");
-            return;
+            return 1;
         }
 
         if (dryRun)
@@ -45,7 +45,7 @@ class Program
             // 2. Up two levels from CWD (e.g. CWD = src/backend/PTKD.DbMigrator)
             Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "database", "migrations")),
             // 3. Relative to the output assembly (bin/Debug/net10.0 → repo root)
-            Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "database", "migrations")),
+            Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "..", "database", "migrations")),
         ];
 
         foreach (var candidate in candidates)
@@ -60,7 +60,7 @@ class Program
         if (migrationsPath is null || !Directory.Exists(migrationsPath))
         {
             Console.WriteLine($"Error: Migrations directory not found. Tried: {string.Join(", ", candidates)}");
-            return;
+            return 1;
         }
 
         Console.WriteLine($"Using migrations directory: {migrationsPath}");
@@ -69,7 +69,7 @@ class Program
         if (files.Count == 0)
         {
             Console.WriteLine("No migration files found.");
-            return;
+            return 0;
         }
 
         try
@@ -105,34 +105,46 @@ class Program
                 Console.WriteLine($"Applying {fileName}...");
                 if (!dryRun)
                 {
-                    string sql = File.ReadAllText(file);
-                    var batches = sql.Split(["\r\nGO", "\nGO"], StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var batch in batches)
+                    using var transaction = connection.BeginTransaction();
+                    try
                     {
-                        if (string.IsNullOrWhiteSpace(batch)) continue;
-                        using var cmd = new SqlCommand(batch, connection);
-                        cmd.ExecuteNonQuery();
+                        string sql = File.ReadAllText(file);
+                        var batches = sql.Split(["\r\nGO", "\nGO"], StringSplitOptions.RemoveEmptyEntries);
+
+                        foreach (var batch in batches)
+                        {
+                            if (string.IsNullOrWhiteSpace(batch)) continue;
+                            using var cmd = new SqlCommand(batch, connection, transaction);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        if (!tableExists) tableExists = true;
+
+                        var insertSql = "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES (@Ver, @Name, 'APPLIED')";
+                        using var cmdInsert = new SqlCommand(insertSql, connection, transaction);
+                        cmdInsert.Parameters.AddWithValue("@Ver", version);
+                        cmdInsert.Parameters.AddWithValue("@Name", fileName);
+                        cmdInsert.ExecuteNonQuery();
+
+                        transaction.Commit();
+                        Console.WriteLine($"Applied {fileName} successfully.");
                     }
-
-                    if (!tableExists) tableExists = true;
-
-                    var insertSql = "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES (@Ver, @Name, 'APPLIED')";
-                    using var cmdInsert = new SqlCommand(insertSql, connection);
-                    cmdInsert.Parameters.AddWithValue("@Ver", version);
-                    cmdInsert.Parameters.AddWithValue("@Name", fileName);
-                    cmdInsert.ExecuteNonQuery();
-
-                    Console.WriteLine($"Applied {fileName} successfully.");
+                    catch (Exception)
+                    {
+                        transaction.Rollback();
+                        Console.WriteLine($"Failed applying {fileName}, transaction rolled back.");
+                        throw;
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error during migration: {ex.Message}");
-            // No automatic rollback
+            return 1;
         }
 
         Console.WriteLine("PTKD DbMigrator finished.");
+        return 0;
     }
 }
