@@ -183,22 +183,19 @@ Please see `docs/reviews/phase-1a2-baseline-closure-checklist.md` for the exact 
 ## 16. Final current status
 
 CURRENT DOCUMENTATION STATUS:
-READY FOR BA / DBA / SECURITY REVIEW
+APPROVED BY PROJECT OWNER
 
 CURRENT PHASE STATUS:
-NOT READY FOR PHASE 1B.1 PLANNING
+READY FOR PHASE 1B.1 PLANNING
 
 BLOCKERS:
-1. Blocking DEC-1B decisions require real stakeholder decisions.
-2. Phase 1A.2 requires verified build/test, commit and tag.
-3. Any conditions raised by reviewers must be incorporated into the discovery and decision documents.
+None. Phase 1B.0 decisions are explicitly approved by the Project Owner.
 
 AUTHORIZED NEXT ACTIONS:
-- stakeholder review;
-- approval recording;
 - Phase 1A.2 baseline review;
 - build and test verification;
-- preparation for a user-authorized commit/tag.
+- preparation for a user-authorized commit/tag;
+- Phase 1B.1 implementation planning.
 
 PROHIBITED NEXT ACTIONS:
 - V0003/U0003 creation;
