@@ -21,7 +21,7 @@ namespace PTKD.IntegrationTests
         private string ExecuteDbMigrator(bool dryRun = false)
         {
             var p = new System.Diagnostics.Process();
-            p.StartInfo.FileName = "dotnet";
+            p.StartInfo.FileName = @"C:\Users\adm-bachdh\AppData\Local\Microsoft\dotnet\dotnet.exe";
             p.StartInfo.Arguments = $"run --project ../../../../../../src/backend/PTKD.DbMigrator/PTKD.DbMigrator.csproj" + (dryRun ? " -- --dry-run" : "");
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.EnvironmentVariables["ConnectionStrings__DefaultConnection"] = _connectionString;

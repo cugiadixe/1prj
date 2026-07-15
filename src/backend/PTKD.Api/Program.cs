@@ -1,7 +1,26 @@
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Serilog;
+using System;
+using System.Linq;
 using System.Text.Json;
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using PTKD.API.Filters;
+
+using PTKD.Application.Common.Interfaces;
+using PTKD.Application.Organizations.Assignments.Services;
+using PTKD.Application.Organizations.Companies.Services;
+using PTKD.Application.Organizations.Departments.Services;
+using PTKD.Application.Organizations.Users.Services;
+using PTKD.Infrastructure.Persistence;
+using PTKD.Infrastructure.Persistence.Interceptors;
+using PTKD.Infrastructure.Persistence.Retries;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,10 +33,19 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .WriteTo.Console());
+    .WriteTo.Console(), preserveStaticLogger: true);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<GlobalExceptionFilter>();
+    options.Filters.Add<ValidationFilter>();
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -35,13 +63,34 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Health checks
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
-var healthChecks = builder.Services.AddHealthChecks();
-if (!string.IsNullOrEmpty(connectionString))
+// DbContext and Infrastructure
+builder.Services.AddSingleton<AppendOnlyInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
-    healthChecks.AddSqlServer(connectionString, name: "sql_server", tags: ["db"]);
-}
+    var config = sp.GetRequiredService<IConfiguration>();
+    var connStr = config.GetConnectionString("DefaultConnection") ?? "";
+    options.UseSqlServer(connStr, sqlOptions => 
+    {
+        sqlOptions.ExecutionStrategy(c => new DeadlockRetryPolicy(c, 2, TimeSpan.FromMilliseconds(500)));
+    });
+    options.AddInterceptors(sp.GetRequiredService<AppendOnlyInterceptor>());
+});
+builder.Services.AddScoped<IOrganizationDbContextFactory, AppDbContextFactory>();
+
+// Application Services
+builder.Services.AddScoped<ICompanyService, CompanyService>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserAssignmentService, UserAssignmentService>();
+
+// Validation
+builder.Services.AddValidatorsFromAssemblyContaining<PTKD.Application.Organizations.Companies.Validations.CreateCompanyRequestValidator>();
+
+// Health checks
+var healthChecks = builder.Services.AddHealthChecks();
+healthChecks.AddSqlServer(
+    sp => sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection") ?? "",
+    name: "sql_server", tags: ["db"]);
 
 var app = builder.Build();
 
@@ -76,10 +125,21 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthorization();
+
+// Environment Protection for Organization APIs
+// Handled by EnvironmentProtectionConvention
+
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+{
+    // Do not map organization controllers in Production/Staging.
+    // Since this is Phase 1A.2, we just throw an exception to fail startup per requirements.
+    // Or, we can use a custom constraint/convention to remove them. But the easiest way to prevent them from starting is failing.
+    throw new InvalidOperationException("Unsafe organization API configuration enabled.");
+}
+
 app.MapControllers();
 
 // Endpoint GET /api/v2/health
-// Write detailed JSON so callers can distinguish DB-down from app-up.
 app.MapHealthChecks("/api/v2/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>

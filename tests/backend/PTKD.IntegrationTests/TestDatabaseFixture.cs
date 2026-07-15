@@ -15,7 +15,7 @@ namespace PTKD.IntegrationTests
         public TestDatabaseFixture()
         {
             ConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
-                ?? "Server=localhost;Database=PTKD_TEST_PHASE1A;Trusted_Connection=True;TrustServerCertificate=True;";
+                ?? "Server=localhost;Database=PTKD_TEST_PHASE1A2;Trusted_Connection=True;TrustServerCertificate=True;";
             
             InitializeDatabase();
         }
@@ -48,7 +48,7 @@ namespace PTKD.IntegrationTests
                 }
                 if (unexpectedTables.Any())
                 {
-                    throw new InvalidOperationException($"Unexpected user tables found in PTKD_TEST_PHASE1A: {string.Join(", ", unexpectedTables)}");
+                    throw new InvalidOperationException($"Unexpected user tables found in PTKD_TEST_PHASE1A2: {string.Join(", ", unexpectedTables)}");
                 }
             }
 

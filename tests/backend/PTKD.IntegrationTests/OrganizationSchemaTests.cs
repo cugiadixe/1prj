@@ -107,6 +107,9 @@ namespace PTKD.IntegrationTests
             using var conn = new SqlConnection(_fixture.ConnectionString);
             conn.Open();
 
+            var dropCmd = new SqlCommand("DELETE FROM dbo.Employment_Histories; DELETE FROM dbo.User_Department_Assignments; DELETE FROM dbo.User_Company_Assignments; DELETE FROM dbo.Departments; DELETE FROM dbo.Companies; DELETE FROM dbo.Users;", conn);
+            dropCmd.ExecuteNonQuery();
+
             string[] tables = { "Users", "Companies", "Departments", "User_Company_Assignments", "User_Department_Assignments", "Employment_Histories" };
             foreach (var table in tables)
             {

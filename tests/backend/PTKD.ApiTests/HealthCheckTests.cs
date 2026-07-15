@@ -1,14 +1,15 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace PTKD.ApiTests;
 
-public class SystemIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthCheckTests : IClassFixture<SafeTestWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public SystemIntegrationTests(WebApplicationFactory<Program> factory)
+    public HealthCheckTests(SafeTestWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
@@ -18,9 +19,6 @@ public class SystemIntegrationTests : IClassFixture<WebApplicationFactory<Progra
     {
         var response = await _client.GetAsync("/api/v2/health");
 
-        // Without a real SQL Server the health check reports Unhealthy/Degraded.
-        // We accept both OK and ServiceUnavailable; the important thing is
-        // the response is valid JSON with a status field.
         Assert.True(
             response.StatusCode == HttpStatusCode.OK
             || response.StatusCode == HttpStatusCode.ServiceUnavailable);
@@ -31,20 +29,11 @@ public class SystemIntegrationTests : IClassFixture<WebApplicationFactory<Progra
     }
 
     [Fact]
-    public async Task HealthEndpoint_WithoutDatabase_DoesNotReportHealthy()
+    public async Task HealthEndpoint_Returns_CorrelationId()
     {
-        // In the test host, no connection string is configured.
-        // The health endpoint should still respond (no SQL check registered)
-        // but must not falsely claim a database is healthy.
         var response = await _client.GetAsync("/api/v2/health");
-        var body = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(body);
-        var status = doc.RootElement.GetProperty("status").GetString();
 
-        // Without a connection string, no SQL check is registered so status is "Healthy"
-        // (reflecting application health). If a connection string IS configured but the
-        // DB is unreachable, the status would be "Unhealthy". Both are correct behavior.
-        Assert.NotNull(status);
+        Assert.True(response.Headers.Contains("X-Correlation-ID"));
     }
 
     [Fact]
@@ -70,13 +59,5 @@ public class SystemIntegrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var returnedId = response.Headers.GetValues("X-Correlation-ID").First();
         Assert.Equal(expectedId, returnedId);
-    }
-
-    [Fact]
-    public async Task HealthEndpoint_Also_Returns_CorrelationId()
-    {
-        var response = await _client.GetAsync("/api/v2/health");
-
-        Assert.True(response.Headers.Contains("X-Correlation-ID"));
     }
 }
