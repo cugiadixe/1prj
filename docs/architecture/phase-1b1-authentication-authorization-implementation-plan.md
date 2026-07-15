@@ -10,19 +10,20 @@ NOT AUTHORIZED
 This document provides the detailed technical implementation plan for Phase 1B.1, covering the database, backend APIs, and frontend structure for Authentication and Authorization. Implementation remains strictly NOT AUTHORIZED until explicitly approved by the Project Owner.
 
 ## 2. Verified Phase 1B.0 decision baseline
-This plan strictly enforces the conditions approved by the Project Owner in Phase 1B.0:
+This plan strictly enforces the conditions approved by the Project Owner in Phase 1B.0, covering 20 active decisions (with DEC-1B-008 merged into DEC-1B-007, resulting in 21 identifiers in total):
 - **Identity:** Separate `User_Auth_Accounts` table. (DEC-1B-001)
 - **Passwords:** ASP.NET Core PasswordHasher, Min 8, max 64. Temporary password 24h. History 5. No invented character-class requirement. (DEC-1B-002)
 - **Tokens:** Access 15 minutes. Refresh 7 days. Clock skew 30 seconds. (DEC-1B-003)
 - **Lockout:** 5 failures, 15-minute lockout. Configuration driven. No account enumeration. (DEC-1B-004)
 - **Refresh tokens:** Opaque random refresh secrets. Hash storage only. Atomic single-use rotation. Reuse revokes token family. No server-side grace period. Client single-flight behavior described without assuming an unverified frontend library. (DEC-1B-005)
 - **Permissions:** `permission_code` VARCHAR(100) natural primary key. Immutable repository-controlled codes. GLOBAL and COMPANY in Phase 1B. ENTITY deferred. (DEC-1B-006)
-- **Admin:** Explicit roles and Admin Groups. GLOBAL requires company_id NULL. COMPANY requires company_id NOT NULL. No hardcoded SUPER_ADMIN bypass. (DEC-1B-007, 009)
+- **Admin:** Explicit roles and Admin Groups. GLOBAL requires company_id NULL. COMPANY requires company_id NOT NULL. No hardcoded SUPER_ADMIN bypass. (DEC-1B-007, DEC-1B-009)
+- **Merged:** DEC-1B-008 merged into DEC-1B-007.
 - **First-admin bootstrap:** Protected bootstrap secret input. Secret is never printed or logged. One-time marker. No API-startup bootstrap. (DEC-1B-010)
 - **Cache failure:** Fail closed. Sanitized 503 for authorization-infrastructure failure. No knowingly stale authorization result. (DEC-1B-011)
 - **Company context:** Missing/malformed `X-Company-Id` returns 400. Unauthorized company returns 403. No write fallback. JWT does not authorize company access. (DEC-1B-012)
 - **Employment status:** `account_status` ACTIVE. `employment_status` ACTIVE or PROBATION. Security/session state invalidated after status change. (DEC-1B-013)
-- **Temporal locking:** Effective dates plus lifecycle state. SERIALIZABLE and UPDLOCK/HOLDLOCK. SQL error 1205 maximum three retries with bounded jitter. (DEC-1B-014)
+- **Temporal locking:** Effective dates plus lifecycle state. SERIALIZABLE and UPDLOCK/HOLDLOCK. SQL error 1205 maximum three attempts total (initial attempt plus at most two retries) with bounded jitter. (DEC-1B-014)
 - **Audit database:** Runtime INSERT/SELECT only for audit. UPDATE/DELETE/TRUNCATE blocked. No cascade delete. No secret/token content. Privileged sysadmin limitation documented. (DEC-1B-015)
 - **Codes:** Exact fine-grained permission codes. No broad ADMIN replacement. (DEC-1B-016)
 - **Archive:** No purge or archive implementation. No audit deletion in Phase 1B. Monitoring and later retention decision. (DEC-1B-017)
@@ -52,27 +53,30 @@ This plan strictly enforces the conditions approved by the Project Owner in Phas
 ## 5. Current repository readiness assessment
 - **Backend target framework:** net10.0
 - **Solution and project names:** `PTKD-ERP.sln`, `PTKD.Api`, `PTKD.Application`, `PTKD.Domain`, `PTKD.Infrastructure`, `PTKD.DbMigrator`
-- **Architectural pattern:** Modular Monolith mapped into Vertical Slices.
+- **Architectural pattern:** Modular Monolith mapped into Vertical Slices. No MediatR. Controllers delegate directly to dedicated Application Services.
 - **API project and route conventions:** `/api/v2` namespace.
 - **Database migration and rollback folders:** `database/migrations` and `database/rollbacks`.
 - **SchemaVersions behavior:** Roundhouse/DbUp style `SchemaVersions` tracking table.
 - **Frontend framework:** React 19.2.7 (Vite).
 - **Frontend HTTP client:** axios 1.18.1.
 - **Frontend router and state-management libraries:** `react-router-dom` 7.18.1, `@tanstack/react-query` 5.101.2.
-- **Backend test projects:** `PTKD.UnitTests`, `PTKD.IntegrationTests`, `PTKD.ApiTests` using xUnit and Moq.
+- **Backend test projects:** `PTKD.UnitTests`, `PTKD.IntegrationTests`, `PTKD.ApiTests`.
+- **Backend test standard versus actual:**
+  - Approved standard: xUnit, NSubstitute, WebApplicationFactory
+  - Actual repository state: xUnit 2.9.3, Moq 4.20.72. REPOSITORY DRIFT — REQUIRES SEPARATE RESOLUTION (Moq is present and NSubstitute is absent. Do not replace Moq or add NSubstitute in Slice 1B.1-A).
 - **Frontend test tools:** vitest, @testing-library/react.
-- **Playwright setup:** PROPOSED — REQUIRES SEPARATE PACKAGE AUTHORIZATION.
+- **Playwright setup:** Approved tool. SEPARATE PACKAGE INSTALLATION AUTHORIZATION REQUIRED.
 - **Database test-fixture conventions:** Test containers / SQL Server isolation.
 - **Protected test database name:** `PTKD_TEST_PHASE1A2`
-- **Existing retry and transaction infrastructure:** Standard EF Core transactions, no explicit Dapper/MediatR installed yet.
-- **Existing audit/interceptor infrastructure:** Not yet implemented; planned for V0003.
+- **Existing retry and transaction infrastructure:** Phase 1A.2 already contains explicit Serializable transactions, `IOrganizationDbContextFactory`, a protected database fixture using `PTKD_TEST_PHASE1A2`, `DeadlockRetryPolicy`, and SQL error 1205 retry handling.
+- **Existing audit/interceptor infrastructure:** Phase 1A.2 contains `AppendOnlyInterceptor` for `Employment_Histories`. Note: Existing append-only application interception is not the same as the new `Security_Audit_Events` database enforcement. V0003 may create database controls and roles. An EF interceptor for `Security_Audit_Events`, if later required, belongs to a later application slice, not inside V0003.
 
 ## 6. Proposed implementation sequence
 Implementation will proceed sequentially through Slices A to I. Each slice represents a cohesive, testable block of functionality. Every slice requires separate Project Owner authorization. Slices must be executed in this exact dependency order.
 
 ## 7. Database migration and rollback design
 **V0003:**
-- Creates `User_Auth_Accounts`, `Password_History`, `Refresh_Tokens`, `Permissions`, `Roles`, `Role_Permissions`, `Department_Permissions`, `Admin_Groups`, `Admin_Group_Permissions`, `User_Admin_Group_Assignments`.
+- Creates `User_Auth_Accounts`, `Password_History`, `Refresh_Tokens`, `Permissions`, `Roles`, `Role_Permissions`, `Department_Permissions`, `Admin_Groups`, `Admin_Group_Permissions`, `User_Admin_Group_Assignments`, `User_Role_Assignments`, `User_Individual_Permissions`.
 - Appends to `Security_Audit_Events`.
 - Enforces strict foreign keys, bigint PKs, natural `permission_code`, and `UNIQUE` constraints.
 - Adds `INSTEAD OF` triggers preventing `UPDATE`, `DELETE`, and `TRUNCATE` on `Security_Audit_Events`.
@@ -84,14 +88,15 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - Removes dependent constraints before tables.
 - Drops all tables, triggers, and types created in V0003.
 - Restores SchemaVersions correctly.
+- Refuses destructive rollback when security, bootstrap, assignment, token, password-history or security-audit tables contain material data.
 
 ## 8. Domain and application design
 - **Domain:** Entities for `UserAuthAccount`, `Role`, `AdminGroup`, `Permission`.
-- **Application:** Command and Query handlers mapped via Vertical Slices. explicit input validation via FluentValidation (already installed).
+- **Application:** Command and Query Application Services mapped via Vertical Slices. Explicit input validation via FluentValidation.
 
 ## 9. Infrastructure and persistence design
-- EF Core for ordinary CRUD.
-- Explicit SQL (or Dapper - PROPOSED — REQUIRES SEPARATE PACKAGE AUTHORIZATION) for security-sensitive transactional paths involving `UPDLOCK`/`HOLDLOCK`.
+- EF Core is the default for ordinary CRUD.
+- Dapper or explicit SQL/stored procedures are approved options for complex or security-sensitive transactional paths involving `UPDLOCK`/`HOLDLOCK`. Dapper is not automatically required for Slice 1B.1-A. Slice 1B.1-A must use SQL migration scripts and the existing `PTKD.DbMigrator`.
 - Append-only SQL business/security audit.
 - Serilog for technical logging.
 
@@ -153,12 +158,13 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - Pages for managing Roles, Admin Groups, and Security logs.
 
 ## 20. Error and ProblemDetails catalog
-- 400: missing/malformed company header.
-- 401: unauthenticated or invalid/expired authentication.
-- 403: permission/scope denial and approved lockout response.
-- 409: concurrency or temporal overlap.
-- 412: rowversion/precondition behavior only if consistent with current API conventions.
-- 503: sanitized 503 authorization-infrastructure failure.
+- **400:** malformed or invalid request input.
+- **401:** missing, invalid or expired authentication.
+- **403:** permission/scope denial and approved locked-account behavior.
+- **404:** resource not found.
+- **409:** stale rowversion, uniqueness, temporal or state conflict (including stale valid rowversion).
+- **500:** sanitized unexpected/unmapped server or database failure.
+- **503:** authorization infrastructure unavailable or retry exhaustion.
 - Every error must use sanitized ProblemDetails and must not disclose account existence, password validity details, raw tokens, signing key information, or database internals.
 
 ## 21. Testing strategy
@@ -195,19 +201,19 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - Assertions ensuring SQL injection protection.
 - Assertions confirming database trigger blocks DELETE queries.
 
-## 23. Deployment and configuration configuration
+## 23. Deployment and configuration strategy
 - User Secrets or local protected configuration for Development.
 - Provider abstraction for Production secrets.
 
 ## 24. Rollback and recovery strategy
-- `U0003` script guarantees clean rollback of schema and data.
+- `U0003` script guarantees clean rollback of schema and data (if unpopulated).
 - Code changes must be fully reverted via Git commit rollback.
 
 ## 25. Implementation slices and commit boundaries
 
 **Phase 1B.1-A: Database security foundation and rollback design.**
 - *Prerequisites:* Phase 1B.1 authorization.
-- *Files:* `database/migrations/V0003__security_and_auth.sql`, `database/rollbacks/U0003__drop_security_and_auth.sql`
+- *Files:* `database/migrations/V0003__security_schema.sql`, `database/rollbacks/U0003__drop_security_schema.sql` (names to match repo convention).
 - *Impact:* Creates all auth and audit tables, triggers, and overlap indexes.
 - *Completion:* U0003 verified against `PTKD_TEST_PHASE1A2`.
 - *Separate authorization required:* YES.
@@ -273,7 +279,7 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - **Exit Gate:** All Slices complete, 100% tests pass, U0003 tested successfully, final security read-only audit.
 
 ## 27. Risks and mitigations
-- *Risk:* 1205 deadlocks on temporal assignments. *Mitigation:* Explicit jitter retries and application-layer serialization.
+- *Risk:* 1205 deadlocks on temporal assignments. *Mitigation:* Explicit jitter retries (max 3 total attempts) and application-layer serialization.
 - *Risk:* Frontend refresh loops. *Mitigation:* Strict single-flight locking implemented in Axios interceptor.
 
 ## 28. Remaining Production-only prerequisites
@@ -284,13 +290,13 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - Monitor audit table size and define an operational warning threshold before compliance data becomes material.
 
 ## 29. Exact files expected to be created or modified
-- PROPOSED NEW FILE: `database/migrations/V0003__security_and_auth.sql`
-- PROPOSED NEW FILE: `database/rollbacks/U0003__drop_security_and_auth.sql`
+- PROPOSED NEW FILE: `database/migrations/V0003__create_security_schema.sql`
+- PROPOSED NEW FILE: `database/rollbacks/U0003__drop_security_schema.sql`
 - PROPOSED NEW FILE: `src/backend/PTKD.Domain/Entities/UserAuthAccount.cs`
 - PROPOSED NEW FILE: `src/backend/PTKD.Domain/Entities/Role.cs`
 - PROPOSED NEW FILE: `src/backend/PTKD.Domain/Entities/AdminGroup.cs`
 - PROPOSED NEW FILE: `src/backend/PTKD.Domain/Entities/SecurityAuditEvent.cs`
-- PROPOSED NEW FILE: `src/backend/PTKD.Application/Security/` (Various handlers)
+- PROPOSED NEW FILE: `src/backend/PTKD.Application/Security/` (Various Application Services)
 - PROPOSED NEW FILE: `src/backend/PTKD.Api/Controllers/AuthController.cs`
 - PROPOSED NEW FILE: `src/backend/PTKD.Api/Controllers/SecurityController.cs`
 - Existing File: `src/backend/PTKD.Api/Program.cs` (to wire up Auth)
@@ -300,8 +306,7 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 
 **SEPARATE PACKAGE AUTHORIZATION REQUIRED:**
 - `@playwright/test` (for e2e tests)
-- `MediatR` (if CQRS pattern is to be utilized)
-- `Dapper` (if explicit SQL transaction locks are chosen over EF Raw SQL)
+- `Dapper` (if explicit SQL transaction locks are chosen over EF Raw SQL in a future slice)
 
 ## 30. Project Owner implementation authorization section
 - **Project Owner result:** 
