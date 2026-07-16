@@ -150,7 +150,7 @@ public sealed class TokenSessionLifecycleService : ITokenSessionLifecycleService
                 !string.Equals(account.User.EmploymentStatus, "PROBATION", StringComparison.OrdinalIgnoreCase))
                 return TokenSessionResult.Failure(TokenSessionStatus.InvalidCredentials, "EMPLOYMENT_INELIGIBLE");
 
-            if (account.SessionsInvalidatedAt.HasValue && account.SessionsInvalidatedAt.Value > token.IssuedAt)
+            if (account.SessionsInvalidatedAt.HasValue && account.SessionsInvalidatedAt.Value >= token.IssuedAt)
             {
                 // Use only raw SQL bulk update; no EF tracked entity mutation.
                 await dbContext.RevokeFamilyAsync(token.FamilyId, "SESSIONS_INVALIDATED", utcNow, cancellationToken);

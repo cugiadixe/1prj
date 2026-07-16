@@ -249,4 +249,58 @@ public class AuthenticationTokenIntegrationTests : IAsyncLifetime
         refreshResult.IsSuccess.Should().BeFalse();
         refreshResult.InternalReason.Should().Be("SESSIONS_INVALIDATED_CUTOFF");
     }
+
+    [Fact]
+    public async Task Refresh_WithTokenIssuedExactlyAtCutoff_Denied()
+    {
+        using var context = CreateContext();
+        var user = new User("TEST_007B", "Test User", null, "ACTIVE", "ACTIVE");
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var account = UserAuthAccount.CreateInternal(user.Id, "testuser7b", "hash", _timeProvider.GetUtcNow().UtcDateTime);
+        context.UserAuthAccounts.Add(account);
+        await context.SaveChangesAsync();
+
+        var createResult = await _service.CreateSessionAsync(account.Id, "testuser7b", "127.0.0.1", "TestAgent");
+
+        // Invalidate EXACTLY AT the time the token was issued
+        account.InvalidateSessions(Guid.NewGuid(), _timeProvider.GetUtcNow().UtcDateTime);
+        context.UserAuthAccounts.Update(account);
+        await context.SaveChangesAsync();
+
+        _timeProvider.Advance(TimeSpan.FromHours(1));
+
+        var refreshResult = await _service.RefreshSessionAsync(createResult.RefreshTokenMaterial!, "127.0.0.1", "TestAgent");
+        refreshResult.IsSuccess.Should().BeFalse();
+        refreshResult.InternalReason.Should().Be("SESSIONS_INVALIDATED_CUTOFF");
+    }
+
+    [Fact]
+    public async Task Refresh_WithTokenIssuedAfterCutoff_Allowed()
+    {
+        using var context = CreateContext();
+        var user = new User("TEST_007C", "Test User", null, "ACTIVE", "ACTIVE");
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var account = UserAuthAccount.CreateInternal(user.Id, "testuser7c", "hash", _timeProvider.GetUtcNow().UtcDateTime);
+        context.UserAuthAccounts.Add(account);
+        await context.SaveChangesAsync();
+
+        // Admin invalidates sessions NOW
+        account.InvalidateSessions(Guid.NewGuid(), _timeProvider.GetUtcNow().UtcDateTime);
+        context.UserAuthAccounts.Update(account);
+        await context.SaveChangesAsync();
+
+        _timeProvider.Advance(TimeSpan.FromHours(1));
+        
+        // Token issued AFTER the cutoff
+        var createResult = await _service.CreateSessionAsync(account.Id, "testuser7c", "127.0.0.1", "TestAgent");
+        
+        _timeProvider.Advance(TimeSpan.FromHours(1));
+
+        var refreshResult = await _service.RefreshSessionAsync(createResult.RefreshTokenMaterial!, "127.0.0.1", "TestAgent");
+        refreshResult.IsSuccess.Should().BeTrue();
+    }
 }

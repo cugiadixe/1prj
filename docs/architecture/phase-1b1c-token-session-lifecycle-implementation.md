@@ -1,6 +1,8 @@
-﻿# Phase 1B.1-C-A Token Session Lifecycle — Implementation Evidence
+# Phase 1B.1-C-A Token Session Lifecycle — Implementation Evidence
 
 **Status: IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE**
+
+> **Correction applied**: Session cutoff comparison corrected from strict greater-than (`>`) to inclusive (`>=`). Refresh tokens issued at or before `sessions_invalidated_at` are now denied. Exact-boundary integration test added. See §Correction Evidence below.
 
 ---
 
@@ -108,7 +110,7 @@ builder.Property(x => x.RowVersion).HasColumnName("row_version").IsRowVersion().
 ### 6. sessions_invalidated_at cutoff
 
 ```csharp
-if (account.SessionsInvalidatedAt.HasValue && account.SessionsInvalidatedAt.Value > token.IssuedAt)
+if (account.SessionsInvalidatedAt.HasValue && account.SessionsInvalidatedAt.Value >= token.IssuedAt)
 {
     await dbContext.RevokeFamilyAsync(token.FamilyId, "SESSIONS_INVALIDATED", utcNow, cancellationToken);
     await transaction.CommitAsync(cancellationToken);
@@ -222,9 +224,9 @@ Relevant new unit tests:
 
 Command: `dotnet test tests/backend/PTKD.IntegrationTests/PTKD.IntegrationTests.csproj --configuration Debug --no-restore`
 
-**Passed: 136 / Failed: 0 / Skipped: 0** — 1 minute 59 seconds
+**Passed: 138 / Failed: 0 / Skipped: 0** *(post-correction run)*
 
-New `AuthenticationTokenIntegrationTests` (10 tests, all PASSED):
+`AuthenticationTokenIntegrationTests` (12 tests, all PASSED):
 - `CreateSession_InsertsRow_WithHashOnly_AndNoRawTokenPersisted` — PASSED
 - `RefreshSession_RotatesOldToken_ToUsedAndReplaced` — PASSED
 - `RefreshSession_Reuse_RevokesFamily` — PASSED
@@ -232,16 +234,18 @@ New `AuthenticationTokenIntegrationTests` (10 tests, all PASSED):
 - `Logout_RevokesCurrentFamily` — PASSED
 - `Refresh_AfterAccountDisable_Denied` — PASSED
 - `Refresh_AfterSessionsInvalidatedAtCutoff_Denied` — PASSED
+- `Refresh_WithTokenIssuedExactlyAtCutoff_Denied` — PASSED *(new — exact-boundary test)*
+- `Refresh_WithTokenIssuedAfterCutoff_Allowed` — PASSED *(new — post-cutoff allowed)*
 - *(3 additional token lifecycle tests)* — PASSED
 
-Pre-existing tests (126): all continue to pass — no regressions.
+Pre-existing tests (127): all continue to pass — no regressions.
 
-### Warnings (all pre-existing)
+### Warnings
 
 | Warning | Classification |
 |---|---|
-| MSB3277: `Microsoft.IdentityModel.Tokens` version conflict 7.7.1 vs 8.19.2 in `PTKD.Api.csproj` | Pre-existing — PTKD.Api referenced 7.7.1 via ASP.NET Core; Application/Infrastructure use 8.19.2. No runtime impact on Application/Infrastructure. |
-| MSB3277: `System.IdentityModel.Tokens.Jwt` version conflict 7.7.1 vs 8.19.2 in `PTKD.Api.csproj` | Pre-existing — same root cause. |
+| MSB3277: `Microsoft.IdentityModel.Tokens` version conflict 7.7.1 vs 8.19.2 in `PTKD.Api.csproj` | C-A introduces explicit `System.IdentityModel.Tokens.Jwt` 8.19.2 references. Build currently emits MSB3277 version-conflict warning due to transitive IdentityModel version differences; build and tests pass. This is tracked as non-blocking unless later API host wiring exposes runtime conflict. |
+| MSB3277: `System.IdentityModel.Tokens.Jwt` version conflict 7.7.1 vs 8.19.2 in `PTKD.Api.csproj` | Same root cause as above. |
 | Fluent Assertions commercial license notice | Pre-existing — community license. |
 | CRLF to LF conversion warnings for `.csproj` files | Pre-existing — Windows gitattributes behavior. |
 
@@ -290,3 +294,11 @@ Pre-existing tests (126): all continue to pass — no regressions.
 | Production migration NOT AUTHORIZED | YES |
 | No tag created | YES |
 | No push performed | YES |
+
+---
+
+## Correction Evidence (Cutoff Boundary)
+
+- Cutoff comparison corrected from strict greater-than (>) to inclusive cutoff (>=).
+- Refresh tokens issued at or before sessions_invalidated_at are denied.
+- Exact-boundary test added (Refresh_WithTokenIssuedExactlyAtCutoff_Denied).
