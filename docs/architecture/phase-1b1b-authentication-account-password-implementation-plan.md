@@ -2,20 +2,21 @@
 
 Document status:
 
-ACCEPTED BY PROJECT OWNER — PHASE 1B.1-B IMPLEMENTATION NOT AUTHORIZED
+IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
 
 ## 1. Planning authority and accepted baseline
 
-This document was accepted by the Project Owner as the official Phase 1B.1-B plan. Plan acceptance does not authorize implementation.
+This document was accepted by the Project Owner as the official Phase 1B.1-B plan. Separate direct written authorization subsequently authorized implementation, testing, documentation, and one implementation commit for Slice B only.
 
 - Repository baseline HEAD: `224116b1f0e45274fb644b78c38b119876de3c83`.
 - Accepted Phase 1B.1-A corrective baseline: `efcf950b9c9679a1d6a44198ae3566fe93205a59`.
 - Accepted Phase 1B.1-A original parent: `9d313a343fe2b2ccf29379b3a920bab9de4b5a0d`.
 - `database/migrations/V0003__create_security_schema.sql` and `database/rollbacks/U0003__drop_security_schema.sql` are accepted and must not be modified by Slice B.
-- Phase 1B.1-B implementation remains **NOT AUTHORIZED**.
+- Phase 1B.1-B implementation is complete and verified; Project Owner implementation acceptance is pending.
 - Phase 1B.1-C through I remain **NOT AUTHORIZED**.
 - Production migration remains **NOT AUTHORIZED**.
 - Planning did not connect to a database and did not run a migration, rollback, build, or test.
+- Executable implementation evidence is recorded in `docs/architecture/phase-1b1b-authentication-account-password-implementation.md`.
 
 ## 2. Slice B scope
 
@@ -399,7 +400,7 @@ All tests must use `TestDatabaseFixture.ResetToV0003()` and the existing exact d
 | Secret exclusion | Captured exceptions/results/log test sink contain no plaintext password or stored hash |
 | Regression | Existing SecuritySchemaTests still prove accepted V0003 unchanged; all Phase 1A.2 tests remain enabled |
 
-No integration test is run during this planning task.
+The authorized implementation subsequently added and passed the integration matrix. Exact commands, totals, and protected-database evidence are recorded in `docs/architecture/phase-1b1b-authentication-account-password-implementation.md`.
 
 ## 21. Dependencies on later slices
 
@@ -463,10 +464,10 @@ Case-sensitive external-provider subject handling is accepted as deferred and no
 All are required:
 
 1. **SATISFIED:** Project Owner accepted the plan and decisions 1–10 on 2026-07-16.
-2. **NOT SATISFIED:** Project Owner must separately authorize Phase 1B.1-B implementation and the exact file manifest.
-3. Framework-reference impact must be re-confirmed in the implementation authorization; no package installation is authorized by plan acceptance.
-4. HEAD and tracked/staged cleanliness must be reverified immediately before any authorized implementation.
-5. V0003/U0003 must remain byte-for-byte unchanged.
+2. **SATISFIED:** Project Owner separately authorized Phase 1B.1-B implementation, testing, documentation, the exact file manifest, and one implementation commit.
+3. **SATISFIED:** Compilation proved `Microsoft.AspNetCore.App` was required by Infrastructure for `PasswordHasher<TUser>`; the authorized framework reference was added and no NuGet package was added.
+4. **SATISFIED:** HEAD and tracked/staged cleanliness were verified immediately before implementation.
+5. **SATISFIED:** V0003/U0003 remain byte-for-byte unchanged.
 
 ### Completion gate for an authorized future implementation
 
@@ -508,11 +509,11 @@ dotnet test tests/backend/PTKD.IntegrationTests/PTKD.IntegrationTests.csproj --c
 - **Decision 8:** Approved — failure and lockout time behavior uses UTC.
 - **Decision 9:** Approved — no additional password character-class rule.
 - **Decision 10:** Approved — case-sensitive external subject handling is deferred/non-blocking; no V0004/U0004 in Slice B without a separate decision.
-- **Project Owner conditions:** No source, test, migration, API, JWT, frontend, package, Production migration, tag, or push is authorized by this plan acceptance. Phase 1B.1-C through I remain NOT AUTHORIZED.
+- **Project Owner conditions at plan acceptance:** Plan acceptance alone did not authorize source or test changes. A later direct written authorization authorized Slice B implementation, testing, documentation, the framework reference, and one implementation commit only. Migration, API, JWT, frontend, package, Production migration, tag, and push remain unauthorized. Phase 1B.1-C through I remain NOT AUTHORIZED.
 - **Project Owner name:** Đào Hải Bách.
 - **Role:** Project Owner.
 - **Acceptance date:** 2026-07-16.
 - **Confirmation method:** Direct written authorization.
-- **Implementation authorization:** NOT AUTHORIZED.
+- **Implementation authorization:** AUTHORIZED BY SEPARATE DIRECT WRITTEN AUTHORIZATION; implementation is verified and awaiting Project Owner acceptance.
 
-PHASE 1B.1-B PLAN ACCEPTED BY PROJECT OWNER — IMPLEMENTATION NOT AUTHORIZED
+PHASE 1B.1-B IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
