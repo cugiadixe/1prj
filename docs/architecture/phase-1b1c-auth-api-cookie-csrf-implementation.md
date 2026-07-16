@@ -13,7 +13,7 @@
 - **Expected Baseline Commit:** `951e6a33d0caab9fe2b3b8a54d09c455cc0817cf`
 - **C-B Implementation Commit:** `16160d09953cdb3d1a6b2d210961da3acbb12d9d`
 - **C-B Cookie-Prefix Correction Commit:** `1097922c77ed5898d20bd1a11da60a50e1a45b15`
-- **C-B API Coverage and Evidence Correction Commit:** `TO BE FILLED AFTER COMMIT`
+- **C-B API Coverage and Evidence Correction Commit:** `070af32788e1027ee298e8f85f4d1dc7530c6005`
 - **Scope:** Auth API layer (`AuthController`), cookie and CSRF service, JWT bearer validation skeleton.
 
 ---
