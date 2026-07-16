@@ -1,6 +1,6 @@
 # Phase 1B.1-C-A Token Session Lifecycle — Implementation Evidence
 
-**Status: IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE**
+**Status: ACCEPTED BY PROJECT OWNER (2026-07-16)**
 
 > **Correction applied**: Session cutoff comparison corrected from strict greater-than (`>`) to inclusive (`>=`). Refresh tokens issued at or before `sessions_invalidated_at` are now denied. Exact-boundary integration test added. See §Correction Evidence below.
 
@@ -302,3 +302,36 @@ Pre-existing tests (127): all continue to pass — no regressions.
 - Cutoff comparison corrected from strict greater-than (>) to inclusive cutoff (>=).
 - Refresh tokens issued at or before sessions_invalidated_at are denied.
 - Exact-boundary test added (Refresh_WithTokenIssuedExactlyAtCutoff_Denied).
+
+---
+
+## Project Owner Acceptance
+
+**Status:** ACCEPTED BY PROJECT OWNER
+**Approver:** Đào Hải Bách (Project Owner)
+**Date:** 2026-07-16
+**Method:** Direct written authorization
+
+Accepted Scope: **Phase 1B.1-C-A — Token Session Foundation**
+
+Accepted Commits:
+1. Implementation commit: 5fdcc445dc8cc103a714763fe9ae18d07175dc46 (Implement Phase 1B.1-C-A token session foundation)
+2. Cutoff correction commit: 6d8f7f3725a816aa302f9275641bb6bbf54c9d56 (Correct Phase 1B.1-C-A session cutoff boundary)
+
+Accepted Results:
+- RefreshToken domain entity and EF mapping implemented based on existing V0003 schema; no migration/rollback changes.
+- Refresh token generated as opaque random material; only SHA-256 hash stored in database. Raw token not persisted.
+- JWT access token issued with 15-minute expiration, contains kid, security_stamp, session/family reference, and no permission claims.
+- Refresh-token lifecycle foundation implemented:
+  - strict single-use rotation (no grace window);
+  - old token marked used and replaced;
+  - reuse detection revokes entire family;
+  - logout revokes current family/session.
+- sessions_invalidated_at cutoff boundary fixed to inclusive (>=), correctly denying tokens issued at or before cutoff.
+- Refresh validation successfully verifies account status, user eligibility, employment status, cutoff, and lockouts.
+- Concurrency and transaction foundation uses Serializable transaction, UPDLOCK/HOLDLOCK equivalent, SQL Server error 1205 deadlock retry policy (max 3 attempts). DbUpdateConcurrencyException explicitly handled.
+- Tests (67 Unit, 138 Integration) and Build completely passed.
+- IdentityModel MSB3277 warning acknowledged as non-blocking for C-A, tracked for API host wiring in C-B.
+- Expressly confirmed **NOT IMPLEMENTED**: API controllers, frontend, /auth/me, /api/v2/auth/logout-all, permission evaluation, AD/LDAP, bootstrap, audit writer/scrubbing, V0004/U0004, and production migration.
+
+**Next steps authorized:** Phase 1B.1-C-B is **NOT AUTHORIZED** by this commit and remains pending explicit project owner approval.
