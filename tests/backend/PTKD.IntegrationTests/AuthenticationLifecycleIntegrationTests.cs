@@ -203,12 +203,18 @@ public sealed class AuthenticationLifecycleIntegrationTests
             "synthetic-current-passphrase",
             seed.RowVersion,
             seed.UserId));
-        var recentReuse = await _harness.Service.ChangePasswordAsync(new ChangePasswordCommand(
-            seed.AccountId,
-            "synthetic-current-passphrase",
-            "synthetic-historic-passphrase-3",
-            seed.RowVersion,
-            seed.UserId));
+        for (var index = 1; index <= 5; index++)
+        {
+            var recentReuse = await _harness.Service.ChangePasswordAsync(new ChangePasswordCommand(
+                seed.AccountId,
+                "synthetic-current-passphrase",
+                $"synthetic-historic-passphrase-{index}",
+                seed.RowVersion,
+                seed.UserId));
+
+            Assert.Equal(AuthenticationErrorCodes.PasswordReuse, recentReuse.ErrorCode);
+        }
+
         var sixthOlder = await _harness.Service.ChangePasswordAsync(new ChangePasswordCommand(
             seed.AccountId,
             "synthetic-current-passphrase",
@@ -217,7 +223,6 @@ public sealed class AuthenticationLifecycleIntegrationTests
             seed.UserId));
 
         Assert.Equal(AuthenticationErrorCodes.PasswordReuse, currentReuse.ErrorCode);
-        Assert.Equal(AuthenticationErrorCodes.PasswordReuse, recentReuse.ErrorCode);
         Assert.True(sixthOlder.Succeeded);
         Assert.Equal(7, await _harness.CountHistoryAsync(seed.AccountId));
     }
@@ -433,6 +438,27 @@ public sealed class AuthenticationLifecycleIntegrationTests
         Assert.True(seed.RowVersion.SequenceEqual(account.RowVersion));
         Assert.False(account.MustChangePassword);
         Assert.Null(account.TemporaryPasswordExpiresAt);
+        Assert.Equal(0, await _harness.CountHistoryAsync(seed.AccountId));
+    }
+
+    [Fact]
+    public async Task FailedPasswordChange_AppendsNoHistory()
+    {
+        var seed = await _harness.CreateInternalAccountAsync("FAILED-CHANGE", "synthetic-current-passphrase");
+
+        var result = await _harness.Service.ChangePasswordAsync(new ChangePasswordCommand(
+            seed.AccountId,
+            "synthetic-wrong-passphrase",
+            "synthetic-replacement-passphrase",
+            seed.RowVersion,
+            seed.UserId));
+
+        var account = await _harness.LoadAccountAsync(seed.AccountId);
+        Assert.False(result.Succeeded);
+        Assert.Equal(AuthenticationErrorCodes.InvalidCredentials, result.ErrorCode);
+        Assert.Equal(seed.PasswordHash, account.PasswordHash);
+        Assert.Equal(seed.SecurityStamp, account.SecurityStamp);
+        Assert.True(seed.RowVersion.SequenceEqual(account.RowVersion));
         Assert.Equal(0, await _harness.CountHistoryAsync(seed.AccountId));
     }
 

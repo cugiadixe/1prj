@@ -182,6 +182,8 @@ The sixth-older history password is outside the prohibited window. History rows 
 
 `SuccessRehashNeeded` updates the current hash only. It does not append history, rotate the security stamp, or alter temporary-password state.
 
+Task 2B added explicit coverage proving that current password reuse is rejected, each of the five latest history rows is individually rejected, the sixth-older history row is allowed, and a failed self-service password change appends no history row.
+
 ## 11. Temporary-password lifecycle
 
 Every LOCAL/INTERNAL administrator reset:
