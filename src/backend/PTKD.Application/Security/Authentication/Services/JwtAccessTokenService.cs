@@ -58,6 +58,8 @@ public sealed class JwtAccessTokenService : IJwtAccessTokenService
             Expires = expiresAt,
             IssuedAt = utcNow,
             NotBefore = utcNow,
+            Issuer = "PTKD-ERP",
+            Audience = "PTKD-ERP-API",
             SigningCredentials = credentials
         };
 

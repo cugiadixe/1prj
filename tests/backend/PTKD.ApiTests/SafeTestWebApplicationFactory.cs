@@ -29,6 +29,11 @@ public class SafeTestWebApplicationFactory : WebApplicationFactory<Program>
                 ["ConnectionStrings:DefaultConnection"] = TestConnectionString
             });
         });
+        
+        builder.ConfigureServices(services =>
+        {
+            services.AddControllers().AddApplicationPart(typeof(ProtectedTestController).Assembly);
+        });
     }
 
     protected override IHost CreateHost(IHostBuilder builder)

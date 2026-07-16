@@ -111,53 +111,12 @@ builder.Services.AddScoped<ITokenSessionLifecycleService, TokenSessionLifecycleS
 builder.Services.AddScoped<CsrfTokenService>();
 
 // Authentication & JWT Bearer
+builder.Services.AddScoped<IProtectedRequestValidator, ProtectedRequestValidator>();
+
+// Authentication & JWT Bearer
+builder.Services.ConfigureOptions<JwtBearerConfigureOptions>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        // Require HTTPS for metadata
-        options.RequireHttpsMetadata = true;
-
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = "PTKD-ERP", // Default issuer
-
-            ValidateAudience = true,
-            ValidAudience = "PTKD-ERP-API", // Default audience
-
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30),
-
-            ValidateIssuerSigningKey = true,
-            // The signing key will be resolved dynamically using the kid from the header
-            IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) =>
-            {
-                var provider = builder.Services.BuildServiceProvider().GetRequiredService<IJwtSigningKeyProvider>();
-                var keyDesc = provider.GetValidationKeys().FirstOrDefault(k => k.Kid == kid);
-                if (keyDesc != null)
-                {
-                    var rsa = System.Security.Cryptography.RSA.Create();
-                    rsa.ImportRSAPublicKey(keyDesc.PublicKeyBytes, out _);
-                    return new[] { new RsaSecurityKey(rsa) { KeyId = kid } };
-                }
-                return Enumerable.Empty<SecurityKey>();
-            }
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = context =>
-            {
-                // TODO (Phase 1B.1-C-C):
-                // Fully wire protected-request stamp validation here or via a dedicated authorization policy/filter.
-                // This requires extracting the `sub` (UserId) and `security_stamp` claims from the JWT,
-                // querying the database to verify the account is ACTIVE, employment status is eligible,
-                // the `security_stamp` matches, and the token was issued after `sessions_invalidated_at`.
-                // For Phase 1B.1-C-B, we only implement the cryptographic and standard claim validations.
-                return Task.CompletedTask;
-            }
-        };
-    });
+    .AddJwtBearer();
 
 // Validation
 builder.Services.AddValidatorsFromAssemblyContaining<PTKD.Application.Organizations.Companies.Validations.CreateCompanyRequestValidator>();
