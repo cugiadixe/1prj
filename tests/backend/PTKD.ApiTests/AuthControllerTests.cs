@@ -22,6 +22,8 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         _client = factory.CreateClient();
     }
 
+    // ── Login tests ───────────────────────────────────────────────────────────
+
     [Fact]
     public async Task Login_ValidCredentials_ReturnsSuccessAndSetsCookies()
     {
@@ -79,6 +81,75 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/invalid-credentials", problem.GetProperty("type").GetString());
     }
 
+    /// <summary>
+    /// Test B1#1: Locked account returns a generic non-enumerating response.
+    ///
+    /// Behavioral note (documented as N3 in C-B final review):
+    /// AuthenticationAccountService.AuthenticateAsync detects lock status before
+    /// password verification and returns InvalidCredentials, which the controller maps to 401.
+    /// The 403 AccountLocked path via CreateSessionAsync can only be triggered by a race
+    /// condition (account locked between AuthenticateAsync and CreateSessionAsync) which
+    /// cannot be reliably reproduced in integration tests.
+    ///
+    /// Current approved behavior: locked account → 401 generic (non-enumerating).
+    /// This is a non-blocking N3 concern deferred to Phase 1B.1-C-C for formal resolution.
+    /// The test asserts: locked account does NOT expose lock reason, does NOT reveal internal state.
+    /// </summary>
+    [Fact]
+    public async Task Login_LockedAccount_ReturnsGenericResponse_DoesNotExposeReason()
+    {
+        var testUsername = "api_locked_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword, locked: true);
+
+        var response = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+
+        // Locked account is caught by AuthenticateAsync before CreateSessionAsync is called.
+        // AuthenticateAsync returns InvalidCredentials for locked accounts → 401 generic.
+        // Non-enumerating: same external response as wrong credentials.
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        var detail = problem.GetProperty("detail").GetString() ?? string.Empty;
+
+        // Must use the same generic error URI — does not reveal that account is locked vs wrong password
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/invalid-credentials", type);
+
+        // Must NOT expose lock reason, internal codes, or account status
+        Assert.DoesNotContain("LOCKED", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("lock", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ACCOUNT_LOCKED", detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Test B1#2: Login success response body does NOT contain refresh token material.
+    /// Asserts that no known refresh token field name appears in the raw JSON body.
+    /// </summary>
+    [Fact]
+    public async Task Login_Success_ResponseBodyDoesNotContainRefreshToken()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        var response = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var rawJson = await response.Content.ReadAsStringAsync();
+
+        // Assert no refresh token field name appears in the JSON body
+        Assert.DoesNotContain("refreshToken", rawJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refresh_token", rawJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rawRefreshToken", rawJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refreshMaterial", rawJson, StringComparison.OrdinalIgnoreCase);
+
+        // Also assert expected fields ARE present
+        Assert.Contains("accessToken", rawJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Refresh tests ─────────────────────────────────────────────────────────
+
     [Fact]
     public async Task Refresh_ValidCookies_ReturnsNewToken()
     {
@@ -121,6 +192,178 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Forbidden, refreshRes.StatusCode);
     }
 
+    /// <summary>
+    /// Test B1#3: Missing refresh cookie (with valid CSRF) maps to generic 401.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_MissingRefreshCookie_Returns401Generic()
+    {
+        // Supply CSRF cookie and header, but no RefreshToken cookie
+        var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        var fakeToken = "fake-csrf-value";
+        refreshRequest.Headers.Add("Cookie", $"X-CSRF-TOKEN={fakeToken}");
+        refreshRequest.Headers.Add("X-CSRF-Token", fakeToken);
+
+        var refreshRes = await _client.SendAsync(refreshRequest);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshRes.StatusCode);
+
+        var problem = await refreshRes.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        // Must not expose internal token state
+        Assert.DoesNotContain("not_found", type, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("missing", type, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Test B1#4: Invalid refresh token maps to generic 401 response.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_InvalidToken_Returns401Generic()
+    {
+        var fakeToken = "invalid-csrf-value";
+        var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        refreshRequest.Headers.Add("Cookie", $"RefreshToken=this-is-not-a-real-token; X-CSRF-TOKEN={fakeToken}");
+        refreshRequest.Headers.Add("X-CSRF-Token", fakeToken);
+
+        var refreshRes = await _client.SendAsync(refreshRequest);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshRes.StatusCode);
+
+        var problem = await refreshRes.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/session-invalid", type);
+        // Must not expose internal reason codes
+        var detail = problem.GetProperty("detail").GetString() ?? string.Empty;
+        Assert.DoesNotContain("TOKEN_NOT_FOUND", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("InternalReason", detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Test B1#5+6: Revoked/expired refresh token maps to generic 401 response.
+    /// We simulate a revoked token by logging out after login (which revokes the family),
+    /// then trying to refresh with the original token.
+    /// This covers both revocation and post-logout invalid state.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_RevokedToken_Returns401Generic()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        // Login to get a real refresh token
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        Assert.Equal(HttpStatusCode.OK, loginRes.StatusCode);
+
+        var cookies = loginRes.Headers.GetValues("Set-Cookie").ToList();
+        var csrfToken = loginRes.Headers.GetValues("X-CSRF-Token").First();
+
+        // Logout to revoke the token family
+        var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/logout");
+        logoutReq.Headers.Add("Cookie", cookies);
+        logoutReq.Headers.Add("X-CSRF-Token", csrfToken);
+        var logoutRes = await _client.SendAsync(logoutReq);
+        Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
+
+        // Now try to refresh with the revoked token
+        var newCsrfToken = "new-fake-csrf";
+        var refreshReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        // Use the original refresh token cookie but a new (matching) CSRF
+        var refreshTokenCookie = cookies.First(c => c.StartsWith("RefreshToken="));
+        var refreshTokenValue = refreshTokenCookie.Split(';')[0]; // "RefreshToken=<value>"
+        refreshReq.Headers.Add("Cookie", $"{refreshTokenValue}; X-CSRF-TOKEN={newCsrfToken}");
+        refreshReq.Headers.Add("X-CSRF-Token", newCsrfToken);
+
+        var refreshRes = await _client.SendAsync(refreshReq);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshRes.StatusCode);
+
+        var problem = await refreshRes.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/session-invalid", type);
+        // Internal revoke reason must not be exposed
+        var detail = problem.GetProperty("detail").GetString() ?? string.Empty;
+        Assert.DoesNotContain("TOKEN_REVOKED", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("SESSIONS_INVALIDATED", detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Test B1#7: Reused refresh token (token rotation reuse detection) maps to generic 401 response.
+    /// After a successful refresh, the old token is marked used; reusing it should fail.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_ReusedToken_Returns401Generic()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        // Login
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        Assert.Equal(HttpStatusCode.OK, loginRes.StatusCode);
+
+        var loginCookies = loginRes.Headers.GetValues("Set-Cookie").ToList();
+        var loginCsrfToken = loginRes.Headers.GetValues("X-CSRF-Token").First();
+
+        // First refresh (legitimate rotation)
+        var firstRefreshToken = loginCookies.First(c => c.StartsWith("RefreshToken=")).Split(';')[0];
+        var firstRefreshReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        firstRefreshReq.Headers.Add("Cookie", loginCookies);
+        firstRefreshReq.Headers.Add("X-CSRF-Token", loginCsrfToken);
+        var firstRefreshRes = await _client.SendAsync(firstRefreshReq);
+        Assert.Equal(HttpStatusCode.OK, firstRefreshRes.StatusCode);
+
+        // Now attempt to reuse the ORIGINAL (now-used/rotated) refresh token
+        var newCsrfToken = "reuse-test-csrf";
+        var reuseReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        reuseReq.Headers.Add("Cookie", $"{firstRefreshToken}; X-CSRF-TOKEN={newCsrfToken}");
+        reuseReq.Headers.Add("X-CSRF-Token", newCsrfToken);
+        var reuseRes = await _client.SendAsync(reuseReq);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, reuseRes.StatusCode);
+
+        var problem = await reuseRes.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/session-invalid", type);
+        // Must not expose TOKEN_REUSED internal code
+        var detail = problem.GetProperty("detail").GetString() ?? string.Empty;
+        Assert.DoesNotContain("TOKEN_REUSED", detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Test B1#8: Refresh success response body does NOT contain refresh token material.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_Success_ResponseBodyDoesNotContainRefreshToken()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var cookies = loginRes.Headers.GetValues("Set-Cookie");
+        var csrfToken = loginRes.Headers.GetValues("X-CSRF-Token").First();
+
+        var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        refreshRequest.Headers.Add("Cookie", cookies);
+        refreshRequest.Headers.Add("X-CSRF-Token", csrfToken);
+
+        var refreshRes = await _client.SendAsync(refreshRequest);
+        Assert.Equal(HttpStatusCode.OK, refreshRes.StatusCode);
+
+        var rawJson = await refreshRes.Content.ReadAsStringAsync();
+
+        Assert.DoesNotContain("refreshToken", rawJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refresh_token", rawJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rawRefreshToken", rawJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refreshMaterial", rawJson, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("accessToken", rawJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Logout tests ──────────────────────────────────────────────────────────
+
     [Fact]
     public async Task Logout_ValidSession_Returns204AndClearsCookies()
     {
@@ -149,7 +392,142 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.Contains(clearCookies, c => c.StartsWith("RefreshToken=") && c.Contains("expires="));
     }
 
-    private async Task<long> SeedUserAndAccountAsync(string username, string password)
+    /// <summary>
+    /// Test B1#9: Logout requires CSRF when refresh cookie is present.
+    /// Missing CSRF header must fail with 403.
+    /// </summary>
+    [Fact]
+    public async Task Logout_MissingCsrf_WithRefreshCookiePresent_Returns403()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var cookies = loginRes.Headers.GetValues("Set-Cookie");
+
+        // Send logout with RefreshToken cookie but NO X-CSRF-Token header
+        var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/logout");
+        logoutReq.Headers.Add("Cookie", cookies); // has RefreshToken + X-CSRF-TOKEN cookies
+        // No X-CSRF-Token header
+
+        var logoutRes = await _client.SendAsync(logoutReq);
+
+        Assert.Equal(HttpStatusCode.Forbidden, logoutRes.StatusCode);
+    }
+
+    /// <summary>
+    /// Test B1#10: Logout revokes current family/session.
+    /// After logout, a refresh with the same token must return 401.
+    /// </summary>
+    [Fact]
+    public async Task Logout_RevokesSession_SubsequentRefreshFails()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        // Login
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var cookies = loginRes.Headers.GetValues("Set-Cookie").ToList();
+        var csrfToken = loginRes.Headers.GetValues("X-CSRF-Token").First();
+
+        // Logout
+        var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/logout");
+        logoutReq.Headers.Add("Cookie", cookies);
+        logoutReq.Headers.Add("X-CSRF-Token", csrfToken);
+        var logoutRes = await _client.SendAsync(logoutReq);
+        Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
+
+        // Try to refresh after logout — must fail
+        var newCsrfToken = "post-logout-csrf";
+        var refreshTokenCookie = cookies.First(c => c.StartsWith("RefreshToken=")).Split(';')[0];
+        var refreshReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
+        refreshReq.Headers.Add("Cookie", $"{refreshTokenCookie}; X-CSRF-TOKEN={newCsrfToken}");
+        refreshReq.Headers.Add("X-CSRF-Token", newCsrfToken);
+
+        var refreshRes = await _client.SendAsync(refreshReq);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshRes.StatusCode);
+    }
+
+    /// <summary>
+    /// Test B1#11+12: Logout deletes both RefreshToken and X-CSRF-TOKEN cookies.
+    /// </summary>
+    [Fact]
+    public async Task Logout_DeletesRefreshCookieAndCsrfCookie()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var cookies = loginRes.Headers.GetValues("Set-Cookie");
+        var csrfToken = loginRes.Headers.GetValues("X-CSRF-Token").First();
+
+        var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/logout");
+        logoutReq.Headers.Add("Cookie", cookies);
+        logoutReq.Headers.Add("X-CSRF-Token", csrfToken);
+        var logoutRes = await _client.SendAsync(logoutReq);
+
+        Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
+
+        var clearCookies = logoutRes.Headers.GetValues("Set-Cookie").ToList();
+
+        // RefreshToken cookie must be cleared (expired)
+        Assert.Contains(clearCookies, c => c.StartsWith("RefreshToken=") && c.Contains("expires="));
+
+        // X-CSRF-TOKEN cookie must be cleared (expired or empty)
+        Assert.Contains(clearCookies, c => c.StartsWith("X-CSRF-TOKEN=") && c.Contains("expires="));
+    }
+
+    /// <summary>
+    /// Test B1#13: Logout with no refresh cookie returns safe 204 (no CSRF required).
+    /// </summary>
+    [Fact]
+    public async Task Logout_NoCookiePresent_Returns204Safe()
+    {
+        var logoutReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/logout");
+        // No cookies, no CSRF header — safe to ignore
+
+        var logoutRes = await _client.SendAsync(logoutReq);
+
+        // When no refresh cookie is present, logout succeeds generically (204)
+        Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
+    }
+
+    // ── Scope tests ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Test B1#14: GET /api/v2/auth/me is not implemented (404 or MethodNotAllowed).
+    /// </summary>
+    [Fact]
+    public async Task Auth_Me_Endpoint_NotPresent()
+    {
+        var response = await _client.GetAsync("/api/v2/auth/me");
+
+        // Must return 404 (not found) — endpoint not routed
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Test B1#15: POST /api/v2/auth/logout-all is not implemented (404).
+    /// </summary>
+    [Fact]
+    public async Task Auth_LogoutAll_Endpoint_NotPresent()
+    {
+        var response = await _client.PostAsJsonAsync("/api/v2/auth/logout-all", new { });
+
+        // Must return 404 (not found) — endpoint not routed
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // ── Seed helpers ──────────────────────────────────────────────────────────
+
+    private async Task<long> SeedUserAndAccountAsync(
+        string username,
+        string password,
+        bool locked = false)
     {
         using var scope = _factory.Services.CreateScope();
         var dbContextFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
@@ -178,6 +556,17 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
             hash,
             clock.UtcNow
         );
+
+        if (locked)
+        {
+            // Record enough failed attempts to trigger lockout (policy default: 5 attempts, 15 min lockout)
+            var policy = new AuthenticationAccountPolicy();
+            for (var i = 0; i < policy.MaximumFailedAttempts; i++)
+            {
+                account.RecordFailedAttempt(clock.UtcNow, policy.MaximumFailedAttempts, policy.LockoutDuration);
+            }
+        }
+
         db.UserAuthAccounts.Add(account);
         await db.SaveChangesAsync();
 
