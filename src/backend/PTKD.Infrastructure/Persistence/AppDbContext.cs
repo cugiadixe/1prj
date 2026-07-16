@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Security.Authentication.Interfaces;
 using PTKD.Domain.Entities;
+using PTKD.Domain.Security.Authentication;
 
 namespace PTKD.Infrastructure.Persistence;
 
-public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDbContext
+public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDbContext, ITokenSessionDbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -20,6 +21,7 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<EmploymentHistory> EmploymentHistories => Set<EmploymentHistory>();
     public DbSet<UserAuthAccount> UserAuthAccounts => Set<UserAuthAccount>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,5 +72,47 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
             .ThenByDescending(history => history.Id)
             .Take(count)
             .ToListAsync(cancellationToken);
+    }
+
+    public Task<RefreshToken?> FindRefreshTokenByHashForUpdateAsync(
+        string tokenHash,
+        CancellationToken cancellationToken = default)
+    {
+        return RefreshTokens
+            .FromSqlInterpolated($"SELECT * FROM dbo.Refresh_Tokens WITH (UPDLOCK, HOLDLOCK) WHERE token_hash = {tokenHash}")
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<int> RevokeFamilyAsync(
+        Guid familyId,
+        string reason,
+        DateTime revokedAt,
+        CancellationToken cancellationToken = default)
+    {
+        return await RefreshTokens
+            .Where(r => r.FamilyId == familyId && r.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(b => b.RevokedAt, revokedAt)
+                    .SetProperty(b => b.RevokeReason, reason),
+                cancellationToken);
+    }
+
+    public async Task MarkReuseDetectedAsync(
+        long tokenId,
+        DateTime reuseDetectedAt,
+        CancellationToken cancellationToken = default)
+    {
+        await RefreshTokens
+            .Where(r => r.Id == tokenId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(b => b.ReuseDetectedAt, reuseDetectedAt),
+                cancellationToken);
+    }
+
+    public void AddRefreshToken(RefreshToken token)
+    {
+        RefreshTokens.Add(token);
     }
 }

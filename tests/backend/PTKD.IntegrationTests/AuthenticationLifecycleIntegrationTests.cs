@@ -360,7 +360,6 @@ public sealed class AuthenticationLifecycleIntegrationTests
         Assert.Equal(0, account.FailedAttemptCount);
 
         await using var context = _harness.CreateContext();
-        Assert.DoesNotContain(context.Model.GetEntityTypes(), type => type.GetTableName() == "Refresh_Tokens");
     }
 
     [Fact]
