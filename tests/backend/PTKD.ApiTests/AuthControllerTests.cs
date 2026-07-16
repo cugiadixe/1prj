@@ -37,7 +37,7 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
 
         // 3. Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
+
         var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(loginResponse);
         Assert.NotNull(loginResponse.AccessToken);
@@ -47,7 +47,11 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
 
         // Verify Refresh Cookie
         var setCookieHeaders = response.Headers.GetValues("Set-Cookie").ToList();
-        var refreshCookie = setCookieHeaders.SingleOrDefault(c => c.StartsWith("__Host-RefreshToken="));
+
+        // Ensure no __Host- cookies are returned
+        Assert.DoesNotContain(setCookieHeaders, c => c.StartsWith("__Host-", StringComparison.OrdinalIgnoreCase));
+
+        var refreshCookie = setCookieHeaders.SingleOrDefault(c => c.StartsWith("RefreshToken="));
         Assert.NotNull(refreshCookie);
         Assert.Contains("HttpOnly", refreshCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Secure", refreshCookie, StringComparison.OrdinalIgnoreCase);
@@ -97,7 +101,11 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.NotNull(newLoginRes?.AccessToken);
 
         var newCookies = refreshRes.Headers.GetValues("Set-Cookie").ToList();
-        Assert.Contains(newCookies, c => c.StartsWith("__Host-RefreshToken="));
+
+        // Ensure no __Host- cookies are returned
+        Assert.DoesNotContain(newCookies, c => c.StartsWith("__Host-", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Contains(newCookies, c => c.StartsWith("RefreshToken="));
         Assert.Contains(newCookies, c => c.StartsWith("X-CSRF-TOKEN="));
     }
 
@@ -105,7 +113,7 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
     public async Task Refresh_MissingCsrf_Returns403()
     {
         var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/refresh");
-        refreshRequest.Headers.Add("Cookie", "__Host-RefreshToken=fake-token; X-CSRF-TOKEN=fake-csrf");
+        refreshRequest.Headers.Add("Cookie", "RefreshToken=fake-token; X-CSRF-TOKEN=fake-csrf");
         // No header X-CSRF-Token
 
         var refreshRes = await _client.SendAsync(refreshRequest);
@@ -133,8 +141,12 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
 
         var clearCookies = logoutRes.Headers.GetValues("Set-Cookie").ToList();
+
+        // Ensure no __Host- cookies are returned
+        Assert.DoesNotContain(clearCookies, c => c.StartsWith("__Host-", StringComparison.OrdinalIgnoreCase));
+
         // Cookie clearing involves setting it to empty with past expiry
-        Assert.Contains(clearCookies, c => c.StartsWith("__Host-RefreshToken=") && c.Contains("expires="));
+        Assert.Contains(clearCookies, c => c.StartsWith("RefreshToken=") && c.Contains("expires="));
     }
 
     private async Task<long> SeedUserAndAccountAsync(string username, string password)
@@ -146,7 +158,7 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         var clock = scope.ServiceProvider.GetRequiredService<IUtcClock>();
 
         using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbContextFactory.CreateDbContext();
-        
+
         var user = new PTKD.Domain.Entities.User(
             username,
             "Test " + username,
@@ -159,7 +171,7 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
 
         var hasher = new PasswordHasher<PTKD.Domain.Entities.UserAuthAccount>();
         var hash = hasher.HashPassword(null!, password);
-        
+
         var account = PTKD.Domain.Entities.UserAuthAccount.CreateInternal(
             user.Id,
             username.ToUpperInvariant(),

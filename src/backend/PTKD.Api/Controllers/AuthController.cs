@@ -12,7 +12,7 @@ namespace PTKD.Api.Controllers;
 [Route("api/v2/auth")]
 public sealed class AuthController : ControllerBase
 {
-    private const string RefreshCookieName = "__Host-RefreshToken";
+    private const string RefreshCookieName = "RefreshToken";
     private const string RefreshCookiePath = "/api/v2/auth";
     private const int RefreshTokenLifetimeDays = 7;
     private const int AccessTokenLifetimeSeconds = 900; // 15 minutes

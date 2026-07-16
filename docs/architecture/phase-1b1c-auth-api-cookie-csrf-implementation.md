@@ -27,12 +27,12 @@ The following endpoints were implemented in `AuthController`:
 ### A. Login
 - Validates password via `IAuthenticationAccountService`.
 - Success issues JWT access token in the response body.
-- Sets refresh token as `__Host-RefreshToken` HttpOnly Secure Strict cookie on `/api/v2/auth`.
+- Sets refresh token as `RefreshToken` HttpOnly Secure Strict cookie on `/api/v2/auth`.
 - Issues a CSRF token as `X-CSRF-TOKEN` cookie and `X-CSRF-Token` response header.
 - Does not require CSRF token since it's the beginning of a session.
 
 ### B. Refresh
-- Requires valid `__Host-RefreshToken` cookie.
+- Requires valid `RefreshToken` cookie.
 - Requires CSRF token matching between `X-CSRF-Token` header and `X-CSRF-TOKEN` cookie.
 - Rotates refresh cookie securely.
 - Rotates CSRF token cookie and header.
@@ -42,11 +42,12 @@ The following endpoints were implemented in `AuthController`:
 - Requires valid CSRF token if the refresh cookie is present.
 - Generic success is returned regardless of token state.
 - Revokes the current family/session.
-- Deletes both `__Host-RefreshToken` and `X-CSRF-TOKEN` cookies.
+- Deletes both `RefreshToken` and `X-CSRF-TOKEN` cookies.
 
 ## 5. Cookie and CSRF Details
-- **Refresh Cookie**: Path `/api/v2/auth`, `HttpOnly`, `Secure`, `SameSite=Strict`. Name `__Host-RefreshToken` enforces domain omission and path root requirements at the browser level.
-- **CSRF Token**: Double-submit pattern. `X-CSRF-TOKEN` cookie is set to `HttpOnly=false`, `Secure`, `SameSite=Strict`. Validated against `X-CSRF-Token` header in constant-time.
+- **Correction**: The `__Host-` prefix was removed because the Project Owner-approved Path is `/api/v2/auth` and `__Host-` strictly requires `Path=/`.
+- **Refresh Cookie**: Name `RefreshToken`, Path `/api/v2/auth`, `HttpOnly=true`, `Secure=true`, `SameSite=Strict`, `Domain` omitted.
+- **CSRF Token**: Double-submit pattern. `X-CSRF-TOKEN` cookie is set to `HttpOnly=false`, `Secure=true`, `SameSite=Strict`, `Path=/api/v2/auth`, `Domain` omitted. Validated against `X-CSRF-Token` header in constant-time.
 
 ## 6. ProblemDetails Mapping
 - **Invalid Credentials**: Returns 401 Unauthorized with generic "Authentication Failed" without enumerating user existence.
