@@ -211,12 +211,18 @@ public sealed class AuthController : ControllerBase
             });
         }
 
-        // Determine if locked (generic mapping: any locked state → 403)
-        // We cannot distinguish externally — return 401 for all invalid credential cases
-        // to maintain non-enumeration, UNLESS the service returned a lockout signal.
-        // Since AuthenticationAttemptResult.Outcome doesn't have a Locked enum value,
-        // we check InternalReason. But ErrorCode may be null for InvalidCredentials.
-        // Use 401 for all auth failures except infra (generic, non-enumerating).
+        if (result.Outcome == AuthenticationAttemptOutcome.AccountLocked)
+        {
+            return Forbid403(new ProblemDetails
+            {
+                Status = 403,
+                Title = "Access Denied",
+                Detail = "The account is not accessible.",
+                Type = "https://ptkd-erp.internal/docs/errors/auth/access-denied"
+            });
+        }
+
+        // Use 401 for all other auth failures (generic, non-enumerating).
         return Unauthorized(BuildGenericAuthProblem());
     }
 

@@ -71,29 +71,35 @@ public sealed class AuthenticationAccountService : IAuthenticationAccountService
                     return AuthenticationAttemptResult.InvalidCredentials();
 
                 var expiredLockoutWasCleared = account.ApplyExpiredTimedLockout(utcNow);
+                bool isLocked = account.IsManualLock || account.IsTimedLockoutActive(utcNow);
+                bool isActiveAndEligible = !isLocked
+                                           && string.Equals(account.AuthAccountStatus, AuthenticationAccountPolicy.ActiveAccountStatus, StringComparison.Ordinal)
+                                           && _policy.IsLinkedUserEligible(account.User);
 
-                if (account.IsManualLock || account.IsTimedLockoutActive(utcNow))
+                if (verification == PasswordHashVerificationResult.Failed)
+                {
+                    if (isActiveAndEligible)
+                    {
+                        account.RecordFailedAttempt(utcNow, _policy.MaximumFailedAttempts, _policy.LockoutDuration);
+                        await context.SaveChangesAsync(token);
+                    }
+                    else if (expiredLockoutWasCleared)
+                    {
+                        await context.SaveChangesAsync(token);
+                    }
                     return AuthenticationAttemptResult.InvalidCredentials();
+                }
 
-                if (!string.Equals(
-                        account.AuthAccountStatus,
-                        AuthenticationAccountPolicy.ActiveAccountStatus,
-                        StringComparison.Ordinal)
-                    || !_policy.IsLinkedUserEligible(account.User))
+                if (isLocked)
+                {
+                    return AuthenticationAttemptResult.AccountLocked();
+                }
+
+                if (!isActiveAndEligible)
                 {
                     if (expiredLockoutWasCleared)
                         await context.SaveChangesAsync(token);
 
-                    return AuthenticationAttemptResult.InvalidCredentials();
-                }
-
-                if (verification == PasswordHashVerificationResult.Failed)
-                {
-                    account.RecordFailedAttempt(
-                        utcNow,
-                        _policy.MaximumFailedAttempts,
-                        _policy.LockoutDuration);
-                    await context.SaveChangesAsync(token);
                     return AuthenticationAttemptResult.InvalidCredentials();
                 }
 

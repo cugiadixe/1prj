@@ -12,6 +12,7 @@ public static class AuthenticationErrorCodes
     public const string AccountStateConflict = "AUTH_ACCOUNT_STATE_CONFLICT";
     public const string ExternalPasswordManaged = "AUTH_EXTERNAL_PASSWORD_MANAGED";
     public const string UnexpectedDatabaseError = "AUTH_UNEXPECTED_DATABASE_ERROR";
+    public const string AccountLocked = "AUTH_ACCOUNT_LOCKED";
 }
 
 public enum AuthenticationAttemptOutcome
@@ -19,7 +20,8 @@ public enum AuthenticationAttemptOutcome
     InvalidCredentials = 0,
     Succeeded = 1,
     PasswordChangeRequired = 2,
-    InfrastructureFailure = 3
+    InfrastructureFailure = 3,
+    AccountLocked = 4
 }
 
 public sealed record AuthenticationAttemptResult
@@ -54,6 +56,9 @@ public sealed record AuthenticationAttemptResult
 
     public static AuthenticationAttemptResult InfrastructureFailure() =>
         new(AuthenticationAttemptOutcome.InfrastructureFailure, AuthenticationErrorCodes.UnexpectedDatabaseError, null, null, null, null);
+
+    public static AuthenticationAttemptResult AccountLocked() =>
+        new(AuthenticationAttemptOutcome.AccountLocked, AuthenticationErrorCodes.AccountLocked, null, null, null, null);
 
     public static AuthenticationAttemptResult Success(
         long accountId,

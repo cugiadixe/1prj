@@ -39,11 +39,13 @@ public sealed class AuthenticationLifecycleIntegrationTests
         Assert.Equal(AuthenticationAccountPolicy.LockedAccountStatus, locked.AuthAccountStatus);
         Assert.Equal(_harness.Clock.UtcNow.AddMinutes(15), locked.LockoutEnd);
 
-        var activeLockoutResult = await AuthenticateAsync("LOCKOUT-USER", "synthetic-correct-passphrase");
+        var activeLockoutResultWithCorrectPass = await AuthenticateAsync("LOCKOUT-USER", "synthetic-correct-passphrase");
+        var activeLockoutResultWithWrongPass = await AuthenticateAsync("LOCKOUT-USER", "synthetic-wrong-passphrase");
         var unknownResult = await AuthenticateAsync("UNKNOWN-USER", "synthetic-correct-passphrase");
         var afterActiveLockout = await _harness.LoadAccountAsync(seed.AccountId);
 
-        Assert.Equal(lastResult, activeLockoutResult);
+        Assert.Equal(AuthenticationAttemptOutcome.AccountLocked, activeLockoutResultWithCorrectPass.Outcome);
+        Assert.Equal(lastResult, activeLockoutResultWithWrongPass);
         Assert.Equal(lastResult, unknownResult);
         Assert.Equal(5, afterActiveLockout.FailedAttemptCount);
         Assert.Equal(locked.LockoutEnd, afterActiveLockout.LockoutEnd);

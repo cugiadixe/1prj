@@ -8,6 +8,23 @@
 
 ---
 
+## Correction: Locked Account Status Mapping
+
+During final review, it was found that locked account login returned 401 because `AuthenticationAccountService` returned `InvalidCredentials`, which was mapped to 401. A correction was implemented to:
+- Map locked login with correct password to HTTP 403 generic.
+- Ensure external response remains non-enumerating (wrong passwords still return 401).
+- Ensure failed-attempt accounting remains unchanged (locked account attempt does not increment failed_attempt_count).
+
+### Current Correction Chain
+- `16160d09953cdb3d1a6b2d210961da3acbb12d9d` (Initial Implementation)
+- `1097922c77ed5898d20bd1a11da60a50e1a45b15` (Cookie prefix correction)
+- `070af32788e1027ee298e8f85f4d1dc7530c6005` (API coverage correction)
+- `f6a46560eefd4d330081ea32bcf39b6ff94cbe83` (Doc update)
+- `a713529bc941f2d69a52feadc3b5d05dd724f805` (Doc update)
+- `a9f2ff6917afd565f111b2ef2534002dc8d93b7a` (Locked status correction)
+
+---
+
 ## 1. Baseline and Context
 
 - **Expected Baseline Commit:** `951e6a33d0caab9fe2b3b8a54d09c455cc0817cf`
@@ -159,7 +176,7 @@ Refresh response currently returns `UserId: 0` and empty `Username` in the `User
 - Passed: 138, Failed: 0, Skipped: 0 ✅
 
 **API tests:** `dotnet test tests/backend/PTKD.ApiTests/PTKD.ApiTests.csproj --configuration Debug --no-restore`
-- Passed: 78, Failed: 0, Skipped: 0 ✅ (18 tests — 5 original + 13 new coverage tests)
+- Passed: 80, Failed: 0, Skipped: 0 ✅ (20 tests — 5 original + 15 new coverage tests)
 
 ---
 

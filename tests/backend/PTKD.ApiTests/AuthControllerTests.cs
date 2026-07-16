@@ -70,8 +70,65 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.NotNull(csrfHeader);
     }
 
+    /// <summary>
+    /// Test 1: Locked account with correct password must map to HTTP 403 generic.
+    /// </summary>
     [Fact]
-    public async Task Login_InvalidCredentials_Returns401Generic()
+    public async Task Login_LockedAccount_Returns403Generic()
+    {
+        var testUsername = "api_locked_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword, locked: true);
+
+        var response = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        var detail = problem.GetProperty("detail").GetString() ?? string.Empty;
+
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/access-denied", type);
+        Assert.DoesNotContain("LOCKED", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("lock", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ACCOUNT_LOCKED", detail, StringComparison.OrdinalIgnoreCase);
+
+        // Assert no access token / cookies
+        var rawJson = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("accessToken", rawJson, StringComparison.OrdinalIgnoreCase);
+
+        bool hasSetCookie = response.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders);
+        if (hasSetCookie && setCookieHeaders != null)
+        {
+            Assert.Empty(setCookieHeaders);
+        }
+    }
+
+    /// <summary>
+    /// Test 2: Locked account with WRONG password must map to HTTP 401 generic,
+    /// so as not to enumerate password correctness to unauthenticated users.
+    /// </summary>
+    [Fact]
+    public async Task Login_LockedAccount_WrongPassword_Returns401Generic()
+    {
+        var testUsername = "api_locked_wp_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword, locked: true);
+
+        var response = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, "WrongPassword!"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var type = problem.GetProperty("type").GetString() ?? string.Empty;
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/invalid-credentials", type);
+    }
+
+    /// <summary>
+    /// Test 3: Unknown account must return HTTP 401 generic.
+    /// </summary>
+    [Fact]
+    public async Task Login_UnknownAccount_Returns401Generic()
     {
         var request = new LoginRequest("nonexistent", "wrongpass");
         var response = await _client.PostAsJsonAsync("/api/v2/auth/login", request);
@@ -82,44 +139,20 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
     }
 
     /// <summary>
-    /// Test B1#1: Locked account returns a generic non-enumerating response.
-    ///
-    /// Behavioral note (documented as N3 in C-B final review):
-    /// AuthenticationAccountService.AuthenticateAsync detects lock status before
-    /// password verification and returns InvalidCredentials, which the controller maps to 401.
-    /// The 403 AccountLocked path via CreateSessionAsync can only be triggered by a race
-    /// condition (account locked between AuthenticateAsync and CreateSessionAsync) which
-    /// cannot be reliably reproduced in integration tests.
-    ///
-    /// Current approved behavior: locked account → 401 generic (non-enumerating).
-    /// This is a non-blocking N3 concern deferred to Phase 1B.1-C-C for formal resolution.
-    /// The test asserts: locked account does NOT expose lock reason, does NOT reveal internal state.
+    /// Test 4: Invalid password for non-locked account must return HTTP 401 generic.
     /// </summary>
     [Fact]
-    public async Task Login_LockedAccount_ReturnsGenericResponse_DoesNotExposeReason()
+    public async Task Login_InvalidPassword_Returns401Generic()
     {
-        var testUsername = "api_locked_" + Guid.NewGuid().ToString("N")[..8];
+        var testUsername = "api_active_" + Guid.NewGuid().ToString("N")[..8];
         var testPassword = "ValidPassword123!";
-        await SeedUserAndAccountAsync(testUsername, testPassword, locked: true);
+        await SeedUserAndAccountAsync(testUsername, testPassword, locked: false);
 
-        var response = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var response = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, "WrongPassword!"));
 
-        // Locked account is caught by AuthenticateAsync before CreateSessionAsync is called.
-        // AuthenticateAsync returns InvalidCredentials for locked accounts → 401 generic.
-        // Non-enumerating: same external response as wrong credentials.
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-        var type = problem.GetProperty("type").GetString() ?? string.Empty;
-        var detail = problem.GetProperty("detail").GetString() ?? string.Empty;
-
-        // Must use the same generic error URI — does not reveal that account is locked vs wrong password
-        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/invalid-credentials", type);
-
-        // Must NOT expose lock reason, internal codes, or account status
-        Assert.DoesNotContain("LOCKED", detail, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("lock", detail, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("ACCOUNT_LOCKED", detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("https://ptkd-erp.internal/docs/errors/auth/invalid-credentials", problem.GetProperty("type").GetString());
     }
 
     /// <summary>
