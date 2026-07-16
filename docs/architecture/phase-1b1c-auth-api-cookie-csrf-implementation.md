@@ -1,8 +1,8 @@
 # Phase 1B.1-C-B: Auth API Cookie CSRF Layer Implementation Evidence
 
-**Status:** IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
+**Phase 1B.1-C-B:** ACCEPTED BY PROJECT OWNER
 
-**Phase 1B.1-C-C:** NOT AUTHORIZED
+**Phase 1B.1-C-C:** NOT AUTHORIZED BY THIS ACCEPTANCE COMMIT
 **Phase 1B.1-D through I:** NOT AUTHORIZED
 **Production migration:** NOT AUTHORIZED
 
