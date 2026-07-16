@@ -6,7 +6,7 @@ using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.SqlClient;
+using PTKD.IntegrationTests;
 
 namespace PTKD.ApiTests
 {
@@ -19,36 +19,29 @@ namespace PTKD.ApiTests
         {
             var config = _factory.Services.GetRequiredService<IConfiguration>();
             var connStr = config.GetConnectionString("DefaultConnection");
-            Assert.Contains("Database=PTKD_TEST_PHASE1A2", connStr, StringComparison.OrdinalIgnoreCase);
+            var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connStr);
+            Assert.Equal(TestDatabaseSafety.ApprovedDatabaseName, builder.InitialCatalog, ignoreCase: true);
+            Assert.Equal(TestDatabaseSafety.ApprovedDatabaseName, _factory.VerifiedDatabaseName, ignoreCase: true);
         }
 
         [Fact]
-        public async Task Startup_DoesNotCreateSchema_WhenMigrationSchemaIsAbsent()
+        public void Startup_RejectsUnapprovedDatabaseBeforeAnyConnection()
         {
-            var dbName = "PTKD_TEST_PHASE1A2_NONEXISTENT_" + Guid.NewGuid().ToString("N");
-            var factory = _factory.WithWebHostBuilder(builder =>
+            using var factory = _factory.WithWebHostBuilder(builder =>
             {
                 builder.ConfigureAppConfiguration((context, config) =>
                 {
                     config.AddInMemoryCollection(new[]
                     {
                         new System.Collections.Generic.KeyValuePair<string, string?>("ConnectionStrings:DefaultConnection",
-                            $"Server=localhost;Database={dbName};Integrated Security=true;TrustServerCertificate=true;")
+                            "Server=database-host-that-must-not-be-contacted;Database=PTKD_TEST_PHASE1A;" +
+                            "Integrated Security=true;TrustServerCertificate=true;Connect Timeout=60;")
                     });
                 });
             });
 
-            var client = factory.CreateClient();
-            var response = await client.GetAsync("/api/v2/health");
-            
-            // Validate DB does not exist
-            var cs = $"Server=localhost;Database=master;Integrated Security=true;TrustServerCertificate=true;";
-            using var conn = new SqlConnection(cs);
-            await conn.OpenAsync();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = $"SELECT db_id('{dbName}')";
-            var result = await cmd.ExecuteScalarAsync();
-            Assert.Equal(DBNull.Value, result);
+            var exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
+            Assert.Contains("InitialCatalog", exception.ToString(), StringComparison.Ordinal);
         }
 
         // ── Deactivation Dependencies ────────────────────────────────

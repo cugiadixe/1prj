@@ -1,6 +1,6 @@
 # Phase 1B.0 - Security Discovery and Decisions
 
-> **Important**: Every DEC-1B item listed in this document holds a Final status of **OPEN** in the authoritative decision register (`docs/decisions/phase-1b0-open-decisions.md`). Every item is explicitly labelled: **PROPOSED — PENDING APPROVAL**. Do not present an OPEN decision as final architecture.
+> **Status correction**: The authoritative decision register (`docs/decisions/phase-1b0-open-decisions.md`) now records the 20 active DEC-1B decisions as approved by the Project Owner under the Single-Owner Governance Model; DEC-1B-008 is merged and DEC-1B-017 remains the approved non-blocking deferral. The decision content below is unchanged.
 
 ## 1. Repository Baseline
 - **.NET Executable:** `C:\Users\adm-bachdh\AppData\Local\Microsoft\dotnet\dotnet.exe`
@@ -11,7 +11,7 @@
 ## 2. Existing Schema Summary
 Please reference the authoritative Phase 1A.2 implementation report (`docs/architecture/phase-1a2-application-api-implementation.md`) and the `V0002` migration for the exact schema source of existing tables (`Users`, `Companies`, `Departments`, `User_Company_Assignments`, `User_Department_Assignments`, `Employment_Histories`).
 
-## 3. The Authentication Model (PROPOSED — PENDING APPROVAL)
+## 3. The Authentication Model (APPROVED BASELINE)
 
 **[DEC-1B-001, DEC-1B-002, DEC-1B-004, DEC-1B-013] Identity & Password Strategy:**
 - Authentication explicitly requires:
@@ -25,7 +25,7 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
 - Password Policy: Minimum 8 characters, maximum 64 characters. Cannot contain normalized login name. No reuse of the previous 5 passwords. Temporary password expires after 24 hours. Reset revokes all active sessions. `must_change_password` blocks all non-password business endpoints.
 - Lockout: Failed attempts and lockout values are configuration driven (Proposed: 5 fails = 15 minute lockout).
 
-## 4. Proposed Core Schema Requirements (PROPOSED — PENDING APPROVAL)
+## 4. Core Schema Requirements (APPROVED BASELINE)
 
 **`User_Auth_Accounts` [DEC-1B-001, DEC-1B-002]**
 - `id` BIGINT IDENTITY primary key
@@ -189,7 +189,7 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
 - `bootstrapped_at` DATETIME2(3) not null
 - `row_version` ROWVERSION
 
-### Temporal Overlap Control [DEC-1B-014] (PROPOSED — PENDING APPROVAL)
+### Temporal Overlap Control [DEC-1B-014] (APPROVED BASELINE)
 **Primary proposal:**
 - Use a `SERIALIZABLE` transaction.
 - Query the natural-key date range using `UPDLOCK` and `HOLDLOCK`.
@@ -200,13 +200,13 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
 - Database stable error mapping. No application-only overlap enforcement.
 - Apply consistently to `User_Role_Company`, `User_Individual_Permissions`, `User_Admin_Group_Assignments`.
 
-### Audit Database Controls [DEC-1B-015, DEC-1B-017] (PROPOSED — PENDING APPROVAL)
+### Audit Database Controls [DEC-1B-015, DEC-1B-017] (APPROVED BASELINE)
 - **Primary enforcement**: Runtime principal has `INSERT` and `SELECT` only. No `UPDATE`, `DELETE`, `TRUNCATE`, or cascade deletes.
 - **Defense in depth**: SQL trigger blocks UPDATE and DELETE. EF interceptor provides fail-fast application protection. Dapper and raw SQL paths are tested.
 - No password hash, token, signing key or secret in audit data. Stable SQL error mapped to stable application error. Event identity is immutable.
 - No purge/archive in Phase 1B. Current audit records remain in the database. Long-term retention/archive is a separate compliance decision.
 
-## 5. JWT and Current-Company Consistency [DEC-1B-003, DEC-1B-012, DEC-1B-018, DEC-1B-019] (PROPOSED — PENDING APPROVAL)
+## 5. JWT and Current-Company Consistency [DEC-1B-003, DEC-1B-012, DEC-1B-018, DEC-1B-019] (APPROVED BASELINE)
 
 **JWT & Client Token Storage:**
 - Claims: `sub`, `sid`, `login_name/provider_subject`, `security_stamp`, `iat`, `exp`, `jti`.
@@ -222,7 +222,7 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
 **Signing-Key Provider and Rotation:**
 - Dev: User secrets. Prod/Staging: Azure Key Vault/injected secret. Min 256-bit (HMAC-SHA256). Uses `kid` for rotation. 24h old-key validation window. Startup fails if missing/unsafe. No committed keys.
 
-## 6. Bootstrap Strategy [DEC-1B-010] (PROPOSED — PENDING APPROVAL)
+## 6. Bootstrap Strategy [DEC-1B-010] (APPROVED BASELINE)
 **Production-safe model:**
 - Separate controlled bootstrap executable or command (never runs automatically during API startup). Executed only by an authorized operator.
 - Reads initial secret from an approved enterprise secret provider or protected deployment input. Never prints password, token or secret.
@@ -230,12 +230,12 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
 - Records a persistent one-time bootstrap marker. Rejects all subsequent bootstrap attempts.
 - Does not require the Users table or entire database to be empty. Fails if bootstrap is already completed or an active initial security administrator already exists.
 
-## 7. Permission Evaluator & Cache [DEC-1B-011] (PROPOSED — PENDING APPROVAL)
+## 7. Permission Evaluator & Cache [DEC-1B-011] (APPROVED BASELINE)
 - DB `policy_version` read on every protected request. Cache key includes version. DB read failure must fail closed.
 - Account, session, and company checks occur before cache use.
 - Immediate permission changes must be effective on the next protected request after the policy-version change.
 
-## 8. Explicit Proposed Permission Codes [DEC-1B-016, DEC-1B-021] (PROPOSED — PENDING APPROVAL)
+## 8. Explicit Permission Codes [DEC-1B-016, DEC-1B-021] (APPROVED BASELINE)
 - `ORGANIZATION_COMPANY_VIEW`
 - `ORGANIZATION_COMPANY_MANAGE`
 - `ORGANIZATION_DEPARTMENT_VIEW`
@@ -250,9 +250,9 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
 - `SECURITY_ACCOUNT_MANAGE`
 - `SECURITY_ADMIN_GROUP_VIEW`
 - `SECURITY_ADMIN_GROUP_MANAGE`
-- `SECURITY_AUDIT_VIEW` *(Note: DEC-1B-021 must resolve whether to reuse canonical AUDIT_VIEW or retain this distinct boundary).*
+- `SECURITY_AUDIT_VIEW` *(DEC-1B-021 resolved this as a distinct security-administration boundary from canonical `AUDIT_VIEW`.)*
 
-## 9. API and Error Map Consistency (PROPOSED — PENDING APPROVAL)
+## 9. API and Error Map Consistency (APPROVED BASELINE)
 
 **Error Map (Single Source of HTTP Status Truth):**
 - `AUTH_INVALID_CREDENTIALS` = 401
@@ -316,7 +316,7 @@ Please reference the authoritative Phase 1A.2 implementation report (`docs/archi
   - `GET /api/v2/security/audit` (SECURITY_AUDIT_VIEW, GLOBAL/COMPANY. Req: QueryParams. Res: AuditListResponse)
   - `GET /api/v2/security/audit/{id}` (SECURITY_AUDIT_VIEW, GLOBAL/COMPANY. Req: None. Res: AuditDetailResponse)
 
-## 10. Test Traceability Correction (PROPOSED — PENDING APPROVAL)
+## 10. Test Traceability Correction (APPROVED BASELINE)
 
 | Test Method | Test Layer | Business rule IDs | Acceptance criterion IDs | DEC-1B IDs | Expected Result | Database |
 |---|---|---|---|---|---|---|

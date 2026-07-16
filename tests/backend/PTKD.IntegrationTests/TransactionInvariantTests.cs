@@ -21,11 +21,15 @@ namespace PTKD.IntegrationTests
     {
         private readonly IServiceProvider _serviceProvider;
 
-        public TransactionInvariantTests()
+        public TransactionInvariantTests(TestDatabaseFixture fixture)
         {
             var services = new ServiceCollection();
-            var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
-                ?? "Server=localhost;Database=PTKD_TEST_PHASE1A2;Trusted_Connection=True;TrustServerCertificate=True;";
+            var connectionString = TestDatabaseSafety.ValidateConnectionString(fixture.ConnectionString);
+
+            // Validate SELECT DB_NAME() before any DbContext in this test class can write.
+            using (fixture.OpenVerifiedConnection())
+            {
+            }
             
             services.AddDbContext<AppDbContext>(options =>
             {

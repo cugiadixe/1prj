@@ -1,13 +1,13 @@
 # Phase 1B.1 Authentication & Authorization Implementation Plan
 
 Document status:
-PROPOSED — AWAITING PROJECT OWNER IMPLEMENTATION AUTHORIZATION
+PHASE 1B.1-A VERIFIED AND CORRECTED — AWAITING PROJECT OWNER ACCEPTANCE
 
 Phase 1B.1 implementation:
-NOT AUTHORIZED
+SLICE A CORRECTION AUTHORIZED; SLICES B THROUGH I NOT AUTHORIZED
 
 ## 1. Purpose and authorization boundary
-This document provides the detailed technical implementation plan for Phase 1B.1, covering the database, backend APIs, and frontend structure for Authentication and Authorization. Implementation remains strictly NOT AUTHORIZED until explicitly approved by the Project Owner.
+This document provides the detailed technical implementation plan for Phase 1B.1, covering the database, backend APIs, and frontend structure for Authentication and Authorization. Phase 1B.1-A database-foundation correction and verification was authorized separately. Phase 1B.1-B through I remain strictly NOT AUTHORIZED until explicitly approved by the Project Owner.
 
 ## 2. Verified Phase 1B.0 decision baseline
 This plan strictly enforces the conditions approved by the Project Owner in Phase 1B.0, covering 20 active decisions (with DEC-1B-008 merged into DEC-1B-007, resulting in 21 identifiers in total):
@@ -63,7 +63,10 @@ This plan strictly enforces the conditions approved by the Project Owner in Phas
 - **Backend test projects:** `PTKD.UnitTests`, `PTKD.IntegrationTests`, `PTKD.ApiTests`.
 - **Backend test standard versus actual:**
   - Approved standard: xUnit, NSubstitute, WebApplicationFactory
-  - Actual repository state: xUnit 2.9.3, Moq 4.20.72. REPOSITORY DRIFT — REQUIRES SEPARATE RESOLUTION (Moq is present and NSubstitute is absent. Do not replace Moq or add NSubstitute in Slice 1B.1-A).
+  - Actual `PTKD.UnitTests` state: xUnit 2.9.3 and Moq 4.20.72.
+  - Actual `PTKD.ApiTests` state: xUnit 2.9.3, NSubstitute 6.0.0 and WebApplicationFactory. NSubstitute is not absent from the repository.
+  - Actual `PTKD.IntegrationTests` state: xUnit 2.9.3 with real SQL Server behavior; no mocking framework is used for the security schema tests.
+  - Repository drift remains a separate decision: the approved testing standard is unchanged, and Slice 1B.1-A neither replaced Moq nor added or removed a package.
 - **Frontend test tools:** vitest, @testing-library/react.
 - **Playwright setup:** Approved tool. SEPARATE PACKAGE INSTALLATION AUTHORIZATION REQUIRED.
 - **Database test-fixture conventions:** Test containers / SQL Server isolation.
@@ -77,18 +80,19 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 ## 7. Database migration and rollback design
 **V0003:**
 - Creates `User_Auth_Accounts`, `Password_History`, `Refresh_Tokens`, `Permissions`, `Roles`, `Role_Permissions`, `Department_Permissions`, `Admin_Groups`, `Admin_Group_Permissions`, `User_Admin_Group_Assignments`, `User_Role_Assignments`, `User_Individual_Permissions`.
-- Appends to `Security_Audit_Events`.
+- Creates `Authorization_Policy_State`, `Security_Bootstrap_State`, and append-only `Security_Audit_Events`.
 - Enforces strict foreign keys, bigint PKs, natural `permission_code`, and `UNIQUE` constraints.
-- Adds `INSTEAD OF` triggers preventing `UPDATE`, `DELETE`, and `TRUNCATE` on `Security_Audit_Events`.
-- Applies `SERIALIZABLE` logic constraints for temporal overlaps where possible using filtered indexes.
+- Adds an `INSTEAD OF UPDATE, DELETE` trigger for `Security_Audit_Events`; the runtime audit role receives `DENY ALTER`, which prevents `TRUNCATE` for that role. A DML trigger does not intercept `TRUNCATE`.
+- Applies multi-row-safe half-open overlap triggers with `UPDLOCK`/`HOLDLOCK`; filtered unique indexes remain defense-in-depth for duplicate current ACTIVE rows and are not complete range-overlap controls.
+- Seeds exactly the 15 approved Organization and Security permission codes and creates no SQL audit view.
 
 **U0003:**
 - Refuses unsafe rollback if `V0004` or higher exists.
-- Cannot run against `PTKD_TEST_PHASE1A2` unless explicitly authorized for testing. Does not imply Production execution authorization.
+- Requires the exact database `PTKD_TEST_PHASE1A2`. This test authorization does not imply Production execution authorization.
 - Removes dependent constraints before tables.
 - Drops all tables, triggers, and types created in V0003.
 - Restores SchemaVersions correctly.
-- Refuses destructive rollback when security, bootstrap, assignment, token, password-history or security-audit tables contain material data.
+- Refuses destructive rollback when any protected security, bootstrap, policy, assignment, role, Admin Group, token, password-history, permission-catalog or security-audit state is material or non-pristine.
 
 ## 8. Domain and application design
 - **Domain:** Entities for `UserAuthAccount`, `Role`, `AdminGroup`, `Permission`.
@@ -139,9 +143,9 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 
 ## 16. Security audit design
 - Dedicated table: `Security_Audit_Events`.
-- Records `actor_user_id`, `target_user_id`, `event_type`, `reason`, `before`/`after` states (scrubbed of secrets).
-- Protected by database `INSTEAD OF` triggers blocking `UPDATE/DELETE/TRUNCATE`.
-- Queried via `SECURITY_AUDIT_VIEW`.
+- Records `actor_user_id`, acting-as identity, `target_user_id`, stable `event_code`, entity/company scope, reason, selected `before`/`after` states, request metadata, outcome, policy version, correlation ID, and time (with application payloads scrubbed of secrets).
+- Protected by database role permissions plus an `INSTEAD OF UPDATE, DELETE` defense-in-depth trigger. `DENY ALTER` prevents ordinary runtime-role `TRUNCATE`; db_owner and sysadmin remain outside this boundary.
+- Future security-audit API access is gated by the distinct application permission code `SECURITY_AUDIT_VIEW`; no SQL view named `vw_SECURITY_AUDIT_VIEW` is created.
 
 ## 17. Signing-key provider abstraction
 - Abstraction `IJwtSigningKeyProvider`.
@@ -193,7 +197,7 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - Bootstrap one-time behavior.
 - Cookie attributes and CSRF.
 - Signing kid and old-key overlap.
-- SECURITY_AUDIT_VIEW isolation.
+- `SECURITY_AUDIT_VIEW` application-permission isolation, with no same-named SQL view.
 - Complete Phase 1A.2 regression suite execution.
 
 ## 22. Security verification strategy
@@ -213,9 +217,9 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 
 **Phase 1B.1-A: Database security foundation and rollback design.**
 - *Prerequisites:* Phase 1B.1 authorization.
-- *Files:* `database/migrations/V0003__security_schema.sql`, `database/rollbacks/U0003__drop_security_schema.sql` (names to match repo convention).
+- *Files:* `database/migrations/V0003__create_security_schema.sql`, `database/rollbacks/U0003__drop_security_schema.sql`.
 - *Impact:* Creates all auth and audit tables, triggers, and overlap indexes.
-- *Completion:* U0003 verified against `PTKD_TEST_PHASE1A2`.
+- *Completion:* V0003 and U0003 verified against `PTKD_TEST_PHASE1A2`; correction is ready for Project Owner acceptance and is not self-accepted by implementation.
 - *Separate authorization required:* YES.
 
 **Phase 1B.1-B: Authentication account domain and password lifecycle.**

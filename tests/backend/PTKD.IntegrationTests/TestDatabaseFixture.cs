@@ -1,120 +1,311 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
-using Xunit;
-using System.IO;
-using System.Linq;
 
-namespace PTKD.IntegrationTests
+namespace PTKD.IntegrationTests;
+
+public sealed class TestDatabaseFixture : IDisposable
 {
-    public class TestDatabaseFixture : IDisposable
+    private static readonly object ResetLock = new();
+
+    private static readonly HashSet<string> KnownTables = new(StringComparer.OrdinalIgnoreCase)
     {
-        public string ConnectionString { get; }
+        "SchemaVersions",
+        "Users",
+        "Companies",
+        "Departments",
+        "User_Company_Assignments",
+        "User_Department_Assignments",
+        "Employment_Histories",
+        "User_Auth_Accounts",
+        "Password_History",
+        "Refresh_Tokens",
+        "Permissions",
+        "Roles",
+        "Role_Permissions",
+        "Department_Permissions",
+        "User_Role_Assignments",
+        "User_Individual_Permissions",
+        "Admin_Groups",
+        "Admin_Group_Permissions",
+        "User_Admin_Group_Assignments",
+        "Authorization_Policy_State",
+        "Security_Bootstrap_State",
+        "Security_Audit_Events"
+    };
 
-        public TestDatabaseFixture()
+    public TestDatabaseFixture()
+    {
+        ConnectionString = TestDatabaseSafety.ResolveConnectionString();
+        RepositoryRoot = FindRepositoryRoot();
+        ResetToV0002();
+    }
+
+    public string ConnectionString { get; }
+
+    public string RepositoryRoot { get; }
+
+    public string LastVerifiedDatabaseName { get; private set; } = string.Empty;
+
+    public void ResetToV0002()
+    {
+        lock (ResetLock)
         {
-            ConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
-                ?? "Server=localhost;Database=PTKD_TEST_PHASE1A2;Trusted_Connection=True;TrustServerCertificate=True;";
-            
-            InitializeDatabase();
-        }
+            using var connection = OpenVerifiedConnection();
+            RefuseUnknownTables(connection);
+            DropKnownSchema(connection);
 
-        private void InitializeDatabase()
-        {
-            using var conn = new SqlConnection(ConnectionString);
-            conn.Open();
-
-            // Refuse if unexpected tables exist
-            var cmdCheck = new SqlCommand(@"
-                SELECT name FROM sys.tables 
-                WHERE schema_id = SCHEMA_ID('dbo') 
-                AND name NOT IN (
-                    'SchemaVersions', 
-                    'Users', 
-                    'Companies', 
-                    'Departments', 
-                    'User_Company_Assignments', 
-                    'User_Department_Assignments', 
-                    'Employment_Histories'
-                )", conn);
-            
-            using (var reader = cmdCheck.ExecuteReader())
+            using var transaction = connection.BeginTransaction();
+            try
             {
-                var unexpectedTables = new List<string>();
-                while (reader.Read())
-                {
-                    unexpectedTables.Add(reader.GetString(0));
-                }
-                if (unexpectedTables.Any())
-                {
-                    throw new InvalidOperationException($"Unexpected user tables found in PTKD_TEST_PHASE1A2: {string.Join(", ", unexpectedTables)}");
-                }
-            }
+                ExecuteBatches(ReadMigration("V0001__create_schema_versions.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0001', 'V0001__create_schema_versions.sql', 'APPLIED');");
 
-            // Clean up existing schema if it's there
-            var u0002Path = Path.Combine("..", "..", "..", "..", "..", "..", "database", "rollbacks", "U0002__drop_organization_schema.sql");
-            if (File.Exists(u0002Path))
+                ExecuteBatches(ReadMigration("V0002__create_organization_schema.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0002', 'V0002__create_organization_schema.sql', 'APPLIED');");
+
+                transaction.Commit();
+            }
+            catch
             {
-                // We bypass the 'V0002 must be recorded' check for the raw cleanup script by executing just the drop commands
-                var dropScript = @"
-                    IF OBJECT_ID('dbo.FK_EmploymentHistories_created_by', 'F') IS NOT NULL ALTER TABLE dbo.Employment_Histories DROP CONSTRAINT FK_EmploymentHistories_created_by;
-                    IF OBJECT_ID('dbo.FK_UserDepartmentAssignments_created_by', 'F') IS NOT NULL ALTER TABLE dbo.User_Department_Assignments DROP CONSTRAINT FK_UserDepartmentAssignments_created_by;
-                    IF OBJECT_ID('dbo.FK_UserDepartmentAssignments_updated_by', 'F') IS NOT NULL ALTER TABLE dbo.User_Department_Assignments DROP CONSTRAINT FK_UserDepartmentAssignments_updated_by;
-                    IF OBJECT_ID('dbo.FK_UserCompanyAssignments_created_by', 'F') IS NOT NULL ALTER TABLE dbo.User_Company_Assignments DROP CONSTRAINT FK_UserCompanyAssignments_created_by;
-                    IF OBJECT_ID('dbo.FK_UserCompanyAssignments_updated_by', 'F') IS NOT NULL ALTER TABLE dbo.User_Company_Assignments DROP CONSTRAINT FK_UserCompanyAssignments_updated_by;
-                    IF OBJECT_ID('dbo.FK_Departments_created_by', 'F') IS NOT NULL ALTER TABLE dbo.Departments DROP CONSTRAINT FK_Departments_created_by;
-                    IF OBJECT_ID('dbo.FK_Departments_updated_by', 'F') IS NOT NULL ALTER TABLE dbo.Departments DROP CONSTRAINT FK_Departments_updated_by;
-                    IF OBJECT_ID('dbo.FK_Companies_created_by', 'F') IS NOT NULL ALTER TABLE dbo.Companies DROP CONSTRAINT FK_Companies_created_by;
-                    IF OBJECT_ID('dbo.FK_Companies_updated_by', 'F') IS NOT NULL ALTER TABLE dbo.Companies DROP CONSTRAINT FK_Companies_updated_by;
-                    IF OBJECT_ID('dbo.FK_Users_created_by', 'F') IS NOT NULL ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_created_by;
-                    IF OBJECT_ID('dbo.FK_Users_updated_by', 'F') IS NOT NULL ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_updated_by;
-
-                    DROP TABLE IF EXISTS dbo.Employment_Histories;
-                    DROP TABLE IF EXISTS dbo.User_Department_Assignments;
-                    DROP TABLE IF EXISTS dbo.User_Company_Assignments;
-                    DROP TABLE IF EXISTS dbo.Departments;
-                    DROP TABLE IF EXISTS dbo.Companies;
-                    DROP TABLE IF EXISTS dbo.Users;
-                    DROP TABLE IF EXISTS dbo.SchemaVersions;
-                ";
-                using var cmdDrop = new SqlCommand(dropScript, conn);
-                cmdDrop.ExecuteNonQuery();
+                transaction.Rollback();
+                throw;
             }
-
-            var v0001Path = Path.Combine("..", "..", "..", "..", "..", "..", "database", "migrations", "V0001__create_schema_versions.sql");
-            var v0002Path = Path.Combine("..", "..", "..", "..", "..", "..", "database", "migrations", "V0002__create_organization_schema.sql");
-            
-            ExecuteBatches(File.ReadAllText(v0001Path), conn);
-            ExecuteBatches(File.ReadAllText(v0002Path), conn);
-
-            // Record V0002 manually because we're running it raw here
-            using var cmdInsert = new SqlCommand("INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0002', 'V0002__create_organization_schema.sql', 'APPLIED')", conn);
-            cmdInsert.ExecuteNonQuery();
-        }
-
-        private void ExecuteBatches(string sql, SqlConnection conn)
-        {
-            var batches = sql.Split(new[] { "\r\nGO", "\nGO" }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var batch in batches)
-            {
-                if (string.IsNullOrWhiteSpace(batch)) continue;
-                using var cmd = new SqlCommand(batch, conn);
-                cmd.ExecuteNonQuery();
-            }
-        }
-
-        public void Dispose()
-        {
-            // Cleanup done by specific test classes if needed
         }
     }
 
-    [CollectionDefinition("Sequential")]
-    public class SequentialCollection : ICollectionFixture<TestDatabaseFixture>
+    public void ResetToEmpty()
     {
-        // This class has no code, and is never created. Its purpose is simply
-        // to be the place to apply [CollectionDefinition] and all the
-        // ICollectionFixture<> interfaces.
+        lock (ResetLock)
+        {
+            using var connection = OpenVerifiedConnection();
+            RefuseUnknownTables(connection);
+            DropKnownSchema(connection);
+        }
     }
+
+    public void ResetToV0003()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0002();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0003__create_security_schema.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0003', 'V0003__create_security_schema.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
+    public SqlConnection OpenVerifiedConnection()
+    {
+        var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
+        LastVerifiedDatabaseName = TestDatabaseSafety.VerifyOpenConnection(connection);
+        return connection;
+    }
+
+    public string ReadMigration(string fileName) =>
+        File.ReadAllText(Path.Combine(RepositoryRoot, "database", "migrations", fileName));
+
+    public string ReadRollback(string fileName) =>
+        File.ReadAllText(Path.Combine(RepositoryRoot, "database", "rollbacks", fileName));
+
+    public static void ExecuteBatches(
+        string sql,
+        SqlConnection connection,
+        SqlTransaction? transaction = null)
+    {
+        var batches = Regex.Split(
+            sql,
+            @"^\s*GO\s*;?\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+        foreach (var batch in batches.Where(batch => !string.IsNullOrWhiteSpace(batch)))
+        {
+            using var command = new SqlCommand(batch, connection, transaction)
+            {
+                CommandTimeout = 60
+            };
+            command.ExecuteNonQuery();
+        }
+    }
+
+    private static void ExecuteNonQuery(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        string sql)
+    {
+        using var command = new SqlCommand(sql, connection, transaction);
+        command.ExecuteNonQuery();
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        {
+            var directory = new DirectoryInfo(start);
+            while (directory is not null)
+            {
+                if (Directory.Exists(Path.Combine(directory.FullName, "database", "migrations"))
+                    && Directory.Exists(Path.Combine(directory.FullName, "src", "backend")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate the PTKD ERP repository root.");
+    }
+
+    private static void RefuseUnknownTables(SqlConnection connection)
+    {
+        using var command = new SqlCommand(
+            "SELECT name FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo');",
+            connection);
+        using var reader = command.ExecuteReader();
+        var unexpected = new List<string>();
+
+        while (reader.Read())
+        {
+            var tableName = reader.GetString(0);
+            if (!KnownTables.Contains(tableName))
+            {
+                unexpected.Add(tableName);
+            }
+        }
+
+        if (unexpected.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Unexpected dbo tables in {TestDatabaseSafety.ApprovedDatabaseName}: " +
+                string.Join(", ", unexpected.OrderBy(name => name)));
+        }
+    }
+
+    private static void DropKnownSchema(SqlConnection connection)
+    {
+        const string sql = """
+            IF DATABASE_PRINCIPAL_ID(N'PTKD_Security_Audit_Runtime') IS NOT NULL
+            BEGIN
+                DECLARE @drop_members nvarchar(max) = N'';
+                SELECT @drop_members = @drop_members
+                    + N'ALTER ROLE PTKD_Security_Audit_Runtime DROP MEMBER ' + QUOTENAME(member_principal.name) + N';'
+                FROM sys.database_role_members AS membership
+                INNER JOIN sys.database_principals AS role_principal
+                    ON role_principal.principal_id = membership.role_principal_id
+                INNER JOIN sys.database_principals AS member_principal
+                    ON member_principal.principal_id = membership.member_principal_id
+                WHERE role_principal.name = N'PTKD_Security_Audit_Runtime';
+
+                IF @drop_members <> N''
+                    EXEC sys.sp_executesql @drop_members;
+            END;
+
+            IF USER_ID(N'PTKD_SecurityAuditRuntime_Test') IS NOT NULL
+                DROP USER PTKD_SecurityAuditRuntime_Test;
+
+            DROP TRIGGER IF EXISTS dbo.TR_User_Admin_Group_Assignments_PreventOverlap;
+            DROP TRIGGER IF EXISTS dbo.TR_User_Individual_Permissions_PreventOverlap;
+            DROP TRIGGER IF EXISTS dbo.TR_User_Role_Assignments_PreventOverlap;
+            DROP TRIGGER IF EXISTS dbo.TR_Password_History_AppendOnly;
+            DROP TRIGGER IF EXISTS dbo.TR_Permissions_PreventCodeChange;
+            DROP TRIGGER IF EXISTS dbo.TR_Permissions_PreventDelete;
+            DROP TRIGGER IF EXISTS dbo.TR_Security_Audit_Events_AppendOnly;
+            DROP TRIGGER IF EXISTS dbo.TR_Security_Audit_Events_PreventUpdateDelete;
+            DROP VIEW IF EXISTS dbo.vw_SECURITY_AUDIT_VIEW;
+
+            IF DATABASE_PRINCIPAL_ID(N'PTKD_Security_Audit_Runtime') IS NOT NULL
+                DROP ROLE PTKD_Security_Audit_Runtime;
+
+            DROP TABLE IF EXISTS dbo.User_Admin_Group_Assignments;
+            DROP TABLE IF EXISTS dbo.Admin_Group_Permissions;
+            DROP TABLE IF EXISTS dbo.Admin_Groups;
+            DROP TABLE IF EXISTS dbo.User_Individual_Permissions;
+            DROP TABLE IF EXISTS dbo.User_Role_Assignments;
+            DROP TABLE IF EXISTS dbo.Department_Permissions;
+            DROP TABLE IF EXISTS dbo.Role_Permissions;
+            DROP TABLE IF EXISTS dbo.Roles;
+            DROP TABLE IF EXISTS dbo.Refresh_Tokens;
+            DROP TABLE IF EXISTS dbo.Password_History;
+            DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
+            DROP TABLE IF EXISTS dbo.Security_Audit_Events;
+            DROP TABLE IF EXISTS dbo.Security_Bootstrap_State;
+            DROP TABLE IF EXISTS dbo.Authorization_Policy_State;
+            DROP TABLE IF EXISTS dbo.Permissions;
+
+            IF OBJECT_ID(N'dbo.FK_EmploymentHistories_created_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Employment_Histories DROP CONSTRAINT FK_EmploymentHistories_created_by;
+            IF OBJECT_ID(N'dbo.FK_UserDepartmentAssignments_created_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.User_Department_Assignments DROP CONSTRAINT FK_UserDepartmentAssignments_created_by;
+            IF OBJECT_ID(N'dbo.FK_UserDepartmentAssignments_updated_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.User_Department_Assignments DROP CONSTRAINT FK_UserDepartmentAssignments_updated_by;
+            IF OBJECT_ID(N'dbo.FK_UserCompanyAssignments_created_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.User_Company_Assignments DROP CONSTRAINT FK_UserCompanyAssignments_created_by;
+            IF OBJECT_ID(N'dbo.FK_UserCompanyAssignments_updated_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.User_Company_Assignments DROP CONSTRAINT FK_UserCompanyAssignments_updated_by;
+            IF OBJECT_ID(N'dbo.FK_Departments_created_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Departments DROP CONSTRAINT FK_Departments_created_by;
+            IF OBJECT_ID(N'dbo.FK_Departments_updated_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Departments DROP CONSTRAINT FK_Departments_updated_by;
+            IF OBJECT_ID(N'dbo.FK_Companies_created_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Companies DROP CONSTRAINT FK_Companies_created_by;
+            IF OBJECT_ID(N'dbo.FK_Companies_updated_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Companies DROP CONSTRAINT FK_Companies_updated_by;
+            IF OBJECT_ID(N'dbo.FK_Users_created_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_created_by;
+            IF OBJECT_ID(N'dbo.FK_Users_updated_by', N'F') IS NOT NULL
+                ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_updated_by;
+
+            DROP TABLE IF EXISTS dbo.Employment_Histories;
+            DROP TABLE IF EXISTS dbo.User_Department_Assignments;
+            DROP TABLE IF EXISTS dbo.User_Company_Assignments;
+            DROP TABLE IF EXISTS dbo.Departments;
+            DROP TABLE IF EXISTS dbo.Companies;
+            DROP TABLE IF EXISTS dbo.Users;
+            DROP TABLE IF EXISTS dbo.SchemaVersions;
+            """;
+
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            using var command = new SqlCommand(sql, connection, transaction)
+            {
+                CommandTimeout = 60
+            };
+            command.ExecuteNonQuery();
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+}
+
+[CollectionDefinition("Sequential", DisableParallelization = true)]
+public sealed class SequentialCollection : ICollectionFixture<TestDatabaseFixture>
+{
 }
