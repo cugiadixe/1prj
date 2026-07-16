@@ -2,7 +2,7 @@
 
 Document status:
 
-IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
+ACCEPTED BY PROJECT OWNER
 
 ## 1. Baseline commits
 
@@ -396,11 +396,84 @@ Phase 1B.1-C through Phase 1B.1-I remain **NOT AUTHORIZED**. This implementation
 
 ## 30. Project Owner acceptance
 
-- **Project Owner result:**
-- **Project Owner name:**
-- **Role:**
-- **Acceptance date:**
-- **Confirmation method:**
-- **Conditions or residual risks accepted:**
+PROJECT OWNER ACCEPTANCE — PHASE 1B.1-B IMPLEMENTATION
 
-PHASE 1B.1-B IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
+Tôi, Đào Hải Bách, với vai trò Project Owner dự án PTKD ERP, xác nhận đã
+xem xét kết quả triển khai, kiểm thử và evidence review của Phase 1B.1-B.
+
+Phạm vi được chấp nhận:
+
+Phase 1B.1-B — Authentication account and password lifecycle
+
+Các commit được chấp nhận:
+
+1. Implementation commit:
+   fdad4e9099283eb1f36271ccb5fd966afaf6742d
+   Implement Phase 1B.1-B authentication account and password lifecycle
+
+2. Password-history coverage commit:
+   a2e381139bba61ddaf8d9097be7df0e0010d878f
+   Add Phase 1B.1-B password history coverage
+
+Tôi chấp nhận các kết quả sau:
+
+1. Authentication account domain/application/infrastructure foundation đã
+   được triển khai đúng phạm vi Slice B.
+
+2. Password hashing sử dụng ASP.NET Core PasswordHasher thông qua abstraction,
+   không custom hashing, không plaintext password, không reversible password.
+
+3. Password history semantics đúng kế hoạch đã duyệt:
+   - kiểm tra current password hash;
+   - kiểm tra 5 Password_History rows mới nhất theo created_at DESC, id DESC;
+   - tổng cộng 6 giá trị password bị chặn reuse;
+   - row thứ 6 cũ hơn được cho phép.
+
+4. Password-history coverage đã được bổ sung sau evidence review:
+   - current password bị reject;
+   - từng password trong 5 history rows mới nhất bị reject;
+   - password ở row thứ 6 cũ hơn được allow;
+   - failed self-service password change không append history.
+
+5. Lockout và failed-attempt accounting đã được xác minh:
+   - 5 failed attempts dẫn tới lockout 15 phút;
+   - concurrent failed attempts không bị lost update;
+   - transaction dùng IsolationLevel.Serializable;
+   - account-for-update query dùng UPDLOCK, HOLDLOCK;
+   - DbUpdateConcurrencyException không retry;
+   - retry chỉ áp dụng SQL Server deadlock 1205;
+   - tối đa 3 attempts cho deadlock retry.
+
+6. Security stamp behavior được chấp nhận:
+   - Slice B chỉ thay đổi security_stamp và sessions_invalidated_at;
+   - không triển khai token/session/refresh-token store;
+   - không tạo fake/no-op token revocation;
+   - Slice C phải hoàn thiện token/session rejection thực sự.
+
+7. External-provider subject case sensitivity vẫn là deferred, non-blocking.
+   Không tạo V0004/U0004 trong Phase 1B.1-B.
+
+8. V0003/U0003 không đổi.
+
+9. Không có API, JWT, refresh token, cookie/CSRF, frontend, MediatR, Dapper,
+   AD/LDAP, bootstrap, password delivery hoặc application audit writer trong
+   Slice B.
+
+10. Production migration chưa được phép.
+
+Tôi chấp nhận Phase 1B.1-B ở trạng thái:
+
+ACCEPTED BY PROJECT OWNER
+
+Các phần sau vẫn giữ nguyên trạng thái:
+
+Phase 1B.1-C through I:
+NOT AUTHORIZED
+
+Production migration:
+NOT AUTHORIZED
+
+Người phê duyệt: Đào Hải Bách
+Vai trò: Project Owner
+Ngày phê duyệt: 2026-07-16
+Phương thức xác nhận: Direct written authorization
