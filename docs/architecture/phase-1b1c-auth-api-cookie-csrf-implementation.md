@@ -156,7 +156,7 @@ Refresh response currently returns `UserId: 0` and empty `Username` in the `User
 - Passed: 67, Failed: 0, Skipped: 0 ✅
 
 **Integration tests:** `dotnet test tests/backend/PTKD.IntegrationTests/PTKD.IntegrationTests.csproj --configuration Debug --no-restore`
-- Result: TO BE UPDATED AFTER FINAL TEST RUN
+- Passed: 138, Failed: 0, Skipped: 0 ✅
 
 **API tests:** `dotnet test tests/backend/PTKD.ApiTests/PTKD.ApiTests.csproj --configuration Debug --no-restore`
 - Passed: 78, Failed: 0, Skipped: 0 ✅ (18 tests — 5 original + 13 new coverage tests)
