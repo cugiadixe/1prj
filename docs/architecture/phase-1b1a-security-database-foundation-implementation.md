@@ -1,14 +1,32 @@
-# Phase 1B.1-A Security Database Foundation Correction and Verification
+# Phase 1B.1-A Security Database Foundation Correction, Verification, and Acceptance
 
 ## Status and authorization boundary
 
 - Original Phase 1B.1-A commit: `9d313a343fe2b2ccf29379b3a920bab9de4b5a0d`.
 - The original commit was created without executable build or test verification because the required .NET SDK was unavailable at that time.
 - The correction and verification described here were authorized for Phase 1B.1-A only.
-- Phase 1B.1-A is verified and corrected but is not self-accepted; Project Owner acceptance remains required.
+- Corrective commit: `efcf950b9c9679a1d6a44198ae3566fe93205a59`; parent: `9d313a343fe2b2ccf29379b3a920bab9de4b5a0d`.
+- Phase 1B.1-A is **ACCEPTED BY PROJECT OWNER** and is the approved baseline.
 - Phase 1B.1-B through I remain **NOT AUTHORIZED**.
 
 No authentication service, password service, JWT issuance/validation, authorization middleware, API endpoint, frontend feature, bootstrap executable, MediatR integration, or Dapper integration was implemented.
+
+## Project Owner acceptance record
+
+- **Approver:** Đào Hải Bách.
+- **Role:** Project Owner.
+- **Approval date:** 2026-07-16.
+- **Confirmation method:** Direct written authorization.
+- **Accepted baseline:** Corrective commit `efcf950b9c9679a1d6a44198ae3566fe93205a59`, with parent `9d313a343fe2b2ccf29379b3a920bab9de4b5a0d`.
+- **Accepted evidence:** .NET SDK `10.0.301`; build succeeded with 0 warnings and 0 errors; UnitTests 25 passed; IntegrationTests 104 passed; ApiTests 60 passed; SecuritySchemaTests 35 passed; `SELECT DB_NAME()` returned `PTKD_TEST_PHASE1A2`; `PTKD_DEV` was not connected to or written to; V0003/U0003 migration, rollback, protected-data gate, and atomicity were verified; the audit runtime role allowed SELECT/INSERT and denied UPDATE/DELETE/ALTER/TRUNCATE; no package, API, JWT, frontend, MediatR, or Dapper was added.
+
+The Project Owner accepted these residual risks and limitations:
+
+- Database runtime-role membership, the privileged-principal boundary, and overlap-trigger execution plans require independent DBA review before Production.
+- `db_owner` and `sysadmin` remain outside the protection boundary of the runtime database role.
+- A later application audit writer must perform semantic scrubbing so passwords, password hashes, tokens, signing keys, secrets, file bytes, and permanent signed URLs are not written to audit JSON.
+- Audit purge/archive is not implemented in Phase 1B.
+- V0003/U0003 are verified only on the protected test database and are not authorized to run on Production.
 
 ## Governing decisions and rules
 
@@ -205,7 +223,7 @@ dotnet test tests/backend/PTKD.IntegrationTests/PTKD.IntegrationTests.csproj --c
 Passed: 35, Failed: 0, Skipped: 0, Total: 35.
 ```
 
-The final delivery gate reruns these exact commands after documentation review. The corrective commit subject is `Verify and correct Phase 1B.1-A security database foundation`; its hash is reported after the non-amended commit is created.
+These are the executable results accepted by the Project Owner from the corrective commit, captured under .NET SDK `10.0.301`. This documentation-only acceptance commit does not rerun or alter the executable baseline.
 
 ## Remaining limitations and manual verification
 
@@ -217,4 +235,6 @@ Manual DBA review should inspect the named role permissions, confirm no login or
 
 ## Conclusion
 
-PHASE 1B.1-A VERIFIED AND CORRECTED — READY FOR PROJECT OWNER ACCEPTANCE
+PHASE 1B.1-A ACCEPTED BY PROJECT OWNER
+
+PHASE 1B.1-B THROUGH PHASE 1B.1-I REMAIN NOT AUTHORIZED

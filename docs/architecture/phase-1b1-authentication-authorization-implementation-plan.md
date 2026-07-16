@@ -1,13 +1,13 @@
 # Phase 1B.1 Authentication & Authorization Implementation Plan
 
 Document status:
-PHASE 1B.1-A VERIFIED AND CORRECTED — AWAITING PROJECT OWNER ACCEPTANCE
+PHASE 1B.1-A ACCEPTED BY PROJECT OWNER
 
 Phase 1B.1 implementation:
-SLICE A CORRECTION AUTHORIZED; SLICES B THROUGH I NOT AUTHORIZED
+SLICE A ACCEPTED; SLICES B THROUGH I NOT AUTHORIZED
 
 ## 1. Purpose and authorization boundary
-This document provides the detailed technical implementation plan for Phase 1B.1, covering the database, backend APIs, and frontend structure for Authentication and Authorization. Phase 1B.1-A database-foundation correction and verification was authorized separately. Phase 1B.1-B through I remain strictly NOT AUTHORIZED until explicitly approved by the Project Owner.
+This document provides the detailed technical implementation plan for Phase 1B.1, covering the database, backend APIs, and frontend structure for Authentication and Authorization. The Phase 1B.1-A database foundation is the accepted baseline based on corrective commit `efcf950b9c9679a1d6a44198ae3566fe93205a59`. Phase 1B.1-B through I remain strictly **NOT AUTHORIZED** until explicitly approved by the Project Owner.
 
 ## 2. Verified Phase 1B.0 decision baseline
 This plan strictly enforces the conditions approved by the Project Owner in Phase 1B.0, covering 20 active decisions (with DEC-1B-008 merged into DEC-1B-007, resulting in 21 identifiers in total):
@@ -219,8 +219,9 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - *Prerequisites:* Phase 1B.1 authorization.
 - *Files:* `database/migrations/V0003__create_security_schema.sql`, `database/rollbacks/U0003__drop_security_schema.sql`.
 - *Impact:* Creates all auth and audit tables, triggers, and overlap indexes.
-- *Completion:* V0003 and U0003 verified against `PTKD_TEST_PHASE1A2`; correction is ready for Project Owner acceptance and is not self-accepted by implementation.
-- *Separate authorization required:* YES.
+- *Completion:* V0003 and U0003 were verified against `PTKD_TEST_PHASE1A2` and accepted by the Project Owner as the Phase 1B.1-A baseline.
+- *Acceptance:* Đào Hải Bách, Project Owner; direct written authorization dated 2026-07-16; corrective commit `efcf950b9c9679a1d6a44198ae3566fe93205a59` with parent `9d313a343fe2b2ccf29379b3a920bab9de4b5a0d`.
+- *Separate authorization required:* YES — satisfied for Phase 1B.1-A only.
 
 **Phase 1B.1-B: Authentication account domain and password lifecycle.**
 - *Prerequisites:* Phase 1B.1-A complete.
@@ -313,8 +314,8 @@ Implementation will proceed sequentially through Slices A to I. Each slice repre
 - `Dapper` (if explicit SQL transaction locks are chosen over EF Raw SQL in a future slice)
 
 ## 30. Project Owner implementation authorization section
-- **Project Owner result:** 
-- **Project Owner conditions:** 
-- **Project Owner name:** 
-- **Authorization date:** 
-- **Reference:** 
+- **Project Owner result:** Phase 1B.1-A **ACCEPTED BY PROJECT OWNER**; Phase 1B.1-B through I **NOT AUTHORIZED**.
+- **Project Owner conditions:** Acceptance applies only to the verified Phase 1B.1-A baseline. It does not authorize later slices, Production migration, source/API/JWT/frontend changes, packages, tagging, or pushing.
+- **Project Owner name:** Đào Hải Bách.
+- **Authorization date:** 2026-07-16.
+- **Reference:** Direct written authorization accepting corrective commit `efcf950b9c9679a1d6a44198ae3566fe93205a59` with parent `9d313a343fe2b2ccf29379b3a920bab9de4b5a0d`.
