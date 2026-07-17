@@ -1,4 +1,4 @@
-﻿# Phase 1B.1-D-A Permission Evaluator Foundation Implementation Evidence
+# Phase 1B.1-D-A Permission Evaluator Foundation Implementation Evidence
 
 Status:
 IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
@@ -15,7 +15,7 @@ Correction commit:
 9b37078ef68ab4187773466eadfc868a408c4cea
 
 Evidence document commit:
-TO BE FILLED AFTER COMMIT
+fdbd79decb93e0f462a82e6567e758d20596ecd9
 
 ## Implemented Scope
 
@@ -157,15 +157,19 @@ ApiTests correction:
 
 Build:
 - Result: 0 errors.
-- Warnings: existing warnings only.
+- Warnings: 4 existing MSB3277 warnings.
 
 UnitTests:
-- Result: 0 failed.
-- Exact count: record from final test run.
+- Total: 97.
+- Failed: 0.
+- Passed: 97.
+- Skipped: 0.
 
 IntegrationTests:
-- Result: 0 failed.
-- Exact count: record from final test run.
+- Total: 147.
+- Failed: 0.
+- Passed: 147.
+- Skipped: 0.
 
 ApiTests:
 - Total: 88.
