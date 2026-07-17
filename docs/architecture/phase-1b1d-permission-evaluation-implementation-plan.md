@@ -2,10 +2,10 @@
 
 ## Document Status
 
-PROPOSED — PROJECT OWNER DECISIONS RECORDED — AWAITING PROJECT OWNER PLAN ACCEPTANCE
+ACCEPTED BY PROJECT OWNER
 
 Phase 1B.1-D implementation:
-NOT AUTHORIZED BY THIS PLAN
+NOT AUTHORIZED BY THIS PLAN ACCEPTANCE
 
 Phase 1B.1-E through I:
 NOT AUTHORIZED
@@ -543,6 +543,9 @@ All tables required for Phase 1B.1-D already exist in V0003:
 If implementation discovers that V0003 is structurally insufficient, work must stop and report:
 `PHASE 1B.1-D IMPLEMENTATION BLOCKED — V0004 DECISION REQUIRED`
 
+V0004:
+NOT REQUIRED AND NOT AUTHORIZED
+
 ### Production Migration
 
 Production migration remains **NOT AUTHORIZED**.
@@ -625,8 +628,117 @@ Before authorizing Phase 1B.1-D implementation, the Project Owner must confirm:
 
 | Phase | Status |
 |---|---|
-| Phase 1B.1-D implementation | **NOT AUTHORIZED BY THIS PLAN** |
+| Phase 1B.1-D implementation | **NOT AUTHORIZED BY THIS PLAN ACCEPTANCE** |
 | Phase 1B.1-E through I | NOT AUTHORIZED |
 | Production migration | NOT AUTHORIZED |
+| V0004 | NOT REQUIRED AND NOT AUTHORIZED |
 
-Authorizer: _Pending Project Owner review_
+Authorizer: Đào Hải Bách (Project Owner) — 2026-07-17
+
+---
+
+## 25. Project Owner Acceptance
+
+PROJECT OWNER ACCEPTANCE — PHASE 1B.1-D IMPLEMENTATION PLAN
+
+Tôi, Đào Hải Bách, với vai trò Project Owner dự án PTKD ERP, xác nhận đã
+xem xét bản kế hoạch triển khai Phase 1B.1-D và các quyết định liên quan.
+
+Phạm vi được chấp nhận:
+
+Phase 1B.1-D — Authorization / Permission Evaluation Foundation Plan
+
+Các commit plan được chấp nhận:
+
+1. Plan commit:
+   c283b92f73a4d70a5f6ddb7522c58a124d707c2e
+   Prepare Phase 1B.1-D permission evaluation implementation plan
+
+2. Project Owner decision commit:
+   ea6f046252e674f71e618145f44e08fb461a6e6b
+   Record Project Owner decisions for Phase 1B.1-D plan
+
+Tôi chấp nhận các quyết định sau cho Phase 1B.1-D:
+
+1. Individual DENY always wins over Admin Group grants.
+
+2. Nếu user có nhiều active department assignments đồng thời, permission evaluator lấy union baseline permissions từ tất cả active departments.
+
+3. Nếu user không có active assignment vào requested company, evaluator trả DENY.
+
+4. Phase 1B.1-D sử dụng IMemoryCache. Distributed cache được defer.
+
+5. GET /api/v2/security/permissions chỉ trả active permissions, where is_active = 1.
+
+6. Effective-permissions API yêu cầu explicit company scope cho COMPANY evaluation. Kết quả có thể bao gồm GLOBAL permissions và permissions hiệu lực tại requested company.
+
+7. Việc dùng hoặc assign inactive permission catalog item trả HTTP 422 Unprocessable Entity.
+
+8. Phase 1B.1-D tiếp tục dùng PTKD_TEST_PHASE1A2 cho integration/API tests.
+
+Tôi chấp nhận phạm vi Phase 1B.1-D plan gồm:
+
+1. Server-side permission evaluator.
+
+2. Permission evaluation algorithm:
+   - department baseline;
+   - role grants;
+   - admin group grants;
+   - individual allow;
+   - individual deny;
+   - DENY precedence.
+
+3. GLOBAL và COMPANY scope.
+   ENTITY scope deferred.
+
+4. Scope validation:
+   - GLOBAL requires company null;
+   - COMPANY requires company non-null.
+
+5. Role/Admin Group/Assignment APIs trong phạm vi cần thiết để quản lý dữ liệu phục vụ permission evaluation.
+
+6. IMemoryCache/version invalidation strategy.
+
+7. Unit, Integration, API, Negative/Security tests.
+
+8. V0003-backed EF/data access only.
+
+Tôi xác nhận các exclusion vẫn giữ nguyên:
+
+1. Phase 1B.1-D implementation chưa được authorize bởi acceptance này.
+
+2. Không permission list trong JWT.
+
+3. Không company-scope authorization by JWT alone.
+
+4. Không Phase E X-Company-Id middleware enforcement.
+
+5. Không Phase F audit writer/bootstrap.
+
+6. Không frontend.
+
+7. Không AD/LDAP.
+
+8. Không V0004.
+
+9. Không production migration.
+
+10. Phase 1B.1-E through I chưa được authorize.
+
+Tôi chấp nhận Phase 1B.1-D plan ở trạng thái:
+
+ACCEPTED BY PROJECT OWNER
+
+Phase 1B.1-D implementation:
+NOT AUTHORIZED BY THIS PLAN ACCEPTANCE
+
+Phase 1B.1-E through I:
+NOT AUTHORIZED
+
+Production migration:
+NOT AUTHORIZED
+
+Người phê duyệt: Đào Hải Bách
+Vai trò: Project Owner
+Ngày phê duyệt: 2026-07-17
+Phương thức xác nhận: Direct written authorization
