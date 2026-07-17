@@ -2,7 +2,12 @@
 
 ## Status
 
-IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
+ACCEPTED BY PROJECT OWNER
+
+Approver: Đào Hải Bách
+Role: Project Owner
+Acceptance date: 2026-07-17
+Confirmation method: Direct written authorization
 
 ## Baseline and Commits
 
@@ -10,184 +15,95 @@ IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE
 |---|---|
 | Baseline commit (parent) | `d37259c96b24166c0b4cd5201c83d7b8662cce51` — Record Project Owner acceptance of Phase 1B.1-C-B implementation |
 | Implementation commit | `584f4001034efc0f96c71f6f519bc0f7b3139691` — Implement Phase 1B.1-C-C Protected Request Validation |
+| Evidence correction commit | `50f5f494b8bbf8507025946f98905f093642b803` — Complete Phase 1B.1-C-C evidence documentation |
 
-## Scope Implemented
+## Accepted Scope
 
-Phase 1B.1-C-C implements cryptographic and business-level protected-request validation only.
-No permission evaluation, company-scope authorization, or RBAC was implemented in this phase.
+The Project Owner has reviewed the implementation, testing, formal review, and evidence correction for Phase 1B.1-C-C and accepts the following:
 
-### Changed Files
+### 1. JWT Bearer Validation
+
+- Issuer validation: `ValidIssuer = "PTKD-ERP"`
+- Audience validation: `ValidAudience = "PTKD-ERP-API"`
+- Signing key validation with `kid`-based key resolver via `IJwtSigningKeyProvider`
+- `exp`/`nbf` lifetime validation
+- Clock skew: 30 seconds
+- `BuildServiceProvider` anti-pattern removed; `JwtBearerConfigureOptions` wired via `ConfigureOptions<>` DI
+
+### 2. Protected-Request Business Validation (server-side, after cryptographic pass)
+
+The following conditions are accepted as implemented:
+
+- Auth account must exist
+- Auth account status must be `ACTIVE`
+- Linked user must exist
+- Employment status `ACTIVE` or `PROBATION` is eligible
+- Employment status other than `ACTIVE`/`PROBATION` is rejected
+- Token `security_stamp` must match current `UserAuthAccount.SecurityStamp`
+- Token `issued_at` must be **strictly after** `sessions_invalidated_at` cutoff
+- Token `issued_at` equal to cutoff is **denied**
+- Token `issued_at` before cutoff is **denied**
+- Validation **fails closed** when trusted server-side state cannot be checked (infrastructure exception)
+
+### 3. Failure Mapping
+
+- Protected request failure returns generic `401 Unauthorized`
+- Response does not reveal: account disabled, employment inactive, stamp mismatch, session cutoff, or account existence
+- No internal reason details in public response body
+
+### 4. Explicit Exclusions — Accepted
+
+The following were NOT implemented in C-C and are accepted as excluded:
+
+- Permission evaluation: NOT IMPLEMENTED
+- Role/admin-group authorization: NOT IMPLEMENTED
+- Company-scope authorization by JWT alone: NOT IMPLEMENTED
+- Production `/auth/me` endpoint: NOT IMPLEMENTED
+- `/api/v2/auth/logout-all`: NOT IMPLEMENTED
+- Frontend: NOT IMPLEMENTED
+- AD/LDAP, bootstrap, audit writer, semantic audit scrubbing: NOT IMPLEMENTED
+- Test-only protected endpoint (`ProtectedTestController`) is accepted as test infrastructure only, not production API behavior
+
+## Build and Test Results — Accepted
+
+| Command | Result |
+|---|---|
+| `dotnet build src/backend/PTKD-ERP.sln --configuration Debug --no-restore` | Build succeeded. 0 errors. 4 MSB3277 warnings (pre-existing, non-blocking). |
+| `dotnet test PTKD.UnitTests` | Passed: 76, Failed: 0, Skipped: 0 |
+| `dotnet test PTKD.IntegrationTests` | Passed: 138, Failed: 0, Skipped: 0 |
+| `dotnet test PTKD.ApiTests` | Passed: 88, Failed: 0, Skipped: 0 |
+| `dotnet test PTKD.IntegrationTests --filter FullyQualifiedName~DatabaseSafety` | Passed: 17, Failed: 0, Skipped: 0 |
+
+## Database Safety — Accepted
+
+- DB-writing tests use `PTKD_TEST_PHASE1A2` only
+- `InitialCatalog` guard maintained
+- `SELECT DB_NAME()` guard maintained
+- `PTKD_DEV` was not connected during any test run
+- Production migration was not executed
+- `V0003`/`U0003`: unchanged
+- `V0004`/`U0004`: do not exist
+
+## Changed Files — Accepted
 
 | File | Change |
 |---|---|
 | `docs/architecture/phase-1b1c-protected-request-validation-implementation.md` | NEW — this evidence document |
-| `src/backend/PTKD.Api/Program.cs` | MODIFY — registered `IProtectedRequestValidator`, wired `JwtBearerConfigureOptions` via `ConfigureOptions<>` (no `BuildServiceProvider`) |
-| `src/backend/PTKD.Api/Security/JwtBearerConfigureOptions.cs` | NEW — `IConfigureNamedOptions<JwtBearerOptions>` implementation |
-| `src/backend/PTKD.Application/Security/Authentication/Interfaces/IProtectedRequestValidator.cs` | NEW — interface |
+| `src/backend/PTKD.Api/Program.cs` | MODIFY — registered `IProtectedRequestValidator`, wired `JwtBearerConfigureOptions` via `ConfigureOptions<>` |
+| `src/backend/PTKD.Api/Security/JwtBearerConfigureOptions.cs` | NEW |
+| `src/backend/PTKD.Application/Security/Authentication/Interfaces/IProtectedRequestValidator.cs` | NEW |
 | `src/backend/PTKD.Application/Security/Authentication/Services/JwtAccessTokenService.cs` | MODIFY — minor addition |
-| `src/backend/PTKD.Application/Security/Authentication/Services/ProtectedRequestValidator.cs` | NEW — implementation |
-| `tests/backend/PTKD.ApiTests/ProtectedEndpointIntegrationTests.cs` | NEW — API integration tests |
-| `tests/backend/PTKD.ApiTests/ProtectedTestController.cs` | NEW — test-only protected endpoint |
-| `tests/backend/PTKD.ApiTests/SafeTestWebApplicationFactory.cs` | MODIFY — loads `ProtectedTestController` assembly part into test host |
-| `tests/backend/PTKD.UnitTests/PTKD.UnitTests.csproj` | MODIFY — added `Moq.EntityFrameworkCore` test-only package |
-| `tests/backend/PTKD.UnitTests/Security/Authentication/ProtectedRequestValidatorTests.cs` | NEW — unit tests |
+| `src/backend/PTKD.Application/Security/Authentication/Services/ProtectedRequestValidator.cs` | NEW |
+| `tests/backend/PTKD.ApiTests/ProtectedEndpointIntegrationTests.cs` | NEW |
+| `tests/backend/PTKD.ApiTests/ProtectedTestController.cs` | NEW — test host only |
+| `tests/backend/PTKD.ApiTests/SafeTestWebApplicationFactory.cs` | MODIFY |
+| `tests/backend/PTKD.UnitTests/PTKD.UnitTests.csproj` | MODIFY — added `Moq.EntityFrameworkCore` (test-only) |
+| `tests/backend/PTKD.UnitTests/Security/Authentication/ProtectedRequestValidatorTests.cs` | NEW |
 
-## Cryptographic Validation
+## Authorization Status for Subsequent Phases
 
-Implemented in `JwtBearerConfigureOptions` via `IConfigureNamedOptions<JwtBearerOptions>`:
-
-- **Issuer**: `ValidateIssuer = true`, `ValidIssuer = "PTKD-ERP"`
-- **Audience**: `ValidateAudience = true`, `ValidAudience = "PTKD-ERP-API"`
-- **Lifetime**: `ValidateLifetime = true`
-- **Clock skew**: `ClockSkew = TimeSpan.FromSeconds(30)`
-- **Signing key**: `ValidateIssuerSigningKey = true`; key resolved dynamically from `IJwtSigningKeyProvider` using `kid` header claim
-- **DI wiring**: `builder.Services.ConfigureOptions<JwtBearerConfigureOptions>()` — no `BuildServiceProvider` anti-pattern
-
-## JWT Bearer Wiring — BuildServiceProvider Anti-Pattern Removed
-
-The previous implementation used `BuildServiceProvider` inside `Program.cs` to resolve the signing key at configuration time.
-This has been removed.
-
-`JwtBearerConfigureOptions` now receives `IJwtSigningKeyProvider` via constructor DI and is registered as `IConfigureNamedOptions<JwtBearerOptions>`.
-The key resolver runs per-request inside `IssuerSigningKeyResolver`, resolving the correct RSA key by `kid` at validation time without any service-locator anti-pattern.
-
-## Business Rule Validation
-
-Implemented in `ProtectedRequestValidator` (`IProtectedRequestValidator`).
-Invoked from `JwtBearerEvents.OnTokenValidated` using scoped DI (`context.HttpContext.RequestServices`).
-
-Validation sequence:
-
-1. **Auth account exists**: `UserAuthAccount` must exist for the `sub` claim user ID. If not found → fail.
-2. **Auth account status ACTIVE**: `AuthAccountStatus` must equal `"ACTIVE"` (case-insensitive). If not → fail.
-3. **Linked user exists**: `account.User` navigation property must not be null. If null → fail.
-4. **Employment eligibility**: Employment status **ACTIVE or PROBATION** is eligible. Any other employment status (e.g., `TERMINATED`, `RESIGNED`, `ON_LEAVE`) is rejected → fail.
-5. **Security stamp matches**: JWT `security_stamp` claim must exactly match `UserAuthAccount.SecurityStamp`. If mismatch → fail.
-6. **Session cutoff**: If `SessionsInvalidatedAt` is set, token `iat` must be **strictly after** the cutoff (`issuedAtUtc > SessionsInvalidatedAt`). Token issued **at** the cutoff (`iat == cutoff`) is **denied**. Token issued **before** the cutoff is denied. Token issued **after** the cutoff is allowed when all other conditions pass.
-
-## Fail-Closed Behavior
-
-Any infrastructure exception (e.g., database unreachable) inside `ProtectedRequestValidator.ValidateAsync` is caught, logged as an error, and returns `false`.
-This causes `OnTokenValidated` to call `context.Fail("Unauthorized")`, resulting in a `401 Unauthorized` response.
-The system never grants access when the trusted validation store cannot be checked.
-
-## Failure Mapping
-
-| Condition | External Response |
+| Phase | Status |
 |---|---|
-| Invalid or expired JWT | 401 Unauthorized |
-| Missing bearer token | 401 Unauthorized |
-| Invalid signature / tampered token | 401 Unauthorized |
-| Account not found | 401 Unauthorized (generic) |
-| Account disabled | 401 Unauthorized (generic) |
-| Linked user missing | 401 Unauthorized (generic) |
-| Employment not ACTIVE or PROBATION | 401 Unauthorized (generic) |
-| Security stamp mismatch | 401 Unauthorized (generic) |
-| Token issued at or before session cutoff | 401 Unauthorized (generic) |
-| Infrastructure exception | 401 Unauthorized (generic) |
-
-No internal reason (account status, employment status, stamp mismatch, cutoff detail, or account existence) is revealed in the public response body.
-
-## Test Commands and Results
-
-All commands run on commit `584f4001034efc0f96c71f6f519bc0f7b3139691` with `--no-restore`.
-
-```
-dotnet build src/backend/PTKD-ERP.sln --configuration Debug --no-restore
-```
-Result: **Build succeeded. 0 errors. 4 MSB3277 warnings (pre-existing, non-blocking).**
-
-```
-dotnet test tests/backend/PTKD.UnitTests/PTKD.UnitTests.csproj --configuration Debug --no-restore
-```
-Result: **Passed: 76, Failed: 0, Skipped: 0.**
-
-```
-dotnet test tests/backend/PTKD.IntegrationTests/PTKD.IntegrationTests.csproj --configuration Debug --no-restore
-```
-Result: **Passed: 138, Failed: 0, Skipped: 0.**
-
-```
-dotnet test tests/backend/PTKD.ApiTests/PTKD.ApiTests.csproj --configuration Debug --no-restore
-```
-Result: **Passed: 88, Failed: 0, Skipped: 0.**
-
-```
-dotnet test tests/backend/PTKD.IntegrationTests/PTKD.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DatabaseSafety"
-```
-Result: **Passed: 17, Failed: 0, Skipped: 0.**
-
-## Unit Test Coverage
-
-Tests in `PTKD.UnitTests/Security/Authentication/ProtectedRequestValidatorTests.cs`:
-
-| Test | Validates |
-|---|---|
-| `ValidateAsync_ActiveAccount_EligibleUser_MatchingStamp_AfterCutoff_Passes` | Happy path — all conditions pass |
-| `ValidateAsync_AccountNotFound_Fails` | Account not found |
-| `ValidateAsync_AccountDisabled_Fails` | Account status not ACTIVE |
-| `ValidateAsync_LinkedUserMissing_Fails` | User navigation null |
-| `ValidateAsync_EmploymentStatusNotActiveOrProbation_Fails` | Employment status TERMINATED |
-| `ValidateAsync_SecurityStampMismatches_Fails` | Stamp mismatch |
-| `ValidateAsync_TokenIssuedAtCutoff_Fails` | `iat == cutoff` (inclusive deny) |
-| `ValidateAsync_TokenIssuedBeforeCutoff_Fails` | `iat < cutoff` |
-| *(covered by happy path)* | `iat > cutoff` passes |
-| `ValidateAsync_InfrastructureException_FailsClosed` | DB exception → fail closed |
-
-## API Test Coverage
-
-Tests in `PTKD.ApiTests/ProtectedEndpointIntegrationTests.cs` (HTTP boundary via `SafeTestWebApplicationFactory`):
-
-| Test | Validates |
-|---|---|
-| `ProtectedEndpoint_ValidToken_Succeeds` | Valid token → 200 OK |
-| `ProtectedEndpoint_MissingToken_Returns401` | No bearer token → 401 |
-| `ProtectedEndpoint_InvalidSignature_Returns401` | Tampered token → 401 |
-| `ProtectedEndpoint_ExpiredToken_Returns401` | Expired token → 401 |
-| `ProtectedEndpoint_SecurityStampMismatch_Returns401` | Stamp mismatch → 401, body does not contain "stamp" |
-| `ProtectedEndpoint_AccountDisabled_Returns401` | Account disabled → 401, body does not contain "disabled" |
-| `ProtectedEndpoint_EmploymentTerminated_Returns401` | Employment TERMINATED → 401, body does not contain "employment" |
-| `ProtectedEndpoint_SessionCutoff_Returns401` | Cutoff in future of token issue → 401 |
-
-Test-only endpoint: `ProtectedTestController` lives in namespace `PTKD.ApiTests`, route `api/v2/test/ProtectedTest`.
-It is loaded into the test host only via `AddApplicationPart`. It is not part of the production API.
-
-## Database Safety Evidence
-
-- All DB-writing API tests use `SafeTestWebApplicationFactory` with `ConnectionStrings:DefaultConnection = PTKD_TEST_PHASE1A2`.
-- `InitialCatalog` guard runs before writes: tests assert they are connected to `PTKD_TEST_PHASE1A2`.
-- `DatabaseSafety` filter passed: 17 tests, 0 failures.
-- `PTKD_DEV` was not connected during any test run.
-- No production migration was executed.
-- `V0003/U0003` are unchanged.
-- `V0004/U0004` do not exist.
-
-## Explicit Exclusions
-
-| Item | Status |
-|---|---|
-| Phase 1B.1-C-C | IMPLEMENTED AND VERIFIED — AWAITING PROJECT OWNER ACCEPTANCE |
-| Phase 1B.1-D through I (authorization, permission evaluation, etc.) | NOT AUTHORIZED |
-| Permission evaluation | NOT IMPLEMENTED — not authorized in C-C |
-| Role/admin-group authorization | NOT IMPLEMENTED — not authorized in C-C |
-| Company-scope authorization by JWT alone | NOT IMPLEMENTED — not authorized in C-C |
-| Production `/auth/me` endpoint | NOT IMPLEMENTED |
-| `/api/v2/auth/logout-all` endpoint | NOT IMPLEMENTED |
-| Frontend | NOT IMPLEMENTED |
-| AD/LDAP | NOT IMPLEMENTED |
-| Bootstrap | NOT IMPLEMENTED |
-| Audit writer | NOT IMPLEMENTED |
-| Semantic audit scrubbing | NOT IMPLEMENTED |
-| V0004/U0004 migration | NOT CREATED |
-| V0003/U0003 | UNCHANGED |
-| Production migration | NOT AUTHORIZED — NOT EXECUTED |
-
-## Remaining Work After Phase 1B.1-C-C
-
-- Phase 1B.1-D and later (authorization, permission evaluation, RBAC, company-scope enforcement) remain **NOT AUTHORIZED**.
-- No role/admin-group permission evaluation was implemented in C-C.
-- No company-scope authorization by JWT alone was implemented.
-- No audit writer or semantic audit scrubbing was implemented.
-- No frontend was implemented.
-- No production migration was executed.
-- All subsequent phases require explicit Project Owner authorization before implementation begins.
+| Phase 1B.1-C-C | **ACCEPTED BY PROJECT OWNER — 2026-07-17** |
+| Phase 1B.1-D through I | NOT AUTHORIZED BY THIS ACCEPTANCE |
+| Production migration | NOT AUTHORIZED |
