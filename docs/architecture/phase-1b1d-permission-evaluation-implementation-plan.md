@@ -2,7 +2,7 @@
 
 ## Document Status
 
-PROPOSED — AWAITING PROJECT OWNER REVIEW
+PROPOSED — PROJECT OWNER DECISIONS RECORDED — AWAITING PROJECT OWNER PLAN ACCEPTANCE
 
 Phase 1B.1-D implementation:
 NOT AUTHORIZED BY THIS PLAN
@@ -169,23 +169,21 @@ Permission evaluation is server-side and trusted. The JWT provides identity only
 
 ---
 
-## 6. Open Decisions
+## 6. Resolved Decisions (Project Owner)
 
-The following items are ambiguous or missing in existing documents and must be resolved by the Project Owner before implementation begins:
+The following items have been resolved by the Project Owner. There are no longer any blocking open decisions for this plan.
 
-| # | Question | Impact | Source of ambiguity |
-|---|---|---|---|
-| **OD-D-01** | What is the exact evaluation precedence when a user is a member of an Admin Group AND has an individual DENY for the same permission? Does Admin Group membership override individual DENY, or does individual DENY win over Admin Group? | Core algorithm | §12 of phase-1b1 plan lists "Admin Group → Explicit Deny → Individual Grant → Role Grant" but the hierarchy direction is ambiguous: does Admin Group WIN over individual DENY, or does individual DENY still win? |
-| **OD-D-02** | For department baseline permissions: which department is used when a user has multiple simultaneous active department assignments? All departments unioned? Active primary department only? | Evaluation correctness | Phase-1b0 and phase-1b1 describe `Department_Permissions` but do not specify how multi-department users are handled. |
-| **OD-D-03** | Should a permission evaluation for a COMPANY-scoped permission fail (403) or evaluate as DENY if the user has no active assignment to the requested company? | Company scope boundary | DEC-1B-012 and phase-1b1 §13 handle `X-Company-Id` header enforcement in Phase 1B.1-E, but Phase 1B.1-D evaluator needs to know whether to check company membership during evaluation or defer to E. |
-| **OD-D-04** | Is an in-memory cache (e.g., `IMemoryCache`) acceptable for Phase 1B.1-D, or is a distributed cache (e.g., Redis) required? | Infrastructure dependency | DEC-1B-011 says fail closed on cache failure but does not specify cache technology. |
-| **OD-D-05** | Must `GET /api/v2/security/permissions` return ALL permissions (including inactive), or only `is_active = 1`? | API contract | Phase-1b0 lists the 15 seeded codes; filtering behavior on `is_active` not specified. |
-| **OD-D-06** | Does `GET /api/v2/security/users/{id}/effective-permissions` require a company scope (`X-Company-Id`)? If the target user has both GLOBAL and COMPANY assignments, are both returned? | API contract | Phase-1b0 §9 shows the endpoint as `SECURITY_ASSIGNMENT_MANAGE, COMPANY` — but does not specify response structure for GLOBAL vs COMPANY permissions. |
-| **OD-D-07** | What is the exact `AUTH_PERMISSION_CATALOG_INACTIVE` behavior — 409 or 422 — when assigning an inactive permission to a role/admin group? | Error mapping | Phase-1b0 §9 lists both 409 and 422 as candidates with "(409 or 422)" notation. |
-| **OD-D-08** | What is the test database name for Phase 1B.1-D integration tests? The existing convention uses `PTKD_TEST_PHASE1A2`. Phase-1b0 §10 references `PTKD_TEST_PHASE1B`. Should Phase 1B.1-D create/use `PTKD_TEST_PHASE1B` or continue with `PTKD_TEST_PHASE1A2`? | DB safety | Both names appear in docs; which is the authoritative name for Phase 1B tests. |
+| # | Decision |
+|---|---|
+| **OD-D-01** | Individual DENY always wins over Admin Group grants. |
+| **OD-D-02** | For multiple active department assignments, use union of all active department baseline permissions. |
+| **OD-D-03** | If user has no active assignment to requested company, evaluator returns DENY. |
+| **OD-D-04** | Use IMemoryCache for Phase 1B.1-D. Distributed cache is deferred. |
+| **OD-D-05** | GET /api/v2/security/permissions returns active permissions only, where is_active = 1. |
+| **OD-D-06** | Effective-permissions API requires explicit company scope for COMPANY evaluation. Result may include GLOBAL permissions plus permissions effective for the requested company. |
+| **OD-D-07** | Inactive permission catalog usage/assignment returns HTTP 422 Unprocessable Entity. |
+| **OD-D-08** | Continue using `PTKD_TEST_PHASE1A2` for Phase 1B.1-D integration/API tests. |
 
-> [!IMPORTANT]
-> **OD-D-01 (Admin Group vs. individual DENY precedence) and OD-D-02 (multi-department user handling) materially affect the evaluation algorithm.** These must be answered before implementation begins.
 
 ---
 
@@ -401,7 +399,7 @@ function evaluate(userId, permissionCode, companyId):
 ```
 
 > [!IMPORTANT]
-> Step 4 is subject to **OD-D-01**: if individual DENY overrides Admin Group, the order becomes: individual DENY wins first, then Admin Group, then individual ALLOW, then role, then department. If Admin Group wins over individual DENY, a different order applies. This must be confirmed before implementation.
+> The order is finalized as: individual DENY wins first, then Admin Group, then individual ALLOW, then role, then department.
 
 ---
 
@@ -610,14 +608,14 @@ Phase 1B.1-D is complete when:
 
 Before authorizing Phase 1B.1-D implementation, the Project Owner must confirm:
 
-- [ ] The Admin Group vs. individual DENY precedence (OD-D-01) is resolved.
-- [ ] Multi-department user handling (OD-D-02) is resolved.
-- [ ] Company scope boundary during evaluation (OD-D-03) is resolved.
-- [ ] Cache technology (OD-D-04) is acceptable (in-memory or distributed).
-- [ ] Permission catalog filtering (OD-D-05) — active-only or all.
-- [ ] Effective-permissions endpoint scope behavior (OD-D-06) is resolved.
-- [ ] `AUTH_PERMISSION_CATALOG_INACTIVE` HTTP status (OD-D-07: 409 or 422) is decided.
-- [ ] Test database name (OD-D-08: `PTKD_TEST_PHASE1A2` or `PTKD_TEST_PHASE1B`) is confirmed.
+- [x] The Admin Group vs. individual DENY precedence (OD-D-01) is resolved.
+- [x] Multi-department user handling (OD-D-02) is resolved.
+- [x] Company scope boundary during evaluation (OD-D-03) is resolved.
+- [x] Cache technology (OD-D-04) is acceptable (in-memory or distributed).
+- [x] Permission catalog filtering (OD-D-05) — active-only or all.
+- [x] Effective-permissions endpoint scope behavior (OD-D-06) is resolved.
+- [x] `AUTH_PERMISSION_CATALOG_INACTIVE` HTTP status (OD-D-07: 409 or 422) is decided.
+- [x] Test database name (OD-D-08: `PTKD_TEST_PHASE1A2` or `PTKD_TEST_PHASE1B`) is confirmed.
 - [ ] The three sub-slice structure (D-1, D-2, D-3) or an alternative is approved.
 - [ ] Phase 1B.1-D implementation is explicitly authorized (this plan acceptance does NOT authorize implementation).
 
