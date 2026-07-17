@@ -7,7 +7,7 @@ using PTKD.Domain.Security.Authentication;
 
 namespace PTKD.Infrastructure.Persistence;
 
-public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDbContext, ITokenSessionDbContext
+public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDbContext, ITokenSessionDbContext, PTKD.Application.Security.Authorization.Interfaces.IAuthorizationDbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -23,6 +23,16 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<PTKD.Domain.Security.Authorization.Permission> Permissions => Set<PTKD.Domain.Security.Authorization.Permission>();
+    public DbSet<PTKD.Domain.Security.Authorization.Role> Roles => Set<PTKD.Domain.Security.Authorization.Role>();
+    public DbSet<PTKD.Domain.Security.Authorization.AdminGroup> AdminGroups => Set<PTKD.Domain.Security.Authorization.AdminGroup>();
+    public DbSet<PTKD.Domain.Security.Authorization.RolePermission> RolePermissions => Set<PTKD.Domain.Security.Authorization.RolePermission>();
+    public DbSet<PTKD.Domain.Security.Authorization.AdminGroupPermission> AdminGroupPermissions => Set<PTKD.Domain.Security.Authorization.AdminGroupPermission>();
+    public DbSet<PTKD.Domain.Security.Authorization.DepartmentPermission> DepartmentPermissions => Set<PTKD.Domain.Security.Authorization.DepartmentPermission>();
+    public DbSet<PTKD.Domain.Security.Authorization.UserRoleAssignment> UserRoleAssignments => Set<PTKD.Domain.Security.Authorization.UserRoleAssignment>();
+    public DbSet<PTKD.Domain.Security.Authorization.UserAdminGroupAssignment> UserAdminGroupAssignments => Set<PTKD.Domain.Security.Authorization.UserAdminGroupAssignment>();
+    public DbSet<PTKD.Domain.Security.Authorization.UserIndividualPermission> UserIndividualPermissions => Set<PTKD.Domain.Security.Authorization.UserIndividualPermission>();
+    public DbSet<PTKD.Domain.Security.Authorization.AuthorizationPolicyState> AuthorizationPolicyStates => Set<PTKD.Domain.Security.Authorization.AuthorizationPolicyState>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

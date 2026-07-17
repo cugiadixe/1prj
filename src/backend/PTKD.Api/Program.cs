@@ -87,6 +87,11 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 builder.Services.AddScoped<IOrganizationDbContextFactory, AppDbContextFactory>();
 builder.Services.AddScoped<IAuthenticationDbContextFactory, AuthenticationDbContextFactory>();
 builder.Services.AddScoped<ITokenSessionDbContextFactory, TokenSessionDbContextFactory>();
+builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IAuthorizationDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
+// Authorization Services
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IPermissionEvaluator, PTKD.Application.Security.Authorization.Services.PermissionEvaluator>();
 
 // Application Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();
