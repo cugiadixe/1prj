@@ -11,10 +11,27 @@ namespace PTKD.ApiTests;
 /// API-test host that permits only PTKD_TEST_PHASE1A2 and verifies SELECT DB_NAME()
 /// before a test client can issue a request that writes through the application.
 /// </summary>
+/// <remarks>
+/// Schema initialization (ResetToV0003) is performed exactly once per test process via
+/// a static lazy guard.  Derived factories produced by WithWebHostBuilder() share the
+/// same static state and therefore do NOT re-run the destructive reset on every
+/// CreateHost() invocation, which previously caused table-dropped deadlocks mid-run.
+/// </remarks>
 public class SafeTestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private static readonly string TestConnectionString =
         TestDatabaseSafety.ValidateConnectionString(TestDatabaseSafety.DefaultConnectionString);
+
+    /// <summary>
+    /// Ensures the database schema is reset to V0003 exactly once per test process.
+    /// Lazy&lt;T&gt; guarantees thread-safe single execution even if multiple factories
+    /// are constructed concurrently.
+    /// </summary>
+    private static readonly Lazy<bool> SchemaInitialized = new(() =>
+    {
+        new TestDatabaseFixture().ResetToV0003();
+        return true;
+    });
 
     public string VerifiedDatabaseName { get; private set; } = string.Empty;
 
@@ -47,6 +64,12 @@ public class SafeTestWebApplicationFactory : WebApplicationFactory<Program>
 
             using var connection = TestDatabaseSafety.OpenVerifiedConnection(validatedConnectionString);
             VerifiedDatabaseName = TestDatabaseSafety.VerifyOpenConnection(connection);
+
+            // Ensure V0003 schema is present exactly once per test process.
+            // The Lazy guard prevents re-running ResetToV0003 on every CreateHost()
+            // call (which happens each time WithWebHostBuilder creates a derived factory).
+            _ = SchemaInitialized.Value;
+
             return host;
         }
         catch

@@ -366,4 +366,153 @@ public class PermissionEvaluatorTests
         var result = await _sut.EvaluateAsync(1, "PERM1", null);
         Assert.False(result);
     }
+    [Fact]
+    public async Task GetEffectivePermissionsAsync_ReturnsUnionOfAllSources()
+    {
+        SetupPermissions(new[] { 
+            new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" },
+            new Permission { PermissionCode = "PERM2", IsActive = true, DataScope = "GLOBAL" },
+            new Permission { PermissionCode = "PERM3", IsActive = true, DataScope = "COMPANY" },
+            new Permission { PermissionCode = "PERM4", IsActive = true, DataScope = "COMPANY" }
+        });
+
+        // 1. Department baseline -> PERM3 (Company 100)
+        SetupDepartmentAssignments(new[] { CreateAssignment(1, 10, 100, DateTime.MinValue) });
+        SetupDepartmentPermissions(new[] { new DepartmentPermission { DepartmentId = 10, PermissionCode = "PERM3" } });
+
+        // 2. Role Grant -> PERM1
+        SetupRoleAssignments(new[] {
+            new UserRoleAssignment { 
+                UserId = 1, AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, 
+                Role = new Role { Id = 20, IsActive = true, ScopeType = "GLOBAL", Permissions = new List<RolePermission> { new RolePermission { PermissionCode = "PERM1" } } } 
+            }
+        });
+
+        // 3. Admin Group Grant -> PERM2
+        SetupAdminGroupAssignments(new[] {
+            new UserAdminGroupAssignment { 
+                UserId = 1, AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, 
+                AdminGroup = new AdminGroup { Id = 30, IsActive = true, ScopeType = "GLOBAL", Permissions = new List<AdminGroupPermission> { new AdminGroupPermission { PermissionCode = "PERM2" } } } 
+            }
+        });
+
+        // 4. Individual Allow -> PERM4 (Company 100)
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM4", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "COMPANY", CompanyId = 100 }
+        });
+
+        var results = await _sut.GetEffectivePermissionsAsync(1, 100);
+
+        Assert.Equal(4, results.Count);
+        Assert.Contains("PERM1", results);
+        Assert.Contains("PERM2", results);
+        Assert.Contains("PERM3", results);
+        Assert.Contains("PERM4", results);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissionsAsync_SubtractsIndividualDeny()
+    {
+        SetupPermissions(new[] { 
+            new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" },
+            new Permission { PermissionCode = "PERM2", IsActive = true, DataScope = "GLOBAL" }
+        });
+
+        // Granted PERM1 & PERM2 via Admin Group
+        SetupAdminGroupAssignments(new[] {
+            new UserAdminGroupAssignment { 
+                UserId = 1, AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, 
+                AdminGroup = new AdminGroup { Id = 30, IsActive = true, ScopeType = "GLOBAL", Permissions = new List<AdminGroupPermission> { 
+                    new AdminGroupPermission { PermissionCode = "PERM1" },
+                    new AdminGroupPermission { PermissionCode = "PERM2" }
+                } } 
+            }
+        });
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
+
+        // Deny PERM1
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "DENY", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "GLOBAL" }
+        });
+
+        var results = await _sut.GetEffectivePermissionsAsync(1, null);
+
+        Assert.Single(results);
+        Assert.Contains("PERM2", results);
+        Assert.DoesNotContain("PERM1", results);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissionsAsync_ExcludesInactivePermissions()
+    {
+        SetupPermissions(new[] { 
+            new Permission { PermissionCode = "PERM1", IsActive = false, DataScope = "GLOBAL" }, // Inactive!
+            new Permission { PermissionCode = "PERM2", IsActive = true, DataScope = "GLOBAL" }
+        });
+
+        SetupRoleAssignments(new[] {
+            new UserRoleAssignment { 
+                UserId = 1, AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, 
+                Role = new Role { Id = 20, IsActive = true, ScopeType = "GLOBAL", Permissions = new List<RolePermission> { 
+                    new RolePermission { PermissionCode = "PERM1" },
+                    new RolePermission { PermissionCode = "PERM2" }
+                } } 
+            }
+        });
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+        SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
+        SetupIndividualPermissions(new List<UserIndividualPermission>());
+
+        var results = await _sut.GetEffectivePermissionsAsync(1, null);
+
+        Assert.Single(results);
+        Assert.Contains("PERM2", results);
+        Assert.DoesNotContain("PERM1", results);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissionsAsync_ReturnsEmptyOnException()
+    {
+        _dbContextMock.Setup(x => x.AuthorizationPolicyStates)
+            .Throws(new Exception("DB Down"));
+            
+        var results = await _sut.GetEffectivePermissionsAsync(1, null);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissionsAsync_RespectsCompanyScope()
+    {
+        SetupPermissions(new[] { 
+            new Permission { PermissionCode = "PERM_CO_100", IsActive = true, DataScope = "COMPANY" },
+            new Permission { PermissionCode = "PERM_CO_200", IsActive = true, DataScope = "COMPANY" },
+            new Permission { PermissionCode = "PERM_GLOBAL", IsActive = true, DataScope = "GLOBAL" }
+        });
+
+        // User is in Company 100 with PERM_CO_100
+        SetupDepartmentAssignments(new[] { 
+            CreateAssignment(1, 10, 100, DateTime.MinValue),
+            CreateAssignment(1, 11, 200, DateTime.MinValue) 
+        });
+        SetupDepartmentPermissions(new[] { 
+            new DepartmentPermission { DepartmentId = 10, PermissionCode = "PERM_CO_100" },
+            new DepartmentPermission { DepartmentId = 11, PermissionCode = "PERM_CO_200" }
+        });
+
+        // Global Allow
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM_GLOBAL", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "GLOBAL" }
+        });
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+
+        // Request permissions for Company 100 context
+        var results = await _sut.GetEffectivePermissionsAsync(1, 100);
+
+        Assert.Equal(2, results.Count);
+        Assert.Contains("PERM_GLOBAL", results);
+        Assert.Contains("PERM_CO_100", results);
+        Assert.DoesNotContain("PERM_CO_200", results);
+    }
 }
