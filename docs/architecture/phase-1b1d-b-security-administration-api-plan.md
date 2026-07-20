@@ -2,7 +2,7 @@
 
 ## 1. Status
 
-DRAFT — AWAITING PROJECT OWNER REVIEW
+ACCEPTED PLAN — D-B IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
 
 ## 2. Baseline
 
@@ -25,85 +25,59 @@ The proposed scope includes:
 6. **User role assignment APIs**: Assigning roles to users with temporal scope.
 7. **User admin group assignment APIs**: Assigning admin groups to users with temporal scope.
 8. **User individual permission ALLOW/DENY APIs**: Individual overrides with temporal scope.
-9. **Department baseline permission APIs**: Proposed to be included or deferred based on OD-D-B-09.
-10. **Effective permissions read API**: Proposed to be included or deferred based on OD-D-B-10.
-11. **Authorization policy version increment**: All mutations to roles, admin groups, and assignments must increment `Authorization_Policy_State.policy_version`.
+9. **Department baseline permission APIs**: Included (OD-D-B-09 accepted).
+10. **Effective permissions read API**: Included. Route: `GET /api/v2/security/users/{userId}/effective-permissions?companyId={companyId}` (OD-D-B-10 accepted).
+11. **Authorization policy version increment**: All mutations to roles, admin groups, and assignments must increment `Authorization_Policy_State.policy_version` in the same DB transaction (OD-D-B-05 accepted).
 12. **Cache invalidation behavior**: Incrementing the policy version automatically invalidates the `IPermissionEvaluator` cache.
-13. **Validation behavior for inactive permissions**: Assigning an inactive permission returns HTTP 422.
-14. **Company-scope validation behavior**: Enforcing `company_id` rules (GLOBAL vs COMPANY) at assignment time.
+13. **Validation behavior for inactive permissions**: Assigning an inactive permission returns HTTP 422 (OD-D-B-14 accepted).
+14. **Company-scope validation behavior**: Enforcing `company_id` rules (GLOBAL vs COMPANY) at assignment time via `IAuthorizationDbContext.UserCompanyAssignments` (OD-D-B-15 accepted).
 15. **RowVersion/concurrency behavior**: Enforcing optimistic concurrency for updates to roles/admin groups (HTTP 409).
-16. **EffectiveFrom/EffectiveTo behavior**: Enforcing temporal overlap rules.
-17. **Idempotency behavior**: Pending decision (OD-D-B-06).
-18. **Soft deactivate vs hard delete**: Pending decision (OD-D-B-07).
+16. **EffectiveFrom/EffectiveTo behavior**: `effective_from` inclusive, `effective_to` exclusive. Active logic: `EffectiveFrom <= now AND (EffectiveTo IS NULL OR EffectiveTo > now)` (OD-D-B-08 accepted).
+17. **Idempotency behavior**: Exact duplicate active assignment returns idempotent 200/204. Conflicting overlap returns 409 Conflict (OD-D-B-06 accepted).
+18. **Soft deactivate vs hard delete**: Assignment removal must use deactivate/end-date behavior to preserve history. No hard delete (OD-D-B-07 accepted).
 
 ## 5. Explicit Exclusions
 
 - No Phase E middleware enforcement.
+- No X-Company-Id middleware enforcement.
 - No Phase F semantic audit writer (API mutations will use a no-op stub for now).
 - No frontend implementation.
-- No X-Company-Id global enforcement middleware.
 - No V0004/U0004 migration (V0003 schema is sufficient).
 - No production migration.
+- No seed/bootstrap for SECURITY_ADMIN_MANAGE (deferred to Phase F).
+- No tag/push until explicitly authorized.
 
-## 6. Open Decisions
+## 6. Project Owner Decisions
 
-**OD-D-B-01: Should D-B production APIs be exposed now, or should D-B first implement application services only?**
-Reason: Phase E middleware enforcement is not authorized yet. Exposing security admin APIs without a permission enforcement strategy may be unsafe.
-_Proposal:_ Implement controllers, but either disable them via a feature flag or enforce permissions manually inside the controller (see OD-D-B-02) until Phase E.
+**OD-D-B-01:** D-B may implement production API routes, but only as dev/test implementation. No production deployment or production migration is authorized.
 
-**OD-D-B-02: How are D-B APIs authorized before Phase E?**
-Options:
-A. Require authenticated JWT only and rely on environment access.
-B. Add explicit manual permission checks inside each controller action using `IPermissionEvaluator`.
-C. Implement only services/tests now, defer controllers until Phase E.
-D. Another documented approach.
-_Proposal:_ Option B, manual checks using `IPermissionEvaluator` to validate the authorization logic early.
+**OD-D-B-02:** D-B APIs require authenticated JWT plus manual per-action authorization checks using `IPermissionEvaluator`. Do not rely on environment access only. Do not implement Phase E middleware.
 
-**OD-D-B-03: Which permission code controls security administration?**
-Candidate: `SECURITY_ADMIN_MANAGE` (Not in V0003 seed) or `SECURITY_ASSIGNMENT_MANAGE` (In V0003 seed).
-_Proposal:_ Use `SECURITY_ASSIGNMENT_MANAGE`, `SECURITY_ROLE_MANAGE`, and `SECURITY_ADMIN_GROUP_MANAGE` as seeded in V0003.
+**OD-D-B-03:** Security administration management permission code is `SECURITY_ADMIN_MANAGE`.
 
-**OD-D-B-04: Should SECURITY_AUDIT_VIEW remain read-only and separate from security administration management?**
-_Proposal:_ Yes, audit viewing is a separate concern from administration and should be kept read-only under `SECURITY_AUDIT_VIEW`.
+**OD-D-B-04:** `SECURITY_AUDIT_VIEW` remains read-only and separate from security administration management.
 
-**OD-D-B-05: Should Role/AdminGroup/Permission assignment mutations increment Authorization_Policy_State in the same DB transaction?**
-_Proposal:_ Yes, to ensure atomic cache invalidation, the transaction that modifies authorization data must also increment the policy version.
+**OD-D-B-05:** All Role/AdminGroup/Permission/Assignment/DepartmentBaseline/IndividualPermission mutations must increment `Authorization_Policy_State` in the same DB transaction.
 
-**OD-D-B-06: Should duplicate active assignments return:**
-- 200/204 idempotent success;
-- 409 conflict;
-- or 422 validation error?
-_Proposal:_ Return 409 Conflict, as it indicates the client's view of the state is out of sync with the server.
+**OD-D-B-06:** Exact duplicate active assignment returns idempotent success, 200 or 204. Exact duplicate means same `userId`, same `roleId`/`adminGroupId`/`permissionCode`, same `companyId`/scope, same `effectiveFrom`, same `effectiveTo`, and ACTIVE status. Conflicting overlapping assignment returns 409 Conflict.
 
-**OD-D-B-07: Should assignment removal be:**
-- deactivate/end-date only;
-- status change only;
-- or hard delete?
-_Proposal:_ End-date only (set `effective_to` = now and `assignment_status` = 'CLOSED') to preserve historical auditability without deleting rows.
+**OD-D-B-07:** Assignment removal must not hard delete. Use deactivate/status change/end-date behavior to preserve history.
 
-**OD-D-B-08: Should effective_to be exclusive or inclusive?**
-_Proposal:_ Exclusive `[effective_from, effective_to)`. A permission is active if `effective_from <= NOW < effective_to`.
+**OD-D-B-08:** `effective_from` is inclusive. `effective_to` is exclusive. Active logic: `EffectiveFrom <= now AND (EffectiveTo IS NULL OR EffectiveTo > now)`.
 
-**OD-D-B-09: Should department baseline permission APIs be included in D-B, or deferred?**
-_Proposal:_ Included, as it completes the authorization management feature set.
+**OD-D-B-09:** Department baseline permission APIs are included in D-B.
 
-**OD-D-B-10: Should effective-permissions read API be included in D-B, and what route shape should it use?**
-_Proposal:_ Included. Route: `GET /api/v2/security/users/{userId}/effective-permissions`.
+**OD-D-B-10:** Effective-permissions read API is included in D-B: `GET /api/v2/security/users/{userId}/effective-permissions?companyId={companyId}`.
 
-**OD-D-B-11: Should API responses expose source breakdown, or only final effective permission codes?**
-_Proposal:_ Only final effective permission codes for simplicity and security. Source breakdown is an advanced diagnostic feature that can be deferred.
+**OD-D-B-11:** D-B effective-permissions response returns final effective permission codes only. Source breakdown is deferred. Self-query is not authorized in D-B. Endpoint requires `SECURITY_ADMIN_MANAGE`.
 
-**OD-D-B-12: Should D-B create any seed permissions for SECURITY_ADMIN_MANAGE, or is seeding/bootstrap deferred?**
-_Proposal:_ Seeding/bootstrap is Phase 1B.1-F. We will use the V0003 seeded permissions for now.
+**OD-D-B-12:** D-B must not create production seed/bootstrap permissions for `SECURITY_ADMIN_MANAGE`. Tests may seed `SECURITY_ADMIN_MANAGE` directly into `PTKD_TEST_PHASE1A2` only. Bootstrap/seeding remains separate and not authorized here.
 
-**OD-D-B-13: Can D-B proceed without audit writer, or must mutation APIs wait for Phase F audit?**
-_Proposal:_ Proceed without it. Mutation APIs will use an injected stub/no-op interface that will be replaced in Phase F.
+**OD-D-B-13:** D-B may proceed without audit writer for dev/test implementation only. Production enablement of mutation APIs requires Phase F audit/bootstrap or separate acceptance.
 
-**OD-D-B-14: Should management APIs accept only active permissions, returning HTTP 422 for inactive permission usage?**
-_Proposal:_ Yes. Assigning an inactive permission is a business logic error and should return 422 Unprocessable Entity.
+**OD-D-B-14:** Management APIs must accept only active permissions. Inactive permission usage/assignment returns HTTP 422.
 
-**OD-D-B-15: Should company-scoped roles/admin groups be restricted to users with active company assignment?**
-_Proposal:_ Yes. A user must have an active assignment to Company X to be granted a role scoped to Company X.
+**OD-D-B-15:** Company-scoped roles/admin groups/assignments must be restricted to users with active assignment to that company. Implement this through `IAuthorizationDbContext` exposing `UserCompanyAssignments`. Do not inject concrete `AppDbContext` directly into Application services. Do not cast `IAuthorizationDbContext` to `AppDbContext`.
 
 ## 7. Proposed API Design
 
