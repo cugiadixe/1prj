@@ -1,12 +1,18 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Api.Security.Authorization;
 using PTKD.Application.Organizations.Departments.DTOs;
 using PTKD.Application.Organizations.Departments.Services;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 
 namespace PTKD.API.Controllers;
 
 [ApiController]
 [Route("api/v2/organizations/departments")]
+[Authorize]
+[RequirePermission(PermissionCodes.OrganizationDepartmentManage, PermissionScope.Global)]
 public class DepartmentsController : ControllerBase
 {
     private readonly IDepartmentService _departmentService;

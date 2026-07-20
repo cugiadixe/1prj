@@ -52,6 +52,9 @@
 | WORKFLOW_BIND_PROCESS | WORKFLOW | BIND_PROCESS | GLOBAL/COMPANY | Yes | No | Bind a version to an existing process and scope. |
 | WORKFLOW_REASSIGN_PENDING | WORKFLOW | REASSIGN_PENDING | COMPANY | Yes | No | Reassign a pending step with reason and audit. |
 | WORKFLOW_AUDIT_VIEW | WORKFLOW | VIEW_AUDIT | GLOBAL/COMPANY | Yes | No | View workflow configuration/runtime audit. |
+| ORGANIZATION_USER_MANAGE | Organization | Manage users | GLOBAL | No | No | Manage Organization Users API access in Phase 1B. |
+| ORGANIZATION_DEPARTMENT_MANAGE | Organization | Manage departments | GLOBAL | No | No | Manage Organization Departments API access in Phase 1B. |
+| ORGANIZATION_COMPANY_MANAGE | Organization | Manage companies | GLOBAL | No | No | Manage Organization Companies API access in Phase 1B. |
 
 ## Baseline department permissions
 

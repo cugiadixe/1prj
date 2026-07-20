@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Api.Security.Authorization;
 using PTKD.Application.Security.Authorization.Attributes;
 using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;

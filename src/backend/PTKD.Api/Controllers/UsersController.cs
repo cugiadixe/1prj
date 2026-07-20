@@ -1,12 +1,18 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Api.Security.Authorization;
 using PTKD.Application.Organizations.Users.DTOs;
 using PTKD.Application.Organizations.Users.Services;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 
 namespace PTKD.API.Controllers;
 
 [ApiController]
 [Route("api/v2/organizations/users")]
+[Authorize]
+[RequirePermission(PermissionCodes.OrganizationUserManage, PermissionScope.Global)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

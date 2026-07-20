@@ -150,7 +150,8 @@ public class PermissionEnforcementApiTests : IClassFixture<SafeTestWebApplicatio
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var hash = hasher.HashPassword(null!, password);
+        var dummyAccount = PTKD.Domain.Entities.UserAuthAccount.CreateInternal(user.Id, username.ToUpperInvariant(), "TEMP", clock.UtcNow);
+        var hash = hasher.HashPassword(dummyAccount, password);
         var account = PTKD.Domain.Entities.UserAuthAccount.CreateInternal(user.Id, username.ToUpperInvariant(), hash, clock.UtcNow);
         db.UserAuthAccounts.Add(account);
         await db.SaveChangesAsync();

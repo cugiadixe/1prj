@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -7,11 +8,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PTKD.Api.Auth.Models;
 using Xunit;
 
 namespace PTKD.ApiTests
 {
-    public partial class OrganizationApiTests : IClassFixture<SafeTestWebApplicationFactory>
+    public partial class OrganizationApiTests : IClassFixture<SafeTestWebApplicationFactory>, IAsyncLifetime
     {
         private readonly HttpClient _client;
         private readonly SafeTestWebApplicationFactory _factory;
@@ -21,6 +24,17 @@ namespace PTKD.ApiTests
             _factory = factory;
             _client = factory.CreateClient();
         }
+
+        public async Task InitializeAsync()
+        {
+            var (userId, token) = await SeedUserAndGetTokenAsync("org_admin_user");
+            await GrantPermissionAsync(userId, "ORGANIZATION_USER_MANAGE", null);
+            await GrantPermissionAsync(userId, "ORGANIZATION_DEPARTMENT_MANAGE", null);
+            await GrantPermissionAsync(userId, "ORGANIZATION_COMPANY_MANAGE", null);
+            _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        public Task DisposeAsync() => Task.CompletedTask;
 
         // ── Environment Protection ────────────────────────────────────────
 
@@ -60,7 +74,7 @@ namespace PTKD.ApiTests
             });
             var client = devFactory.CreateClient();
             var response = await client.GetAsync("/api/v2/organizations/companies");
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         // ── Company CRUD ────────────────────────────────────────
@@ -570,6 +584,84 @@ namespace PTKD.ApiTests
                 Name: root.TryGetProperty("name", out var nProp) ? nProp.GetString() ?? "" : "",
                 RowVersion: root.TryGetProperty("rowVersion", out var rvProp) ? rvProp.GetString() ?? "" : ""
             );
+        }
+        private async Task<(long UserId, string Token)> SeedUserAndGetTokenAsync(string baseUsername)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+            using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+            var clock = scope.ServiceProvider.GetRequiredService<PTKD.Application.Security.Authentication.Interfaces.IUtcClock>();
+            var hasher = scope.ServiceProvider.GetRequiredService<PTKD.Application.Security.Authentication.Interfaces.IPasswordHashService>();
+
+            var username = baseUsername + Guid.NewGuid().ToString("N")[..5];
+            var password = "TestPassword123!";
+
+            var user = new PTKD.Domain.Entities.User(
+                employeeCode: username,
+                fullName: "Test User " + username,
+                email: null,
+                employmentStatus: "Active",
+                accountStatus: "Active");
+            
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+
+            var dummyAccount = PTKD.Domain.Entities.UserAuthAccount.CreateInternal(user.Id, username.ToUpperInvariant(), "TEMP", clock.UtcNow);
+            var hash = hasher.HashPassword(dummyAccount, password);
+            var account = PTKD.Domain.Entities.UserAuthAccount.CreateInternal(user.Id, username.ToUpperInvariant(), hash, clock.UtcNow);
+            db.UserAuthAccounts.Add(account);
+            await db.SaveChangesAsync();
+
+            var loginReq = new LoginRequest(username, password);
+            var authClient = _factory.CreateClient();
+            var loginRes = await authClient.PostAsJsonAsync("/api/v2/auth/login", loginReq);
+            loginRes.EnsureSuccessStatusCode();
+
+            var body = await loginRes.Content.ReadFromJsonAsync<LoginResponse>();
+            return (user.Id, body!.AccessToken);
+        }
+
+        private async Task GrantPermissionAsync(long userId, string permissionCode, long? companyId)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+            using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+            var perm = db.Set<PTKD.Domain.Security.Authorization.Permission>().FirstOrDefault(p => p.PermissionCode == permissionCode);
+            if (perm == null)
+            {
+                perm = new PTKD.Domain.Security.Authorization.Permission
+                {
+                    PermissionCode = permissionCode,
+                    ModuleCode = "TEST",
+                    ActionCode = "TEST",
+                    DataScope = companyId.HasValue ? "COMPANY" : "GLOBAL",
+                    IsSensitive = false,
+                    RequiresReason = false,
+                    IsDelegable = false,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    RowVersion = PTKD.Domain.ValueObjects.RowVersion.FromByteArray(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 })
+                };
+                db.Set<PTKD.Domain.Security.Authorization.Permission>().Add(perm);
+                await db.SaveChangesAsync();
+            }
+
+            var up = new PTKD.Domain.Security.Authorization.UserIndividualPermission
+            {
+                UserId = userId,
+                PermissionCode = permissionCode,
+                ScopeType = companyId.HasValue ? "COMPANY" : "GLOBAL",
+                CompanyId = companyId,
+                GrantType = "ALLOW",
+                AssignmentStatus = "ACTIVE",
+                EffectiveFrom = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                RowVersion = PTKD.Domain.ValueObjects.RowVersion.FromByteArray(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 })
+            };
+            db.Set<PTKD.Domain.Security.Authorization.UserIndividualPermission>().Add(up);
+            await db.SaveChangesAsync();
         }
     }
 }
