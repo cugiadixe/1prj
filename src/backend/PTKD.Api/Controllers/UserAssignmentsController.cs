@@ -1,12 +1,18 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Api.Security.Authorization;
 using PTKD.Application.Organizations.Assignments.DTOs;
 using PTKD.Application.Organizations.Assignments.Services;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 
 namespace PTKD.API.Controllers;
 
 [ApiController]
 [Route("api/v2/organizations/users/{userId}")]
+[Authorize]
+[RequirePermission(PermissionCodes.OrganizationUserManage, PermissionScope.Global)]
 public class UserAssignmentsController : ControllerBase
 {
     private readonly IUserAssignmentService _assignmentService;
