@@ -1,7 +1,7 @@
 # Phase 1B.1-E-B Security API Shared Enforcement Plan
 
 ## 1. Status
-DRAFT — AWAITING PROJECT OWNER REVIEW
+ACCEPTED PLAN — PHASE 1B.1-E-B IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
 
 ## 2. Baseline
 - Current accepted HEAD: 4b7d1561f008892dcf351b6a152f2f7efb7ca061
@@ -12,26 +12,24 @@ DRAFT — AWAITING PROJECT OWNER REVIEW
 E-B migrates accepted D-B Security Administration API authorization from manual controller helper checks to the shared RequirePermission enforcement mechanism created in E-A, without changing business behavior.
 
 ## 4. In-scope
-- Audit every D-B Security controller authorization check.
-- Replace manual SecurityControllerHelper.EnforcePermissionAsync calls with shared RequirePermission metadata where behavior is equivalent.
-- Preserve current SECURITY_ADMIN_MANAGE requirement.
-- Preserve current service-level company-scope validation.
-- Preserve all existing D-B API contracts and status codes.
-- Keep existing D-B tests passing.
-- Add/adjust tests to prove shared enforcement is active on real D-B controllers.
-- No broad Organization API enforcement.
+- Audit all D-B Security Administration controller manual authorization checks.
+- Replace equivalent manual SecurityControllerHelper.EnforcePermissionAsync checks with shared RequirePermission metadata.
+- Preserve SECURITY_ADMIN_MANAGE authorization semantics.
+- Preserve existing D-B API behavior and status codes.
+- Preserve service-level company-scope validation.
+- Keep D-B regression tests passing.
+- Add or adjust tests proving D-B APIs now use shared enforcement.
 
 ## 5. Out-of-scope
-- UsersController, DepartmentsController, CompaniesController.
-- New permission codes for Organization APIs.
-- Business module enforcement.
-- Phase F audit writer.
-- Frontend.
-- V0004/U0004.
-- Production migration.
-- Production seed/bootstrap.
-- AD/LDAP.
-- Multi-permission any-of/all-of behavior.
+- Do not touch UsersController, DepartmentsController, or CompaniesController.
+- Do not create new permission codes.
+- Do not introduce multi-permission behavior.
+- No V0004/U0004.
+- No production migration.
+- No production seed/bootstrap.
+- No Phase F audit writer.
+- No frontend.
+- No business module implementation.
 
 ## 6. Required equivalence audit
 Before implementation, E-B must inspect and document:
@@ -66,25 +64,25 @@ Tests must cover:
 - effective-permissions self-query remains forbidden;
 - full Unit, Integration, Api, DatabaseSafety suites.
 
-## 9. Open Project Owner decisions
+## 9. Recorded Project Owner decisions
 
-**OD-E-B-01:**
-Confirm E-B migrates only D-B Security Administration APIs to shared RequirePermission enforcement.
+OD-E-B-01:
+E-B migrates only D-B Security Administration APIs to shared RequirePermission enforcement.
 
-**OD-E-B-02:**
-Confirm Organization APIs remain out of scope until canonical permission codes are added to permission-catalog.md.
+OD-E-B-02:
+Organization APIs remain out of scope until canonical permission codes are added to permission-catalog.md.
 
-**OD-E-B-03:**
-Confirm migration must preserve existing D-B authorization semantics exactly, including GLOBAL vs COMPANY behavior discovered during equivalence audit.
+OD-E-B-03:
+Migration must preserve existing D-B authorization semantics exactly, including GLOBAL vs COMPANY behavior discovered during equivalence audit.
 
-**OD-E-B-04:**
-Confirm SecurityAdminService company-scope validation remains in service layer and is not replaced by the filter.
+OD-E-B-04:
+SecurityAdminService company-scope validation remains in the service layer and is not replaced by the filter.
 
-**OD-E-B-05:**
-Confirm E-B does not introduce multi-permission any-of/all-of behavior.
+OD-E-B-05:
+E-B does not introduce multi-permission any-of/all-of behavior.
 
-**OD-E-B-06:**
-Confirm no new permission codes are created in E-B.
+OD-E-B-06:
+No new permission codes are created in E-B.
 
 ## 10. Risks
 - Accidentally changing D-B 401/403 behavior.
