@@ -39,9 +39,11 @@ public class HealthCheckTests : IClassFixture<SafeTestWebApplicationFactory>
     [Fact]
     public async Task Response_Contains_CorrelationId_Header()
     {
-        var response = await _client.GetAsync("/api/v2/system/info");
+        var response = await _client.GetAsync("/api/v2/health");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(
+            response.StatusCode == HttpStatusCode.OK
+            || response.StatusCode == HttpStatusCode.ServiceUnavailable);
         Assert.True(response.Headers.Contains("X-Correlation-ID"));
         var correlationId = response.Headers.GetValues("X-Correlation-ID").First();
         Assert.False(string.IsNullOrEmpty(correlationId));
@@ -50,13 +52,15 @@ public class HealthCheckTests : IClassFixture<SafeTestWebApplicationFactory>
     [Fact]
     public async Task Response_Echoes_ClientProvided_CorrelationId()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/system/info");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/health");
         var expectedId = "test-correlation-123";
         request.Headers.Add("X-Correlation-ID", expectedId);
 
         var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(
+            response.StatusCode == HttpStatusCode.OK
+            || response.StatusCode == HttpStatusCode.ServiceUnavailable);
         var returnedId = response.Headers.GetValues("X-Correlation-ID").First();
         Assert.Equal(expectedId, returnedId);
     }

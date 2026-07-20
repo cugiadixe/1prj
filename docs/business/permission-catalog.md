@@ -55,6 +55,8 @@
 | ORGANIZATION_USER_MANAGE | Organization | Manage users | GLOBAL | No | No | Manage Organization Users API access in Phase 1B. |
 | ORGANIZATION_DEPARTMENT_MANAGE | Organization | Manage departments | GLOBAL | No | No | Manage Organization Departments API access in Phase 1B. |
 | ORGANIZATION_COMPANY_MANAGE | Organization | Manage companies | GLOBAL | No | No | Manage Organization Companies API access in Phase 1B. |
+| SECURITY_ADMIN_MANAGE | SECURITY | ADMIN_MANAGE | GLOBAL | Yes | No | Manage security administration configuration (Roles, AdminGroups, Permissions, UserAssignments, DepartmentPermissions, EffectivePermissions). |
+| SECURITY_AUDIT_VIEW | SECURITY | AUDIT_VIEW | GLOBAL | Yes | No | Reserved read-only audit view permission. Endpoint enforcement deferred. |
 
 ## Baseline department permissions
 
