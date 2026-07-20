@@ -3,6 +3,7 @@
 ## 1. Status
 
 ACCEPTED PLAN — D-B IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
+IMPLEMENTATION ACCEPTED — SEE phase-1b1d-b-project-owner-implementation-acceptance.md
 
 ## 2. Baseline
 
