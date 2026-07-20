@@ -1,7 +1,7 @@
 # Phase 1B.1-E Company Context and Permission Enforcement Plan
 
 ## 1. Status
-**ACCEPTED PLAN — PHASE 1B.1-E-A IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY**
+**PHASE 1B.1-E-A IMPLEMENTATION ACCEPTED — SEE phase-1b1e-a-project-owner-implementation-acceptance.md**
 
 ## 2. Baseline
 - **Current accepted HEAD:** `7eb6f427f7dbfbbe2f88460077a824165e162526`
