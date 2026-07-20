@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;
 using PTKD.Application.Security.Authorization.Interfaces;
 
@@ -12,6 +14,7 @@ namespace PTKD.Api.Controllers.Security;
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(PermissionCodes.SecurityAdminManage, PermissionScope.Global)]
 [Route("api/v2/security/users/{userId:long}/effective-permissions")]
 public sealed class EffectivePermissionsController : ControllerBase
 {
@@ -37,7 +40,6 @@ public sealed class EffectivePermissionsController : ControllerBase
         var actor = SecurityControllerHelper.GetActorUserId(User);
 
         // Self-query is not allowed (OD-D-B-11)
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var response = await _service.GetEffectivePermissionsAsync(userId, companyId, ct);
         return Ok(response);

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;
 using PTKD.Application.Security.Authorization.Interfaces;
 
@@ -13,6 +15,7 @@ namespace PTKD.Api.Controllers.Security;
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(PermissionCodes.SecurityAdminManage, PermissionScope.Global)]
 [Route("api/v2/security/admin-groups")]
 public sealed class AdminGroupsController : ControllerBase
 {
@@ -32,9 +35,6 @@ public sealed class AdminGroupsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<AdminGroupDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken ct)
     {
-        var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
-
         return Ok(await _service.ListAdminGroupsAsync(ct));
     }
 
@@ -44,9 +44,6 @@ public sealed class AdminGroupsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(long id, CancellationToken ct)
     {
-        var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
-
         return Ok(await _service.GetAdminGroupAsync(id, ct));
     }
 
@@ -57,7 +54,6 @@ public sealed class AdminGroupsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateAdminGroupRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var group = await _service.CreateAdminGroupAsync(actor, request, ct);
         return CreatedAtAction(nameof(Get), new { id = group.Id }, group);
@@ -71,7 +67,6 @@ public sealed class AdminGroupsController : ControllerBase
     public async Task<IActionResult> Update(long id, [FromBody] UpdateAdminGroupRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var group = await _service.UpdateAdminGroupAsync(actor, id, request, ct);
         return Ok(group);
@@ -88,7 +83,6 @@ public sealed class AdminGroupsController : ControllerBase
     public async Task<IActionResult> Deactivate(long id, [FromBody] DeactivateAdminGroupRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.DeactivateAdminGroupAsync(actor, id, request, ct);
         return NoContent();
@@ -101,7 +95,6 @@ public sealed class AdminGroupsController : ControllerBase
     public async Task<IActionResult> AddPermissions(long id, [FromBody] AddAdminGroupPermissionsRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.AddAdminGroupPermissionsAsync(actor, id, request, ct);
         return NoContent();
@@ -113,7 +106,6 @@ public sealed class AdminGroupsController : ControllerBase
     public async Task<IActionResult> RemovePermission(long id, string code, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.RemoveAdminGroupPermissionAsync(actor, id, code, ct);
         return NoContent();

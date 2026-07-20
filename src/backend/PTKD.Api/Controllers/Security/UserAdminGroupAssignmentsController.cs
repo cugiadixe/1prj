@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;
 using PTKD.Application.Security.Authorization.Interfaces;
 
@@ -14,6 +16,7 @@ namespace PTKD.Api.Controllers.Security;
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(PermissionCodes.SecurityAdminManage, PermissionScope.Global)]
 [Route("api/v2/security/users/{userId:long}/admin-group-assignments")]
 public sealed class UserAdminGroupAssignmentsController : ControllerBase
 {
@@ -33,9 +36,6 @@ public sealed class UserAdminGroupAssignmentsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<UserAdminGroupAssignmentDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(long userId, CancellationToken ct)
     {
-        var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
-
         return Ok(await _service.ListUserAdminGroupAssignmentsAsync(userId, ct));
     }
 
@@ -53,7 +53,6 @@ public sealed class UserAdminGroupAssignmentsController : ControllerBase
     public async Task<IActionResult> Assign(long userId, [FromBody] CreateUserAdminGroupAssignmentRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var (assignment, wasIdempotent) = await _service.AssignAdminGroupAsync(actor, userId, request, ct);
 
@@ -74,7 +73,6 @@ public sealed class UserAdminGroupAssignmentsController : ControllerBase
     public async Task<IActionResult> Deactivate(long userId, long id, [FromBody] DeactivateAssignmentRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.DeactivateUserAdminGroupAssignmentAsync(actor, userId, id, request, ct);
         return NoContent();

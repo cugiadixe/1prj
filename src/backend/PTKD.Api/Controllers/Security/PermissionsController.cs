@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;
 using PTKD.Application.Security.Authorization.Interfaces;
 
@@ -15,6 +17,7 @@ namespace PTKD.Api.Controllers.Security;
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(PermissionCodes.SecurityAdminManage, PermissionScope.Global)]
 [Route("api/v2/security/permissions")]
 public sealed class PermissionsController : ControllerBase
 {
@@ -37,7 +40,6 @@ public sealed class PermissionsController : ControllerBase
     public async Task<IActionResult> List(CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var result = await _service.ListPermissionsAsync(ct);
         return Ok(result);
@@ -52,7 +54,6 @@ public sealed class PermissionsController : ControllerBase
     public async Task<IActionResult> Get(string code, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var result = await _service.GetPermissionAsync(code, ct);
         return Ok(result);

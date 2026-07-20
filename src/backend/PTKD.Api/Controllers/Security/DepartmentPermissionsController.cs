@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;
 using PTKD.Application.Security.Authorization.Interfaces;
 
@@ -13,6 +15,7 @@ namespace PTKD.Api.Controllers.Security;
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(PermissionCodes.SecurityAdminManage, PermissionScope.Global)]
 [Route("api/v2/security/departments/{departmentId:long}/permissions")]
 public sealed class DepartmentPermissionsController : ControllerBase
 {
@@ -32,9 +35,6 @@ public sealed class DepartmentPermissionsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<DepartmentPermissionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(long departmentId, CancellationToken ct)
     {
-        var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
-
         return Ok(await _service.ListDepartmentPermissionsAsync(departmentId, ct));
     }
 
@@ -48,7 +48,6 @@ public sealed class DepartmentPermissionsController : ControllerBase
     public async Task<IActionResult> SetPermissions(long departmentId, [FromBody] SetDepartmentPermissionsRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.SetDepartmentPermissionsAsync(actor, departmentId, request, ct);
         return NoContent();
@@ -60,7 +59,6 @@ public sealed class DepartmentPermissionsController : ControllerBase
     public async Task<IActionResult> RemovePermission(long departmentId, string code, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.RemoveDepartmentPermissionAsync(actor, departmentId, code, ct);
         return NoContent();

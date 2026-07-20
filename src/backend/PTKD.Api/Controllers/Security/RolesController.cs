@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PTKD.Application.Security.Authorization.Attributes;
+using PTKD.Application.Security.Authorization.Models;
 using PTKD.Application.Security.Authorization.DTOs;
 using PTKD.Application.Security.Authorization.Interfaces;
 
@@ -13,6 +15,7 @@ namespace PTKD.Api.Controllers.Security;
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(PermissionCodes.SecurityAdminManage, PermissionScope.Global)]
 [Route("api/v2/security/roles")]
 public sealed class RolesController : ControllerBase
 {
@@ -32,9 +35,6 @@ public sealed class RolesController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<RoleDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken ct)
     {
-        var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
-
         return Ok(await _service.ListRolesAsync(ct));
     }
 
@@ -44,9 +44,6 @@ public sealed class RolesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(long id, CancellationToken ct)
     {
-        var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
-
         return Ok(await _service.GetRoleAsync(id, ct));
     }
 
@@ -58,7 +55,6 @@ public sealed class RolesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateRoleRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var role = await _service.CreateRoleAsync(actor, request, ct);
         return CreatedAtAction(nameof(Get), new { id = role.Id }, role);
@@ -72,7 +68,6 @@ public sealed class RolesController : ControllerBase
     public async Task<IActionResult> Update(long id, [FromBody] UpdateRoleRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         var role = await _service.UpdateRoleAsync(actor, id, request, ct);
         return Ok(role);
@@ -89,7 +84,6 @@ public sealed class RolesController : ControllerBase
     public async Task<IActionResult> Deactivate(long id, [FromBody] DeactivateRoleRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.DeactivateRoleAsync(actor, id, request, ct);
         return NoContent();
@@ -103,7 +97,6 @@ public sealed class RolesController : ControllerBase
     public async Task<IActionResult> AddPermissions(long id, [FromBody] AddRolePermissionsRequest request, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.AddRolePermissionsAsync(actor, id, request, ct);
         return NoContent();
@@ -116,7 +109,6 @@ public sealed class RolesController : ControllerBase
     public async Task<IActionResult> RemovePermission(long id, string code, CancellationToken ct)
     {
         var actor = SecurityControllerHelper.GetActorUserId(User);
-        await SecurityControllerHelper.EnforcePermissionAsync(_permissionEvaluator, actor, RequiredPermission, null, ct);
 
         await _service.RemoveRolePermissionAsync(actor, id, code, ct);
         return NoContent();
