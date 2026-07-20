@@ -1,7 +1,7 @@
 # Phase 1B.1-E-B Security API Shared Enforcement Plan
 
 ## 1. Status
-ACCEPTED PLAN — PHASE 1B.1-E-B IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
+PHASE 1B.1-E-B IMPLEMENTATION ACCEPTED — SEE phase-1b1e-b-project-owner-implementation-acceptance.md
 
 ## 2. Baseline
 - Current accepted HEAD: 4b7d1561f008892dcf351b6a152f2f7efb7ca061
