@@ -133,8 +133,8 @@ public class UserRoleAssignmentConfiguration : IEntityTypeConfiguration<UserRole
         builder.Property(p => p.UserId).HasColumnName("user_id").IsRequired();
         builder.Property(p => p.RoleId).HasColumnName("role_id").IsRequired();
         builder.Property(p => p.AssignmentStatus).HasColumnName("assignment_status").IsRequired().HasMaxLength(30);
-        builder.Property(p => p.EffectiveFrom).HasColumnName("effective_from").IsRequired();
-        builder.Property(p => p.EffectiveTo).HasColumnName("effective_to");
+        builder.Property(p => p.EffectiveFrom).HasColumnName("effective_from").HasColumnType("datetime2(3)").IsRequired();
+        builder.Property(p => p.EffectiveTo).HasColumnName("effective_to").HasColumnType("datetime2(3)");
         builder.Property(p => p.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(p => p.CreatedByUserId).HasColumnName("created_by_user_id");
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at");
@@ -158,8 +158,8 @@ public class UserAdminGroupAssignmentConfiguration : IEntityTypeConfiguration<Us
         builder.Property(p => p.UserId).HasColumnName("user_id").IsRequired();
         builder.Property(p => p.AdminGroupId).HasColumnName("admin_group_id").IsRequired();
         builder.Property(p => p.AssignmentStatus).HasColumnName("assignment_status").IsRequired().HasMaxLength(30);
-        builder.Property(p => p.EffectiveFrom).HasColumnName("effective_from").IsRequired();
-        builder.Property(p => p.EffectiveTo).HasColumnName("effective_to");
+        builder.Property(p => p.EffectiveFrom).HasColumnName("effective_from").HasColumnType("datetime2(3)").IsRequired();
+        builder.Property(p => p.EffectiveTo).HasColumnName("effective_to").HasColumnType("datetime2(3)");
         builder.Property(p => p.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(p => p.CreatedByUserId).HasColumnName("created_by_user_id");
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at");
@@ -186,8 +186,8 @@ public class UserIndividualPermissionConfiguration : IEntityTypeConfiguration<Us
         builder.Property(p => p.CompanyId).HasColumnName("company_id");
         builder.Property(p => p.GrantType).HasColumnName("grant_type").IsRequired().HasMaxLength(10);
         builder.Property(p => p.AssignmentStatus).HasColumnName("assignment_status").IsRequired().HasMaxLength(30);
-        builder.Property(p => p.EffectiveFrom).HasColumnName("effective_from").IsRequired();
-        builder.Property(p => p.EffectiveTo).HasColumnName("effective_to");
+        builder.Property(p => p.EffectiveFrom).HasColumnName("effective_from").HasColumnType("datetime2(3)").IsRequired();
+        builder.Property(p => p.EffectiveTo).HasColumnName("effective_to").HasColumnType("datetime2(3)");
         builder.Property(p => p.Reason).HasColumnName("reason").HasMaxLength(500);
         builder.Property(p => p.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(p => p.CreatedByUserId).HasColumnName("created_by_user_id");

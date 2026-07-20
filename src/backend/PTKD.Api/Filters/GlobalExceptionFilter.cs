@@ -40,12 +40,14 @@ public class GlobalExceptionFilter : IExceptionFilter
         }
         else if (context.Exception is BusinessRuleValidationException validationEx)
         {
-            if (validationEx.ErrorCode == "ORG_HIERARCHY_CYCLE_DETECTED")
+            if (validationEx.ErrorCode == "ORG_HIERARCHY_CYCLE_DETECTED" ||
+                validationEx.ErrorCode == "SEC_SCOPE_COMPANY_MISMATCH" ||
+                validationEx.ErrorCode == "SEC_SCOPE_COMPANY_REQUIRED")
             {
                 var problemDetails = new ProblemDetails
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Title = "Hierarchy Cycle Detected",
+                    Title = validationEx.ErrorCode == "ORG_HIERARCHY_CYCLE_DETECTED" ? "Hierarchy Cycle Detected" : "Invalid Scope Definition",
                     Detail = validationEx.Message,
                     Type = "https://ptkd-erp.internal/docs/errors/business-rule"
                 };
@@ -126,6 +128,30 @@ public class GlobalExceptionFilter : IExceptionFilter
             problemDetails.Extensions["errorCode"] = "ORG_UNEXPECTED_DATABASE_ERROR";
             SetResult(context, problemDetails, StatusCodes.Status500InternalServerError);
         }
+        else if (context.Exception is InactiveEntityException inactiveEx)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status422UnprocessableEntity,
+                Title = "Inactive Entity",
+                Detail = inactiveEx.Message,
+                Type = "https://ptkd-erp.internal/docs/errors/inactive-entity"
+            };
+            problemDetails.Extensions["errorCode"] = inactiveEx.ErrorCode;
+            SetResult(context, problemDetails, StatusCodes.Status422UnprocessableEntity);
+        }
+        else if (context.Exception is PermissionDeniedException permEx)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Title = "Permission Denied",
+                Detail = permEx.Message,
+                Type = "https://ptkd-erp.internal/docs/errors/permission-denied"
+            };
+            problemDetails.Extensions["errorCode"] = permEx.ErrorCode;
+            SetResult(context, problemDetails, StatusCodes.Status403Forbidden);
+        }
         else
         {
             var problemDetails = new ProblemDetails
@@ -137,6 +163,7 @@ public class GlobalExceptionFilter : IExceptionFilter
             };
             SetResult(context, problemDetails, StatusCodes.Status500InternalServerError);
         }
+
     }
 
     private void SetResult(ExceptionContext context, ProblemDetails problemDetails, int statusCode)

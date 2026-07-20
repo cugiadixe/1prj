@@ -92,6 +92,7 @@ builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IA
 // Authorization Services
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IPermissionEvaluator, PTKD.Application.Security.Authorization.Services.PermissionEvaluator>();
+builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.ISecurityAdminService, PTKD.Application.Security.Authorization.Services.SecurityAdminService>();
 
 // Application Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();

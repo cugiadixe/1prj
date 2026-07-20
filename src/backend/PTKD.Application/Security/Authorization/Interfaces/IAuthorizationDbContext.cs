@@ -16,7 +16,17 @@ public interface IAuthorizationDbContext
     DbSet<UserAdminGroupAssignment> UserAdminGroupAssignments { get; }
     DbSet<UserIndividualPermission> UserIndividualPermissions { get; }
     DbSet<AuthorizationPolicyState> AuthorizationPolicyStates { get; }
-    
+
     // Also needed to resolve active department from existing schemas
     DbSet<UserDepartmentAssignment> UserDepartmentAssignments { get; }
+
+    // Required for company-scope check on mutations (OD-D-B-15)
+    DbSet<UserCompanyAssignment> UserCompanyAssignments { get; }
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(
+        System.Data.IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default);
+    Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy CreateExecutionStrategy();
+    void ClearChangeTracker();
 }

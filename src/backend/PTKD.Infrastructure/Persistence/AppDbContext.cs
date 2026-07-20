@@ -49,6 +49,11 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
         return Database.CreateExecutionStrategy();
     }
 
+    public void ClearChangeTracker()
+    {
+        ChangeTracker.Clear();
+    }
+
     public Task<UserAuthAccount?> FindAccountByProviderForUpdateAsync(
         string providerType,
         string providerSubject,
