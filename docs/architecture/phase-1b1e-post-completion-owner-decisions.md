@@ -3,6 +3,9 @@
 ## Status
 ACCEPTED — POST PHASE 1B.1-E OWNER DECISIONS APPROVED
 
+## Implementation status
+POST PHASE 1B.1-E SYSTEMCONTROLLER AND CATALOG BACKFILL IMPLEMENTATION ACCEPTED — SEE phase-1b1e-post-completion-implementation-acceptance.md
+
 ## Baseline
 - Current accepted HEAD: a3e7a5ce2ae0e5b9219376215feb081bba5f17d4
 - Phase 1B.1-E completion acceptance recorded.
