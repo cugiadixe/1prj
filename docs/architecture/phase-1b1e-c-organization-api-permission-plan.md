@@ -1,7 +1,7 @@
 # Phase 1B.1-E-C Organization API Permission Catalog Decisions and Enforcement Plan
 
 ## 1. Status
-DRAFT — AWAITING PROJECT OWNER REVIEW
+ACCEPTED PLAN — PHASE 1B.1-E-C IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
 
 ## 2. Baseline
 - Current accepted HEAD: 4b7194605adfc224a18037dae6878696ec09fbb6
@@ -66,23 +66,45 @@ For each Organization API group, the Project Owner must decide:
 - **Department management**: Is department management company-scoped?
 - **Read/Manage split**: Are separate read/manage permissions needed, or is manage-only enough for Phase 1B?
 
-## 8. Proposed E-C decisions to ask Project Owner
+## 8. Recorded Project Owner decisions
 
-**OD-E-C-01:** Decide whether Organization APIs will use `SECURITY_ADMIN_MANAGE` or new organization-specific permission codes.
+**OD-E-C-01:**
+Organization APIs use new organization-specific permission codes, not SECURITY_ADMIN_MANAGE.
 
-**OD-E-C-02:** If new codes are approved, decide exact canonical permission codes to add to `permission-catalog.md`.
+**OD-E-C-02:**
+Approve these canonical permission codes:
+- ORGANIZATION_USER_MANAGE
+- ORGANIZATION_DEPARTMENT_MANAGE
+- ORGANIZATION_COMPANY_MANAGE
 
-**OD-E-C-03:** Decide scope for UsersController: GLOBAL, COMPANY, or mixed by action.
+**OD-E-C-03:**
+UsersController uses ORGANIZATION_USER_MANAGE with PermissionScope.Global for Phase 1B.
 
-**OD-E-C-04:** Decide scope for DepartmentsController: GLOBAL, COMPANY, or mixed by action.
+**OD-E-C-04:**
+DepartmentsController uses ORGANIZATION_DEPARTMENT_MANAGE with PermissionScope.Global for Phase 1B. Company-scoped department enforcement is deferred until entity-company ownership validation is explicitly designed.
 
-**OD-E-C-05:** Decide scope for CompaniesController: GLOBAL, COMPANY, or mixed by action.
+**OD-E-C-05:**
+CompaniesController uses ORGANIZATION_COMPANY_MANAGE with PermissionScope.Global for Phase 1B.
 
-**OD-E-C-06:** Decide whether Phase E-C implementation will only update permission catalog/docs, or also enforce Organization APIs after a separate implementation authorization.
+**OD-E-C-06:**
+After E-C plan acceptance, a separate implementation task may update permission-catalog.md, PermissionCodes constants, Organization controllers, and API tests. No seed/bootstrap/migration is authorized.
 
-**OD-E-C-07:** Decide whether Organization read endpoints and mutation endpoints share one manage permission in Phase 1B, or require separate read/manage permissions.
+**OD-E-C-07:**
+Read and mutation endpoints share the same manage permission in Phase 1B. Separate read/manage permissions are deferred.
 
-**OD-E-C-08:** Confirm no Organization API enforcement implementation is authorized until the above decisions are accepted.
+**OD-E-C-08:**
+No Organization API enforcement implementation is authorized until these decisions are recorded and accepted.
+
+### Accepted E-C implementation direction:
+- Update permission-catalog.md with the approved organization permission codes in a later implementation task.
+- Add matching permission constants in code in a later implementation task.
+- Apply [Authorize] and [RequirePermission] to UsersController, DepartmentsController, and CompaniesController in a later implementation task.
+- Use PermissionScope.Global for all three Organization controller groups in Phase 1B.
+- Add API tests proving unauthenticated requests return 401, authenticated users without the required permission return 403, and users with the required permission succeed.
+- Do not introduce X-Company-Id requirements for these Organization APIs in Phase 1B.
+- Do not create seed/bootstrap/migration in E-C.
+- Do not use SECURITY_ADMIN_MANAGE for Organization APIs.
+- Do not introduce separate read/manage permissions in Phase 1B.
 
 ## 9. Recommended implementation slice after acceptance
 - First update `permission-catalog.md` and code constants only after owner approval.
