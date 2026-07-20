@@ -1,7 +1,7 @@
 # Phase 1B.1-E-D User Assignments API Permission Enforcement Plan
 
 ## 1. Status
-ACCEPTED PLAN — PHASE 1B.1-E-D IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
+ACCEPTED PLAN — PHASE 1B.1-E-D IMPLEMENTATION ACCEPTED — SEE phase-1b1e-d-project-owner-implementation-acceptance.md
 
 ## 2. Baseline
 - Current accepted HEAD: `b912492aef32690a9e30aaf4184a7f357451af0d`
