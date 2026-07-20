@@ -173,7 +173,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 			DateTime now = UtcNow();
 			await using IDbContextTransaction tx = await _db.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
 			Role role = (await _db.Roles.Include((Role r) => r.Permissions).SingleOrDefaultAsync((Role r) => r.Id == roleId, ct)) ?? throw new EntityNotFoundException("SEC_ROLE_NOT_FOUND", $"Role {roleId} not found.");
-			RolePermission entry = role.Permissions.SingleOrDefault((RolePermission p) => p.PermissionCode == permissionCode);
+			RolePermission? entry = role.Permissions.SingleOrDefault((RolePermission p) => p.PermissionCode == permissionCode);
 			if (entry != null)
 			{
 				role.Permissions.Remove(entry);
@@ -323,7 +323,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 			DateTime now = UtcNow();
 			await using IDbContextTransaction tx = await _db.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
 			AdminGroup group = (await _db.AdminGroups.Include((AdminGroup g) => g.Permissions).SingleOrDefaultAsync((AdminGroup g) => g.Id == groupId, ct)) ?? throw new EntityNotFoundException("SEC_ADMIN_GROUP_NOT_FOUND", $"AdminGroup {groupId} not found.");
-			AdminGroupPermission entry = group.Permissions.SingleOrDefault((AdminGroupPermission p) => p.PermissionCode == permissionCode);
+			AdminGroupPermission? entry = group.Permissions.SingleOrDefault((AdminGroupPermission p) => p.PermissionCode == permissionCode);
 			if (entry != null)
 			{
 				group.Permissions.Remove(entry);
@@ -365,7 +365,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 			(UserRoleAssignmentDto Assignment, bool WasIdempotent) result;
 			await using (IDbContextTransaction tx = await _db.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct))
 			{
-				UserRoleAssignment existing = await _db.UserRoleAssignments.AsNoTracking().Include((UserRoleAssignment a) => a.Role).FirstOrDefaultAsync((UserRoleAssignment a) => a.UserId == userId && a.RoleId == request.RoleId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom == effectiveFrom && ((effectiveTo == null && a.EffectiveTo == null) || (effectiveTo != null && a.EffectiveTo == effectiveTo)), ct);
+				UserRoleAssignment? existing = await _db.UserRoleAssignments.AsNoTracking().Include((UserRoleAssignment a) => a.Role).FirstOrDefaultAsync((UserRoleAssignment a) => a.UserId == userId && a.RoleId == request.RoleId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom == effectiveFrom && ((effectiveTo == null && a.EffectiveTo == null) || (effectiveTo != null && a.EffectiveTo == effectiveTo)), ct);
 				if (existing != null)
 				{
 					await tx.RollbackAsync(ct);
@@ -453,7 +453,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 			(UserAdminGroupAssignmentDto Assignment, bool WasIdempotent) result;
 			await using (IDbContextTransaction tx = await _db.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct))
 			{
-				UserAdminGroupAssignment existing = await _db.UserAdminGroupAssignments.AsNoTracking().Include((UserAdminGroupAssignment a) => a.AdminGroup).FirstOrDefaultAsync((UserAdminGroupAssignment a) => a.UserId == userId && a.AdminGroupId == request.AdminGroupId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom == effectiveFrom && ((effectiveTo == null && a.EffectiveTo == null) || (effectiveTo != null && a.EffectiveTo == effectiveTo)), ct);
+				UserAdminGroupAssignment? existing = await _db.UserAdminGroupAssignments.AsNoTracking().Include((UserAdminGroupAssignment a) => a.AdminGroup).FirstOrDefaultAsync((UserAdminGroupAssignment a) => a.UserId == userId && a.AdminGroupId == request.AdminGroupId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom == effectiveFrom && ((effectiveTo == null && a.EffectiveTo == null) || (effectiveTo != null && a.EffectiveTo == effectiveTo)), ct);
 				if (existing != null)
 				{
 					await tx.RollbackAsync(ct);
@@ -537,7 +537,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 			(UserIndividualPermissionDto Permission, bool WasIdempotent) result;
 			await using (IDbContextTransaction tx = await _db.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct))
 			{
-				UserIndividualPermission existing = await _db.UserIndividualPermissions.AsNoTracking().FirstOrDefaultAsync((UserIndividualPermission p) => p.UserId == userId && p.PermissionCode == request.PermissionCode && p.ScopeType == request.ScopeType && p.CompanyId == request.CompanyId && p.GrantType == request.GrantType && p.AssignmentStatus == "ACTIVE" && p.EffectiveFrom == effectiveFrom && ((effectiveTo == null && p.EffectiveTo == null) || (effectiveTo != null && p.EffectiveTo == effectiveTo)), ct);
+				UserIndividualPermission? existing = await _db.UserIndividualPermissions.AsNoTracking().FirstOrDefaultAsync((UserIndividualPermission p) => p.UserId == userId && p.PermissionCode == request.PermissionCode && p.ScopeType == request.ScopeType && p.CompanyId == request.CompanyId && p.GrantType == request.GrantType && p.AssignmentStatus == "ACTIVE" && p.EffectiveFrom == effectiveFrom && ((effectiveTo == null && p.EffectiveTo == null) || (effectiveTo != null && p.EffectiveTo == effectiveTo)), ct);
 				if (existing != null)
 				{
 					await tx.RollbackAsync(ct);
@@ -650,7 +650,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 			_db.ClearChangeTracker();
 			DateTime now = UtcNow();
 			await using IDbContextTransaction tx = await _db.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
-			DepartmentPermission entry = await _db.DepartmentPermissions.SingleOrDefaultAsync((DepartmentPermission p) => p.DepartmentId == departmentId && p.PermissionCode == permissionCode, ct);
+			DepartmentPermission? entry = await _db.DepartmentPermissions.SingleOrDefaultAsync((DepartmentPermission p) => p.DepartmentId == departmentId && p.PermissionCode == permissionCode, ct);
 			if (entry == null)
 			{
 				await tx.RollbackAsync(ct);
@@ -742,7 +742,7 @@ public sealed class SecurityAdminService : ISecurityAdminService
 
 	private async Task IncrementPolicyVersionAsync(long actorUserId, DateTime now, CancellationToken ct)
 	{
-		AuthorizationPolicyState state = await _db.AuthorizationPolicyStates.SingleOrDefaultAsync((AuthorizationPolicyState p) => p.Id == 1, ct);
+		AuthorizationPolicyState? state = await _db.AuthorizationPolicyStates.SingleOrDefaultAsync((AuthorizationPolicyState p) => p.Id == 1, ct);
 		if (state == null)
 		{
 			_db.AuthorizationPolicyStates.Add(new AuthorizationPolicyState
