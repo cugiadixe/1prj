@@ -1,7 +1,7 @@
 # Phase 1B.1-E-C Organization API Permission Catalog Decisions and Enforcement Plan
 
 ## 1. Status
-ACCEPTED PLAN — PHASE 1B.1-E-C IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
+ACCEPTED PLAN — PHASE 1B.1-E-C IMPLEMENTATION ACCEPTED — SEE phase-1b1e-c-project-owner-implementation-acceptance.md
 
 ## 2. Baseline
 - Current accepted HEAD: 4b7194605adfc224a18037dae6878696ec09fbb6
