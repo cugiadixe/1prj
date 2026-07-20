@@ -1,7 +1,7 @@
 # Phase 1B.1-E-D User Assignments API Permission Enforcement Plan
 
 ## 1. Status
-DRAFT — AWAITING PROJECT OWNER REVIEW
+ACCEPTED PLAN — PHASE 1B.1-E-D IMPLEMENTATION MAY BE AUTHORIZED SEPARATELY
 
 ## 2. Baseline
 - Current accepted HEAD: `b912492aef32690a9e30aaf4184a7f357451af0d`
@@ -35,7 +35,7 @@ Observations:
 - No action requires `X-Company-Id` today; none is proposed for Phase 1B (consistent with OD-E-C-04).
 - The controller is a sibling surface to `UsersController` (same organizational domain, same `{userId}` route segment prefix).
 
-## 5. Proposed Project Owner decisions
+## 5. Accepted Project Owner decisions
 
 **OD-E-D-01:**
 `UserAssignmentsController` uses the existing `ORGANIZATION_USER_MANAGE` permission in Phase 1B.
@@ -72,6 +72,15 @@ E-D does not block on this decision.
 
 **OD-E-D-09:**
 `SECURITY_ADMIN_MANAGE` and `SECURITY_AUDIT_VIEW` catalog backfill (adding them to `permission-catalog.md`) is documentation hygiene from Phase D-B and is not part of E-D enforcement implementation unless separately authorized.
+
+### Accepted E-D implementation direction
+- Add `using` directives for `Microsoft.AspNetCore.Authorization`, `PTKD.Api.Security.Authorization`, `PTKD.Application.Security.Authorization.Attributes`, and `PTKD.Application.Security.Authorization.Models` to `UserAssignmentsController.cs`.
+- Apply `[Authorize]` and `[RequirePermission(PermissionCodes.OrganizationUserManage, PermissionScope.Global)]` at the controller class level.
+- Do not modify any action method, service call, DTO, or response.
+- Add API tests covering the enforcement requirements described in section 6.
+- Run full build and test suite (0 warnings, 0 errors; 0 failed in all suites).
+- No migration, seed/bootstrap, Phase F audit writer, frontend, or business module implementation is authorized in E-D.
+- A separate implementation authorization is required before any code changes are made.
 
 ## 6. Recommended implementation scope after plan acceptance
 
