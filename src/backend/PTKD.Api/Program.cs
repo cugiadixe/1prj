@@ -49,6 +49,7 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
     options.Filters.Add<ValidationFilter>();
+    options.Filters.Add<PTKD.Api.Security.Authorization.PermissionAuthorizationFilter>();
 });
 
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
