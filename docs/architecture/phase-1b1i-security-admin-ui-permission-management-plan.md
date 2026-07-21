@@ -1,6 +1,6 @@
 # Phase 1B.1-I Security Admin UI and Permission Management Plan
 
-**Status**: PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status**: PHASE 1B.1-I PLAN ACCEPTED — SEE [phase-1b1i-project-owner-plan-acceptance.md](phase-1b1i-project-owner-plan-acceptance.md)
 
 **Baseline**: a8fdbe636e4a57429f8ba2d58652a27349a2989d
 
