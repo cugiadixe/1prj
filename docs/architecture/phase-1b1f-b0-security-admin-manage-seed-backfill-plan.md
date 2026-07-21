@@ -2,7 +2,17 @@
 
 ## Status
 
-DRAFT — AWAITING PROJECT OWNER REVIEW
+ACCEPTED PLAN — PHASE 1B.1-F-B0 IMPLEMENTATION MAY BE AUTHORIZED AFTER THIS ACCEPTANCE COMMIT
+
+### Accepted conditions
+
+- SECURITY_ADMIN_MANAGE exists in PermissionCodes.cs and permission-catalog.md.
+- SECURITY_ADMIN_MANAGE is absent from V0003 database seed data.
+- Project Owner rejected amending V0003.
+- Project Owner rejected substituting another permission for OD-F-B-06.
+- No F-B0 implementation is authorized by this acceptance commit.
+- F-B0 implementation still requires a separate authorization prompt.
+- F-B Bootstrap remains blocked.
 
 ---
 
@@ -728,26 +738,49 @@ No test may be weakened or deleted to make F-B0 pass. The
 
 ---
 
-## Required Project Owner decisions before implementation
+## Accepted Project Owner decisions
 
-| Decision | Topic | Status |
-|---|---|---|
-| OD-F-B0-01 | Create V0004 corrective migration; do not amend V0003 | PENDING PROJECT OWNER ACCEPTANCE |
-| OD-F-B0-02 | U0004 rollback strategy: Option R-A (is_active=0) vs Option R-B (document-only) | PENDING PROJECT OWNER ACCEPTANCE |
-| OD-F-B0-03 | Permission values for V0004 INSERT, specifically requires_reason = 1 | PENDING PROJECT OWNER ACCEPTANCE |
-| OD-F-B0-04 | No IF NOT EXISTS guard; rely on DbMigrator skip logic for idempotency | PENDING PROJECT OWNER ACCEPTANCE |
-| OD-F-B0-05 | Test updates: ExpectedPermissionCodes, DoesNotContain removal, new existence test | PENDING PROJECT OWNER ACCEPTANCE |
-| OD-F-B0-06 | F-B0 scope boundary: migration + test only; no source code, no bootstrap | PENDING PROJECT OWNER ACCEPTANCE |
-| OD-F-B0-07 | F-B unblock conditions: F-B0 plan accepted, V0004+U0004 implemented, tests pass, acceptance committed | PENDING PROJECT OWNER ACCEPTANCE |
+**OD-F-B0-01 — Corrective migration:**
+Create a new V0004 migration to backfill SECURITY_ADMIN_MANAGE into dbo.Permissions.
+Do not amend V0003.
 
----
+**OD-F-B0-02 — Rollback:**
+Create matching U0004 rollback.
+Rollback must remove only the SECURITY_ADMIN_MANAGE row introduced by V0004 when safe.
+If existing references prevent safe deletion, rollback must fail safely or follow the repository rollback convention with clear documentation.
 
-## Recommended next step
+**OD-F-B0-03 — Permission values:**
+Use the existing permission-catalog.md row as source of truth:
+- permission_code: SECURITY_ADMIN_MANAGE
+- category/domain: SECURITY
+- action/capability: ADMIN_MANAGE
+- scope: GLOBAL
+- sensitive: Yes
+- delegable: No
+- purpose: manage security administration configuration
 
-Project Owner reviews OD-F-B0-01 through OD-F-B0-07.
-Accepts, rejects, or modifies each decision.
+Map these values to the actual dbo.Permissions table columns discovered from V0003.
 
-No F-B0 migration implementation may begin until this plan acceptance is
-committed as a separate Project Owner acceptance document.
+**OD-F-B0-04 — Idempotency:**
+V0004 should follow the repository migration style.
+Use an IF NOT EXISTS guard if consistent with the existing migration convention.
+Do not create duplicate permission rows.
 
-F-B implementation remains blocked.
+**OD-F-B0-05 — Tests:**
+Add or update database/schema tests verifying SECURITY_ADMIN_MANAGE exists after migrations are applied.
+DatabaseSafety must remain green.
+
+**OD-F-B0-06 — Scope boundary:**
+F-B0 must not implement bootstrap.
+F-B0 must not create ADMIN_SECURITY admin group.
+F-B0 must not create users/auth accounts.
+F-B0 must not create audit endpoints.
+F-B0 must not enforce SECURITY_AUDIT_VIEW.
+F-B0 must not modify PermissionCodes.cs or permission-catalog.md unless implementation discovery proves a documentation inconsistency.
+
+**OD-F-B0-07 — F-B unblock condition:**
+F-B implementation remains blocked until:
+- F-B0 plan is accepted;
+- F-B0 migration is implemented;
+- F-B0 tests pass;
+- F-B0 implementation is reviewed and accepted.
