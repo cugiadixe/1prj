@@ -2,12 +2,7 @@
 
 ## Status
 
-BLOCKED — SECURITY_ADMIN_MANAGE DATABASE SEED GAP
-
-F-B implementation may resume only after F-B0 implementation acceptance is committed. Secondary corrections A/B/C and transaction-safe BOOTSTRAP_ADMIN_CREATED audit requirement remain mandatory.
-
-See phase-1b1f-b-hard-stop-security-admin-manage-seed-gap.md for the full
-hard-stop record.
+PHASE 1B.1-F-B IMPLEMENTATION ACCEPTED — SEE phase-1b1f-b-project-owner-implementation-acceptance.md
 
 Primary blocker:
 - SECURITY_ADMIN_MANAGE exists in PermissionCodes.cs and permission-catalog.md

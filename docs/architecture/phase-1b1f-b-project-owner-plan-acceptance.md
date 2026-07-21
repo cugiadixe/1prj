@@ -1,7 +1,8 @@
 # Phase 1B.1-F-B Project Owner Plan Acceptance
 
 ## Status
-PHASE 1B.1-F-B PLAN ACCEPTED — IMPLEMENTATION NOT YET STARTED
+PHASE 1B.1-F-B PLAN ACCEPTED — IMPLEMENTATION ACCEPTED
+Implementation accepted in phase-1b1f-b-project-owner-implementation-acceptance.md
 
 ## Accepted plan commit
 c1bb9491292cb082f9d583fe34cdb9d8abeb9545
