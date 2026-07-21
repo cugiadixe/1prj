@@ -1,6 +1,6 @@
 # Phase 1B.1-J0 Browser CSRF Contract Correction Plan
 
-**Status**: PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status**: PHASE 1B.1-J0 PLAN ACCEPTED — SEE phase-1b1j0-project-owner-plan-acceptance.md
 
 **Baseline**: `536915b49741e4881d774fcf134c4cc0d1f70a1a`
 
