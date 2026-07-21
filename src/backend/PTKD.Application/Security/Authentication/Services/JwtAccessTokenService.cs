@@ -40,6 +40,11 @@ public sealed class JwtAccessTokenService : IJwtAccessTokenService
             claims.Add(new Claim("login_name", request.Username));
         }
 
+        if (request.MustChangePassword)
+        {
+            claims.Add(new Claim("must_change_password", "true", ClaimValueTypes.Boolean));
+        }
+
         using var rsa = RSA.Create();
         rsa.ImportRSAPrivateKey(activeKey.PrivateKeyBytes, out _);
         var rsaKey = new RsaSecurityKey(rsa)

@@ -69,7 +69,8 @@ public class ProtectedEndpointIntegrationTests : IClassFixture<SafeTestWebApplic
             Guid.NewGuid(),
             Guid.NewGuid(),
             account.SecurityStamp,
-            "admin");
+            "admin",
+            account.MustChangePassword);
             
         var result = _jwtService.IssueAccessToken(request);
         return result.Token;

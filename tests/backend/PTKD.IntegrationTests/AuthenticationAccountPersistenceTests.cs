@@ -7,6 +7,7 @@ using PTKD.Domain.Security.Authentication;
 using PTKD.Infrastructure.Persistence;
 using PTKD.Infrastructure.Persistence.Retries;
 using PTKD.Infrastructure.Security.Authentication;
+using PTKD.Infrastructure.Security.Audit;
 
 namespace PTKD.IntegrationTests.Security.Authentication;
 
@@ -190,19 +191,23 @@ internal sealed class AuthenticationTestHarness
         PasswordHashService = new AspNetCorePasswordHashService();
         Policy = new AuthenticationAccountPolicy();
         Factory = new GuardedAuthenticationDbContextFactory(_fixture, _options);
+        TransactionalAuditWriter = new SqlTransactionalAuditWriter();
         Service = new AuthenticationAccountService(
             Factory,
             PasswordHashService,
             new InternalProviderSubjectNormalizer(),
             new SecurityStampSessionInvalidationService(),
             Clock,
-            Policy);
+            Policy,
+            new Moq.Mock<PTKD.Application.Security.Audit.IAuditWriter>().Object,
+            TransactionalAuditWriter);
     }
 
     public MutableUtcClock Clock { get; }
     public AspNetCorePasswordHashService PasswordHashService { get; }
     public AuthenticationAccountPolicy Policy { get; }
     public IAuthenticationDbContextFactory Factory { get; }
+    public SqlTransactionalAuditWriter TransactionalAuditWriter { get; private set; } = null!;
     public AuthenticationAccountService Service { get; }
 
     public AppDbContext CreateContext()

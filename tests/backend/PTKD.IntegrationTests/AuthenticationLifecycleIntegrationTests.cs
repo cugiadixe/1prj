@@ -303,7 +303,9 @@ public sealed class AuthenticationLifecycleIntegrationTests
             new PTKD.Infrastructure.Security.Authentication.InternalProviderSubjectNormalizer(),
             new SecurityStampSessionInvalidationService(),
             _harness.Clock,
-            _harness.Policy);
+            _harness.Policy,
+            new Moq.Mock<PTKD.Application.Security.Audit.IAuditWriter>().Object,
+            new Moq.Mock<PTKD.Application.Security.Audit.ITransactionalAuditWriter>().Object);
         var result = await service.AuthenticateAsync(new AuthenticateAccountCommand(
             "OIDC",
             "external-dummy-subject",

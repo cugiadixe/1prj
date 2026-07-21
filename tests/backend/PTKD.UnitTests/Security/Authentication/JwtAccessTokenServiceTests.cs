@@ -33,7 +33,8 @@ public class JwtAccessTokenServiceTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
-            "testuser");
+            "testuser",
+            false);
 
         var result = _service.IssueAccessToken(request);
 
@@ -64,7 +65,8 @@ public class JwtAccessTokenServiceTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
-            "testuser");
+            "testuser",
+            false);
 
         var issueResult = _service.IssueAccessToken(request);
         

@@ -11,7 +11,8 @@ public sealed record LoginResponse(
     string TokenType,
     int ExpiresIn,
     DateTime ExpiresAtUtc,
-    LoginUserInfo User);
+    LoginUserInfo User,
+    bool MustChangePassword);
 
 public sealed record LoginUserInfo(
     long UserId,

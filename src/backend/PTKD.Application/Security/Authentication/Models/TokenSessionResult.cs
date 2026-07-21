@@ -21,7 +21,8 @@ public sealed record TokenSessionResult
         string? accessToken,
         DateTime? accessTokenExpiresAtUtc,
         string? refreshTokenMaterial,
-        DateTime? refreshTokenExpiresAtUtc)
+        DateTime? refreshTokenExpiresAtUtc,
+        bool mustChangePassword)
     {
         Status = status;
         InternalReason = internalReason;
@@ -29,6 +30,7 @@ public sealed record TokenSessionResult
         AccessTokenExpiresAtUtc = accessTokenExpiresAtUtc;
         RefreshTokenMaterial = refreshTokenMaterial;
         RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc;
+        MustChangePassword = mustChangePassword;
     }
 
     public TokenSessionStatus Status { get; }
@@ -42,6 +44,7 @@ public sealed record TokenSessionResult
     public DateTime? AccessTokenExpiresAtUtc { get; }
     public string? RefreshTokenMaterial { get; }
     public DateTime? RefreshTokenExpiresAtUtc { get; }
+    public bool MustChangePassword { get; }
     
     public bool IsSuccess => Status == TokenSessionStatus.Success;
 
@@ -49,17 +52,19 @@ public sealed record TokenSessionResult
         string accessToken,
         DateTime accessTokenExpiresAtUtc,
         string refreshTokenMaterial,
-        DateTime refreshTokenExpiresAtUtc)
+        DateTime refreshTokenExpiresAtUtc,
+        bool mustChangePassword)
         => new TokenSessionResult(
             TokenSessionStatus.Success,
             null,
             accessToken,
             accessTokenExpiresAtUtc,
             refreshTokenMaterial,
-            refreshTokenExpiresAtUtc);
+            refreshTokenExpiresAtUtc,
+            mustChangePassword);
 
     public static TokenSessionResult Failure(TokenSessionStatus status, string internalReason)
-        => new TokenSessionResult(status, internalReason, null, null, null, null);
+        => new TokenSessionResult(status, internalReason, null, null, null, null, false);
 }
 
 public sealed record LogoutResult(bool IsSuccess, string? InternalReason);

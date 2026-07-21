@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using PTKD.Api.Auth.Models;
 using PTKD.Api.Security;
 using PTKD.Application.Security.Authentication.Interfaces;
@@ -83,7 +85,8 @@ public sealed class AuthController : ControllerBase
             User: new LoginUserInfo(
                 UserId: authResult.UserId!.Value,
                 Username: request.Username,
-                DisplayName: null));  // DisplayName resolved from User.FullName if available
+                DisplayName: null),
+            MustChangePassword: sessionResult.MustChangePassword);
 
         return Ok(response);
     }
@@ -132,7 +135,8 @@ public sealed class AuthController : ControllerBase
             TokenType: "Bearer",
             ExpiresIn: AccessTokenLifetimeSeconds,
             ExpiresAtUtc: sessionResult.AccessTokenExpiresAtUtc!.Value,
-            User: new LoginUserInfo(UserId: 0, Username: string.Empty, DisplayName: null));
+            User: new LoginUserInfo(UserId: 0, Username: string.Empty, DisplayName: null),
+            MustChangePassword: sessionResult.MustChangePassword);
 
         return Ok(response);
     }
@@ -161,6 +165,99 @@ public sealed class AuthController : ControllerBase
         }
 
         // Always clear cookies
+        DeleteRefreshCookie();
+        _csrfService.Delete(Response);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// POST /api/v2/auth/change-password
+    /// Allows a user to change their password.
+    /// Requires an active session. Revokes all current sessions upon success.
+    /// </summary>
+    [HttpPost("change-password")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        var accountIdString = User.FindFirst("auth_account_id")?.Value;
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+        var username = User.FindFirst("login_name")?.Value;
+
+        if (string.IsNullOrEmpty(accountIdString) || !long.TryParse(accountIdString, out var accountId) ||
+            string.IsNullOrEmpty(userIdString) || !long.TryParse(userIdString, out var userId) ||
+            string.IsNullOrEmpty(username))
+        {
+            return Unauthorized(BuildGenericAuthProblem());
+        }
+
+        // 1. Verify current password safely without login side effects
+        var authResult = await _authService.VerifyCurrentPasswordAsync(
+            username, request.CurrentPassword, cancellationToken);
+
+        if (!authResult.IsSuccess || authResult.RowVersion == null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = 400,
+                Title = "Invalid Current Password",
+                Detail = "The current password provided is incorrect.",
+                Type = "https://ptkd-erp.internal/docs/errors/auth/invalid-current-password"
+            });
+        }
+
+        // 2. Change password
+        var command = new ChangePasswordCommand(
+            accountId,
+            request.CurrentPassword,
+            request.NewPassword,
+            authResult.RowVersion,
+            userId);
+
+        var result = await _authService.ChangePasswordAsync(command, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            if (result.ErrorCode == AuthenticationErrorCodes.PasswordReuse ||
+                result.ErrorCode == AuthenticationErrorCodes.PasswordLengthInvalid ||
+                result.ErrorCode == AuthenticationErrorCodes.PasswordContainsProviderSubject)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Invalid New Password",
+                    Detail = "The new password does not meet policy requirements.",
+                    Type = $"https://ptkd-erp.internal/docs/errors/auth/{result.ErrorCode.ToLowerInvariant()}"
+                });
+            }
+
+            if (result.ErrorCode == AuthenticationErrorCodes.AccountConcurrencyConflict)
+            {
+                return Conflict(new ProblemDetails
+                {
+                    Status = 409,
+                    Title = "Concurrency Conflict",
+                    Detail = "The account was modified by another request.",
+                    Type = "https://ptkd-erp.internal/docs/errors/auth/concurrency-conflict"
+                });
+            }
+
+            return BadRequest(new ProblemDetails
+            {
+                Status = 400,
+                Title = "Password Change Failed",
+                Detail = "The password could not be changed.",
+                Type = "https://ptkd-erp.internal/docs/errors/auth/password-change-failed"
+            });
+        }
+
+        // 3. Clear cookies (require re-login)
         DeleteRefreshCookie();
         _csrfService.Delete(Response);
 

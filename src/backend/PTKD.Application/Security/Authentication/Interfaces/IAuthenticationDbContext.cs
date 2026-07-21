@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using PTKD.Domain.Entities;
@@ -30,4 +31,12 @@ public interface IAuthenticationDbContext : IDisposable, IAsyncDisposable
         IsolationLevel isolationLevel,
         CancellationToken cancellationToken = default);
     IExecutionStrategy CreateExecutionStrategy();
+
+    // Returns the underlying ADO.NET connection used by this EF context instance.
+    // Callers must not open or close it; EF owns the connection lifetime.
+    DbConnection GetDbConnection();
+
+    // Returns the ADO.NET DbTransaction that is active for the current EF context
+    // transaction, or null if no transaction is in progress.
+    DbTransaction? GetCurrentDbTransaction();
 }

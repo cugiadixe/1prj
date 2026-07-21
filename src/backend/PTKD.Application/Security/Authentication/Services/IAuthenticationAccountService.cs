@@ -8,6 +8,11 @@ public interface IAuthenticationAccountService
         AuthenticateAccountCommand command,
         CancellationToken cancellationToken = default);
 
+    Task<AuthenticationAttemptResult> VerifyCurrentPasswordAsync(
+        string username,
+        string password,
+        CancellationToken cancellationToken = default);
+
     Task<AuthenticationAccountOperationResult> ChangePasswordAsync(
         ChangePasswordCommand command,
         CancellationToken cancellationToken = default);

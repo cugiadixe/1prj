@@ -106,7 +106,8 @@ public sealed class SecurityTestHelper : IAsyncDisposable
             Guid.NewGuid(),
             Guid.NewGuid(),
             account.SecurityStamp,
-            "admin");
+            "admin",
+            account.MustChangePassword);
 
         var result = JwtService.IssueAccessToken(tokenRequest);
 

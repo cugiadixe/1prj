@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Security.Authentication.Interfaces;
 using PTKD.Domain.Entities;
@@ -53,6 +54,12 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     {
         ChangeTracker.Clear();
     }
+
+    public System.Data.Common.DbConnection GetDbConnection()
+        => Database.GetDbConnection();
+
+    public System.Data.Common.DbTransaction? GetCurrentDbTransaction()
+        => Database.CurrentTransaction?.GetDbTransaction();
 
     public Task<UserAuthAccount?> FindAccountByProviderForUpdateAsync(
         string providerType,

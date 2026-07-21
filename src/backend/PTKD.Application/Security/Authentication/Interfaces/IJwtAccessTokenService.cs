@@ -30,7 +30,8 @@ public sealed record AccessTokenRequest(
     Guid SessionId,
     Guid FamilyId,
     Guid SecurityStamp,
-    string Username);
+    string Username,
+    bool MustChangePassword);
 
 /// <summary>
 /// Result of JWT access token issuance.

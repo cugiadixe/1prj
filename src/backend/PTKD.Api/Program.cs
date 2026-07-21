@@ -50,6 +50,7 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
     options.Filters.Add<ValidationFilter>();
+    options.Filters.Add<PTKD.Api.Security.Authorization.MustChangePasswordAuthorizationFilter>();
     options.Filters.Add<PTKD.Api.Security.Authorization.PermissionAuthorizationFilter>();
 });
 
@@ -117,6 +118,7 @@ builder.Services.AddScoped<ITokenSessionLifecycleService, TokenSessionLifecycleS
 
 // Audit Services (Phase 1B.1-F-A)
 builder.Services.AddScoped<PTKD.Application.Security.Audit.IAuditWriter, SqlSecurityAuditWriter>();
+builder.Services.AddScoped<PTKD.Application.Security.Audit.ITransactionalAuditWriter, SqlTransactionalAuditWriter>();
 
 // CSRF (Phase 1B.1-C-B)
 builder.Services.AddScoped<CsrfTokenService>();

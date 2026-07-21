@@ -2,6 +2,7 @@ using System.Data;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using PTKD.Application.Security.Audit;
 using PTKD.Application.Security.Authentication.Interfaces;
 using PTKD.Application.Security.Authentication.Models;
 using PTKD.Domain.Entities;
@@ -17,6 +18,8 @@ public sealed class AuthenticationAccountService : IAuthenticationAccountService
     private readonly ISessionInvalidationService _sessionInvalidationService;
     private readonly IUtcClock _clock;
     private readonly AuthenticationAccountPolicy _policy;
+    private readonly IAuditWriter _auditWriter;
+    private readonly ITransactionalAuditWriter _transactionalAuditWriter;
 
     public AuthenticationAccountService(
         IAuthenticationDbContextFactory dbContextFactory,
@@ -24,7 +27,9 @@ public sealed class AuthenticationAccountService : IAuthenticationAccountService
         IProviderSubjectNormalizer providerSubjectNormalizer,
         ISessionInvalidationService sessionInvalidationService,
         IUtcClock clock,
-        AuthenticationAccountPolicy policy)
+        AuthenticationAccountPolicy policy,
+        IAuditWriter auditWriter,
+        ITransactionalAuditWriter transactionalAuditWriter)
     {
         _dbContextFactory = dbContextFactory ?? throw new ArgumentNullException(nameof(dbContextFactory));
         _passwordHashService = passwordHashService ?? throw new ArgumentNullException(nameof(passwordHashService));
@@ -32,6 +37,8 @@ public sealed class AuthenticationAccountService : IAuthenticationAccountService
         _sessionInvalidationService = sessionInvalidationService ?? throw new ArgumentNullException(nameof(sessionInvalidationService));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
+        _auditWriter = auditWriter ?? throw new ArgumentNullException(nameof(auditWriter));
+        _transactionalAuditWriter = transactionalAuditWriter ?? throw new ArgumentNullException(nameof(transactionalAuditWriter));
     }
 
     public async Task<AuthenticationAttemptResult> AuthenticateAsync(
@@ -146,6 +153,45 @@ public sealed class AuthenticationAccountService : IAuthenticationAccountService
         }
     }
 
+    public async Task<AuthenticationAttemptResult> VerifyCurrentPasswordAsync(
+        string username,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+
+        ProviderIdentity identity;
+        try
+        {
+            identity = _providerSubjectNormalizer.Normalize("INTERNAL", username);
+        }
+        catch (ArgumentException)
+        {
+            _passwordHashService.VerifyPassword(null, null, password ?? string.Empty);
+            return AuthenticationAttemptResult.InvalidCredentials();
+        }
+
+        using var context = _dbContextFactory.CreateDbContext();
+        var account = await context.FindAccountByProviderForUpdateAsync(
+            identity.ProviderType,
+            identity.ProviderSubject,
+            cancellationToken);
+
+        var hasUsableInternalHash = account is { IsInternalProvider: true, PasswordHash: not null };
+        var verification = _passwordHashService.VerifyPassword(
+            hasUsableInternalHash ? account : null,
+            hasUsableInternalHash ? account!.PasswordHash : null,
+            password ?? string.Empty);
+
+        if (account is null || !account.IsInternalProvider || account.PasswordHash is null)
+            return AuthenticationAttemptResult.InvalidCredentials();
+
+        if (verification == PasswordHashVerificationResult.Failed)
+            return AuthenticationAttemptResult.InvalidCredentials();
+
+        return AuthenticationAttemptResult.Success(account.UserId, account.Id, account.SecurityStamp, account.RowVersion, account.MustChangePassword);
+    }
+
     public async Task<AuthenticationAccountOperationResult> ChangePasswordAsync(
         ChangePasswordCommand command,
         CancellationToken cancellationToken = default)
@@ -196,6 +242,28 @@ public sealed class AuthenticationAccountService : IAuthenticationAccountService
                 _sessionInvalidationService.Invalidate(account, utcNow);
 
                 await context.SaveChangesAsync(token);
+
+                // Audit write uses the same EF connection and transaction so that the
+                // INSERT is part of the same SERIALIZABLE transaction as the password
+                // change.  If the audit write fails, the transaction is rolled back and
+                // the password change does NOT persist (fail-closed, OD-F-04).
+                var auditRecord = new SecurityAuditEventRecord
+                {
+                    EventCode = "PASSWORD_CHANGED",
+                    EntityType = "AUTH_ACCOUNT",
+                    EntityId = account.Id.ToString(),
+                    Outcome = "SUCCESS",
+                    CorrelationId = Guid.NewGuid(),
+                    ActorUserId = command.ActingUserId,
+                    TargetUserId = account.UserId
+                };
+
+                var dbConnection = context.GetDbConnection();
+                var dbTransaction = context.GetCurrentDbTransaction()
+                    ?? throw new InvalidOperationException(
+                        "ChangePasswordAsync: no active transaction found on context. Audit write aborted.");
+                await _transactionalAuditWriter.WriteAsync(auditRecord, dbConnection, dbTransaction, token);
+
                 return AuthenticationAccountOperationResult.Success(account.RowVersion);
             }, cancellationToken);
         }

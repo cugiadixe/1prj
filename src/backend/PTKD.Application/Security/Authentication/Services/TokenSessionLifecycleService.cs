@@ -78,7 +78,8 @@ public sealed class TokenSessionLifecycleService : ITokenSessionLifecycleService
             sessionId,
             familyId,
             account.SecurityStamp,
-            username);
+            username,
+            account.MustChangePassword);
 
         var jwtResult = _jwtAccessTokenService.IssueAccessToken(accessRequest);
 
@@ -86,7 +87,8 @@ public sealed class TokenSessionLifecycleService : ITokenSessionLifecycleService
             jwtResult.Token,
             jwtResult.ExpiresAtUtc,
             rawMaterial,
-            refreshTokenExpiresAt);
+            refreshTokenExpiresAt,
+            account.MustChangePassword);
     }
 
     public async Task<TokenSessionResult> RefreshSessionAsync(
@@ -201,7 +203,8 @@ public sealed class TokenSessionLifecycleService : ITokenSessionLifecycleService
                 token.SessionId,
                 token.FamilyId,
                 account.SecurityStamp,
-                account.ProviderSubject);
+                account.ProviderSubject,
+                account.MustChangePassword);
 
             var jwtResult = _jwtAccessTokenService.IssueAccessToken(accessRequest);
 
@@ -209,7 +212,8 @@ public sealed class TokenSessionLifecycleService : ITokenSessionLifecycleService
                 jwtResult.Token,
                 jwtResult.ExpiresAtUtc,
                 newRawMaterial,
-                newExpiresAt);
+                newExpiresAt,
+                account.MustChangePassword);
         });
     }
 
