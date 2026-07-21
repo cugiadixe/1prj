@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\backend\PTKD.Application\PTKD.Application.csproj" />
     <ProjectReference Include="..\..\..\src\backend\PTKD.Infrastructure\PTKD.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\PTKD.Bootstrap\PTKD.Bootstrap.csproj" />
   </ItemGroup>
 
 </Project>
