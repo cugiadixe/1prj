@@ -207,6 +207,31 @@ public class UserAuthAccount
         return true;
     }
 
+    // Activate transitions DISABLED or LOCKED → ACTIVE. Idempotent if already ACTIVE.
+    public void Activate(DateTime utcNow, long updatedByUserId)
+    {
+        AuthenticationAccountPolicy.EnsureUtc(utcNow);
+        if (string.Equals(AuthAccountStatus, AuthenticationAccountPolicy.ActiveAccountStatus, StringComparison.Ordinal))
+            return;
+
+        AuthAccountStatus = AuthenticationAccountPolicy.ActiveAccountStatus;
+        FailedAttemptCount = 0;
+        LockoutEnd = null;
+        MarkUpdated(utcNow, updatedByUserId);
+    }
+
+    // Manual lock with no expiry (IsManualLock = true). Throws if account is DISABLED.
+    public void Lock(DateTime utcNow, long updatedByUserId)
+    {
+        AuthenticationAccountPolicy.EnsureUtc(utcNow);
+        if (string.Equals(AuthAccountStatus, AuthenticationAccountPolicy.DisabledAccountStatus, StringComparison.Ordinal))
+            throw new InvalidOperationException("A disabled account cannot be locked; activate it first.");
+
+        AuthAccountStatus = AuthenticationAccountPolicy.LockedAccountStatus;
+        LockoutEnd = null;
+        MarkUpdated(utcNow, updatedByUserId);
+    }
+
     public void InvalidateSessions(Guid newSecurityStamp, DateTime utcNow)
     {
         AuthenticationAccountPolicy.EnsureUtc(utcNow);

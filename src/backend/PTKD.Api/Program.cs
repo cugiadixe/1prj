@@ -116,6 +116,9 @@ builder.Services.AddScoped<IJwtAccessTokenService, JwtAccessTokenService>();
 builder.Services.AddScoped<IRefreshTokenMaterialService, RefreshTokenMaterialService>();
 builder.Services.AddScoped<ITokenSessionLifecycleService, TokenSessionLifecycleService>();
 
+// Account Management Service (Phase 1B.1-I)
+builder.Services.AddScoped<PTKD.Application.Security.AccountManagement.IAccountManagementService, PTKD.Infrastructure.Security.AccountManagement.AccountManagementService>();
+
 // Audit Services (Phase 1B.1-F-A & 1B.1-H)
 builder.Services.AddScoped<PTKD.Application.Security.Audit.IAuditWriter, SqlSecurityAuditWriter>();
 builder.Services.AddScoped<PTKD.Application.Security.Audit.ITransactionalAuditWriter, SqlTransactionalAuditWriter>();
