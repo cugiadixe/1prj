@@ -3,6 +3,8 @@
 ## 1. Goal
 **Status**: PHASE 1B.1-G PLAN ACCEPTED — SEE [phase-1b1g-project-owner-plan-acceptance.md](phase-1b1g-project-owner-plan-acceptance.md)
 
+**Implementation status**: PHASE 1B.1-G IMPLEMENTATION ACCEPTED — SEE [phase-1b1g-project-owner-implementation-acceptance.md](phase-1b1g-project-owner-implementation-acceptance.md)
+
 Implement the Initial Admin Login and Force Password Change flow. This ensures that the bootstrapped administrative account must change its temporary password before accessing any other business endpoints, fulfilling the security requirement that `must_change_password` blocks non-password operations.
 
 ## 2. Existing Implementation Status
