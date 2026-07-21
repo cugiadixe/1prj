@@ -3,6 +3,7 @@
 ## Status
 
 PHASE 1B.1-F-B IMPLEMENTATION ACCEPTED — SEE phase-1b1f-b-project-owner-implementation-acceptance.md
+PHASE 1B.1-F FINAL ACCEPTED — SEE phase-1b1f-project-owner-final-acceptance.md
 
 Primary blocker:
 - SECURITY_ADMIN_MANAGE exists in PermissionCodes.cs and permission-catalog.md

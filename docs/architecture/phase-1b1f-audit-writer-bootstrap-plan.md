@@ -4,6 +4,7 @@
 ACCEPTED PLAN — PHASE 1B.1-F IMPLEMENTATION MAY BE AUTHORIZED BY SLICE
 
 PHASE 1B.1-F-A IMPLEMENTATION ACCEPTED — SEE phase-1b1f-a-project-owner-implementation-acceptance.md
+PHASE 1B.1-F FINAL ACCEPTED — SEE phase-1b1f-project-owner-final-acceptance.md
 
 ## Accepted baseline
 - Phase 1B.1-E closure accepted: commit `0e7017f4b9f218bbe6f082a649eab5e046ef13be`

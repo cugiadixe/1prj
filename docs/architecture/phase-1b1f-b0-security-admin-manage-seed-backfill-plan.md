@@ -3,6 +3,7 @@
 ## Status
 
 PHASE 1B.1-F-B0 IMPLEMENTATION ACCEPTED — SEE phase-1b1f-b0-project-owner-implementation-acceptance.md
+PHASE 1B.1-F FINAL ACCEPTED — SEE phase-1b1f-project-owner-final-acceptance.md
 
 ### Accepted conditions
 
