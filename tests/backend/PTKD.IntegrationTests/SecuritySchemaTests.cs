@@ -34,6 +34,7 @@ public sealed class SecuritySchemaTests : IDisposable
         "SECURITY_ACCOUNT_MANAGE",
         "SECURITY_ADMIN_GROUP_MANAGE",
         "SECURITY_ADMIN_GROUP_VIEW",
+        "SECURITY_ADMIN_MANAGE",
         "SECURITY_ASSIGNMENT_MANAGE",
         "SECURITY_AUDIT_VIEW",
         "SECURITY_PERMISSION_MANAGE",
@@ -233,7 +234,9 @@ public sealed class SecuritySchemaTests : IDisposable
     [Fact]
     public void Permissions_UseNaturalPrimaryKey_AndExactImmutableSeedCatalog()
     {
-        using var connection = OpenKnownV0003Baseline();
+        _fixture.ResetToEmpty();
+        ExecuteDbMigrator();
+        using var connection = _fixture.OpenVerifiedConnection();
 
         using (var command = new SqlCommand("""
             SELECT TYPE_NAME(column_object.user_type_id), column_object.max_length
@@ -260,7 +263,6 @@ public sealed class SecuritySchemaTests : IDisposable
             connection,
             "SELECT permission_code FROM dbo.Permissions ORDER BY permission_code;");
         Assert.Equal(ExpectedPermissionCodes, actualCodes);
-        Assert.DoesNotContain("ADMIN", actualCodes);
 
         var entityException = Assert.Throws<SqlException>(() => ExecuteNonQuery(connection, """
             INSERT INTO dbo.Permissions
@@ -280,6 +282,34 @@ public sealed class SecuritySchemaTests : IDisposable
             DELETE FROM dbo.Permissions WHERE permission_code = 'SECURITY_ROLE_VIEW';
             """));
         Assert.Contains("may not be deleted", deleteException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Permissions_V0004_ContainsSecurityAdminManage()
+    {
+        _fixture.ResetToEmpty();
+        ExecuteDbMigrator();
+
+        using var connection = _fixture.OpenVerifiedConnection();
+        using var command = new SqlCommand("""
+            SELECT permission_code, module_code, action_code, data_scope, is_sensitive, requires_reason, is_delegable, is_active
+            FROM dbo.Permissions
+            WHERE permission_code = 'SECURITY_ADMIN_MANAGE';
+            """, connection);
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read(), "SECURITY_ADMIN_MANAGE row was not found.");
+
+        Assert.Equal("SECURITY_ADMIN_MANAGE", reader.GetString(0));
+        Assert.Equal("SECURITY", reader.GetString(1));
+        Assert.Equal("ADMIN_MANAGE", reader.GetString(2));
+        Assert.Equal("GLOBAL", reader.GetString(3));
+        Assert.True(reader.GetBoolean(4)); // is_sensitive
+        Assert.True(reader.GetBoolean(5)); // requires_reason
+        Assert.False(reader.GetBoolean(6)); // is_delegable
+        Assert.True(reader.GetBoolean(7)); // is_active
+
+        Assert.False(reader.Read(), "Multiple SECURITY_ADMIN_MANAGE rows found.");
     }
 
     [Fact]

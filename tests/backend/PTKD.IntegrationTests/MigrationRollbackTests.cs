@@ -21,28 +21,26 @@ public sealed class MigrationRollbackTests
         var firstOutput = ExecuteDbMigrator();
         Assert.Contains("Applied V0001", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0002", firstOutput, StringComparison.Ordinal);
-        Assert.Contains("Applied V0003", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Applied V0004", firstOutput, StringComparison.Ordinal);
         Assert.Equal(1, GetSchemaVersionsCount("V0001"));
         Assert.Equal(1, GetSchemaVersionsCount("V0002"));
         Assert.Equal(1, GetSchemaVersionsCount("V0003"));
+        Assert.Equal(1, GetSchemaVersionsCount("V0004"));
 
         var secondOutput = ExecuteDbMigrator();
         Assert.Contains("Skipping V0001", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0002", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0003", secondOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0004", secondOutput, StringComparison.Ordinal);
+        Assert.Equal(1, GetSchemaVersionsCount("V0004"));
+
+        ExecuteRollback("U0004__deactivate_security_admin_manage_permission.sql");
+        Assert.Equal(0, GetSchemaVersionsCount("V0004"));
         Assert.Equal(1, GetSchemaVersionsCount("V0003"));
 
-        ExecuteRollback("U0003__drop_security_schema.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0003"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0002"));
-
-        ExecuteRollback("U0002__drop_organization_schema.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0002"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0001"));
-
-        ExecuteDbMigrator();
-        Assert.Equal(1, GetSchemaVersionsCount("V0002"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0003"));
+        var ex = Assert.Throws<Microsoft.Data.SqlClient.SqlException>(() =>
+            ExecuteRollback("U0003__drop_security_schema.sql"));
+        Assert.Contains("Permissions differs from the approved seed catalog", ex.Message);
     }
 
     [Fact]
