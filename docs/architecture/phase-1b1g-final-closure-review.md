@@ -2,6 +2,8 @@
 
 **Status**: PASSED — PHASE 1B.1-G CLOSURE RECOMMENDED
 
+**Final acceptance**: PHASE 1B.1-G FINAL ACCEPTANCE RECORDED — SEE [phase-1b1g-project-owner-final-acceptance.md](phase-1b1g-project-owner-final-acceptance.md)
+
 **Reviewed phase**: Phase 1B.1-G — Initial Admin Login & Force Password Change Verification
 
 **Review date**: 2026-07-21
