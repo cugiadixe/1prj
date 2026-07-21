@@ -2,8 +2,64 @@
 
 ## Status
 
-ACCEPTED PLAN — PHASE 1B.1-F-B IMPLEMENTATION MAY BE AUTHORIZED BY SLICE
-SEE phase-1b1f-b-project-owner-plan-acceptance.md
+BLOCKED — SECURITY_ADMIN_MANAGE DATABASE SEED GAP
+
+F-B implementation discovery stopped before code was written. No F-B
+implementation has started. This plan is accepted but F-B implementation
+remains blocked until the corrective F-B0 slice is planned, accepted,
+implemented, reviewed, and accepted.
+
+See phase-1b1f-b-hard-stop-security-admin-manage-seed-gap.md for the full
+hard-stop record.
+
+Primary blocker:
+- SECURITY_ADMIN_MANAGE exists in PermissionCodes.cs and permission-catalog.md
+  but is absent from the V0003 database seed data.
+- OD-F-B-06 requires stopping when SECURITY_ADMIN_MANAGE is missing from the
+  database, rather than silently using a different permission.
+
+Project Owner corrective direction — Option A selected:
+- Create a new V0004/U0004 migration in a separate F-B0 corrective slice.
+- Do not amend V0003.
+- Do not revise OD-F-B-06 to use a different permission.
+- F-B implementation remains blocked until F-B0 is implemented and accepted.
+
+SEE ALSO: phase-1b1f-b-project-owner-plan-acceptance.md
+
+---
+
+## Implementation-spec corrections required before F-B implementation
+
+The following schema discrepancies were discovered during F-B implementation
+discovery. F-B implementation must use the actual schema, not the plan prose.
+
+### Correction A — User_Auth_Accounts: no normalized_provider_subject column
+
+The F-B plan (OD-F-B-05) refers to `normalized_provider_subject` as a column
+in `User_Auth_Accounts`. The actual V0003 schema does not have this column.
+`User_Auth_Accounts` has `provider_subject` only (with a unique constraint on
+`(provider_type, provider_subject)`). The unique constraint key is
+`UQ_UserAuthAccounts_ProviderSubject` on `(provider_type, provider_subject)`.
+F-B implementation must reference `provider_subject` only and must not attempt
+to write to a non-existent `normalized_provider_subject` column.
+
+### Correction B — Password_History: FK column is account_id
+
+The F-B plan prose implies the FK column connecting `Password_History` to
+`User_Auth_Accounts` might be named `user_auth_account_id`. The actual V0003
+schema names this column `account_id` (with FK constraint
+`FK_PasswordHistory_Account` referencing `dbo.User_Auth_Accounts(id)`).
+F-B implementation must use `account_id`, not `user_auth_account_id`.
+
+### Correction C — Admin_Groups.name is NOT NULL
+
+The `Admin_Groups` table has `name nvarchar(200) NOT NULL` (line 374 of V0003).
+OD-F-B-06 specifies creating the ADMIN_SECURITY group but does not explicitly
+list all required NOT NULL columns. F-B implementation must populate at minimum:
+`group_code`, `name`, `scope_type`, `is_active`.
+A suitable `name` value for the bootstrap-created ADMIN_SECURITY group must be
+decided during the authorized F-B implementation task (e.g.,
+`N'Security Administration'`).
 
 ---
 
@@ -477,6 +533,19 @@ All structured errors go to Serilog configured for the bootstrap project. Consol
 - No line-ending normalization.
 - No production deployment.
 - No tag or push.
+
+---
+
+## Accepted plan — implementation blocked pending F-B0 corrective slice
+
+All OD-F-B decisions (OD-F-B-01 through OD-F-B-13) remain as accepted.
+No OD-F-B decision is revised by this hard stop except as noted in the
+blocked status section above.
+
+F-B implementation may not resume until:
+1. Phase 1B.1-F-B0 corrective migration plan is created and accepted.
+2. V0004 migration inserting SECURITY_ADMIN_MANAGE is implemented and accepted.
+3. The F-B0 acceptance is committed.
 
 ---
 
