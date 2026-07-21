@@ -116,9 +116,10 @@ builder.Services.AddScoped<IJwtAccessTokenService, JwtAccessTokenService>();
 builder.Services.AddScoped<IRefreshTokenMaterialService, RefreshTokenMaterialService>();
 builder.Services.AddScoped<ITokenSessionLifecycleService, TokenSessionLifecycleService>();
 
-// Audit Services (Phase 1B.1-F-A)
+// Audit Services (Phase 1B.1-F-A & 1B.1-H)
 builder.Services.AddScoped<PTKD.Application.Security.Audit.IAuditWriter, SqlSecurityAuditWriter>();
 builder.Services.AddScoped<PTKD.Application.Security.Audit.ITransactionalAuditWriter, SqlTransactionalAuditWriter>();
+builder.Services.AddScoped<PTKD.Application.Security.Audit.ISecurityAuditQueryService, SqlSecurityAuditQueryService>();
 
 // CSRF (Phase 1B.1-C-B)
 builder.Services.AddScoped<CsrfTokenService>();
