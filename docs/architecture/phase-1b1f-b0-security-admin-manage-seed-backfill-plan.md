@@ -2,7 +2,7 @@
 
 ## Status
 
-ACCEPTED PLAN — PHASE 1B.1-F-B0 IMPLEMENTATION MAY BE AUTHORIZED AFTER THIS ACCEPTANCE COMMIT
+PHASE 1B.1-F-B0 IMPLEMENTATION ACCEPTED — SEE phase-1b1f-b0-project-owner-implementation-acceptance.md
 
 ### Accepted conditions
 

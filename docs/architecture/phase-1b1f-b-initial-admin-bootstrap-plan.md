@@ -4,10 +4,7 @@
 
 BLOCKED — SECURITY_ADMIN_MANAGE DATABASE SEED GAP
 
-F-B implementation discovery stopped before code was written. No F-B
-implementation has started. This plan is accepted but F-B implementation
-remains blocked until the corrective F-B0 slice is planned, accepted,
-implemented, reviewed, and accepted.
+F-B implementation may resume only after F-B0 implementation acceptance is committed. Secondary corrections A/B/C and transaction-safe BOOTSTRAP_ADMIN_CREATED audit requirement remain mandatory.
 
 See phase-1b1f-b-hard-stop-security-admin-manage-seed-gap.md for the full
 hard-stop record.
