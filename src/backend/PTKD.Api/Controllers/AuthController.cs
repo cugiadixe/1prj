@@ -197,6 +197,11 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(BuildGenericAuthProblem());
         }
 
+        if (!_csrfService.Validate(Request))
+        {
+            return Forbid403(BuildCsrfProblem());
+        }
+
         // 1. Verify current password safely without login side effects
         var authResult = await _authService.VerifyCurrentPasswordAsync(
             username, request.CurrentPassword, cancellationToken);

@@ -65,6 +65,8 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.NotNull(csrfCookie);
         Assert.DoesNotContain("HttpOnly", csrfCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Secure", csrfCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Path=/", csrfCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Path=/api/v2/auth", csrfCookie, StringComparison.OrdinalIgnoreCase);
 
         var csrfHeader = response.Headers.GetValues("X-CSRF-Token").FirstOrDefault();
         Assert.NotNull(csrfHeader);
@@ -210,7 +212,11 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
         Assert.DoesNotContain(newCookies, c => c.StartsWith("__Host-", StringComparison.OrdinalIgnoreCase));
 
         Assert.Contains(newCookies, c => c.StartsWith("RefreshToken="));
-        Assert.Contains(newCookies, c => c.StartsWith("X-CSRF-TOKEN="));
+        var newCsrfCookie = newCookies.SingleOrDefault(c => c.StartsWith("X-CSRF-TOKEN="));
+        Assert.NotNull(newCsrfCookie);
+        Assert.DoesNotContain("HttpOnly", newCsrfCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Path=/", newCsrfCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Path=/api/v2/auth", newCsrfCookie, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -527,6 +533,60 @@ public class AuthControllerTests : IClassFixture<SafeTestWebApplicationFactory>
 
         // When no refresh cookie is present, logout succeeds generically (204)
         Assert.Equal(HttpStatusCode.NoContent, logoutRes.StatusCode);
+    }
+
+    // ── Change Password tests ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ChangePassword_ValidCsrf_ChangesPasswordAndClearsCookies()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var cookies = loginRes.Headers.GetValues("Set-Cookie");
+        var csrfToken = loginRes.Headers.GetValues("X-CSRF-Token").First();
+        var loginResponse = await loginRes.Content.ReadFromJsonAsync<LoginResponse>();
+        var accessToken = loginResponse!.AccessToken;
+
+        var changePwdReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/change-password");
+        changePwdReq.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        changePwdReq.Headers.Add("Cookie", cookies);
+        changePwdReq.Headers.Add("X-CSRF-Token", csrfToken);
+        changePwdReq.Content = JsonContent.Create(new PTKD.Api.Auth.Models.ChangePasswordRequest(testPassword, "NewValidPassword123!"));
+
+        var res = await _client.SendAsync(changePwdReq);
+
+        Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
+
+        // Check if cookies are cleared (to force re-login)
+        var clearCookies = res.Headers.GetValues("Set-Cookie").ToList();
+        Assert.Contains(clearCookies, c => c.StartsWith("RefreshToken=") && c.Contains("expires="));
+        Assert.Contains(clearCookies, c => c.StartsWith("X-CSRF-TOKEN=") && c.Contains("expires="));
+    }
+
+    [Fact]
+    public async Task ChangePassword_MissingCsrf_Returns403()
+    {
+        var testUsername = "api_test_user_" + Guid.NewGuid().ToString("N")[..8];
+        var testPassword = "ValidPassword123!";
+        await SeedUserAndAccountAsync(testUsername, testPassword);
+
+        var loginRes = await _client.PostAsJsonAsync("/api/v2/auth/login", new LoginRequest(testUsername, testPassword));
+        var cookies = loginRes.Headers.GetValues("Set-Cookie");
+        var loginResponse = await loginRes.Content.ReadFromJsonAsync<LoginResponse>();
+        var accessToken = loginResponse!.AccessToken;
+
+        var changePwdReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/change-password");
+        changePwdReq.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        changePwdReq.Headers.Add("Cookie", cookies);
+        // NO CSRF HEADER
+        changePwdReq.Content = JsonContent.Create(new PTKD.Api.Auth.Models.ChangePasswordRequest(testPassword, "NewValidPassword123!"));
+
+        var res = await _client.SendAsync(changePwdReq);
+
+        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
 
     // ── Scope tests ───────────────────────────────────────────────────────────

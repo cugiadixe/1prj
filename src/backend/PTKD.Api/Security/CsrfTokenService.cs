@@ -13,7 +13,7 @@ public sealed class CsrfTokenService
 {
     private const string CookieName = "X-CSRF-TOKEN";
     private const string HeaderName = "X-CSRF-Token";
-    private const string CookiePath = "/api/v2/auth";
+    private const string CookiePath = "/";
 
     /// <summary>Generates a new CSRF token, writes cookie and response header.</summary>
     public string Issue(HttpResponse response)
