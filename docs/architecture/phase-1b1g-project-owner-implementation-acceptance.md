@@ -2,6 +2,8 @@
 
 **Status**: ACCEPTED — PHASE 1B.1-G IMPLEMENTATION COMPLETE
 
+**Closure review**: PHASE 1B.1-G CLOSURE REVIEW PASSED — SEE [phase-1b1g-final-closure-review.md](phase-1b1g-final-closure-review.md)
+
 **Accepted implementation commit**: `d2c932725d902539726df6562ac0294658657c07`
 
 **Accepted parent**: `247447dcdf1423a3a49e536a69537feb7ab62258`
