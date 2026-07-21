@@ -7,7 +7,7 @@
 **Previous completed phase**: Phase 1B.1-I COMPLETE
 
 ## 1. Purpose
-The purpose of Phase 1B.1-J is to establish the foundational frontend authentication flows. This includes the Login UI, the forced Must-Change-Password flow, session state management (access token in memory), refresh token handling via cookies, CSRF integration, and basic route guarding for the single-page application (SPA).
+The purpose of Phase 1B.1-J is to establish the foundational frontend authentication flows. This includes the Login UI, the forced Must-Change-Password flow, session state management, refresh token handling via cookies, CSRF integration, and basic route guarding for the single-page application (SPA).
 
 ## 2. Confirmed current state
 The project currently has a backend API that securely issues and manages authentication sessions using a short-lived JWT access token and a long-lived HttpOnly refresh cookie. The frontend is a React 19 SPA using Vite, TypeScript, and Ant Design, but it lacks any authentication state, login UI, or route protection.
@@ -35,9 +35,7 @@ No backend changes are required. The API contract fully supports the planned fro
 - **Axios Interceptors**: Injection of the Bearer token into requests and automatic CSRF header inclusion.
 - **Refresh Flow**: Implementation of silent refresh logic when the access token expires.
 - **Logout Flow**: UI trigger and API integration for ending the session.
-- **Route Guard**: A wrapper component to protect authenticated routes and redirect unauthenticated users to `/login`.
-- **Must-Change-Password Routing**: Enforcement of routing to block standard UI access until the password is changed.
-- **Authenticated Shell**: A minimal layout placeholder for authenticated users.
+- **Route Guard**: A wrapper component to protect authenticated routes and redirect unauthenticated users.
 
 ### Proposed Frontend Routes
 - `/login`
@@ -58,12 +56,12 @@ No backend changes are required. The API contract fully supports the planned fro
 - Audit retention/archive/purge
 
 ## 7. Token/session handling strategy
-- **Access Token**: Access token must be held in memory only.
+- Access token must be held in memory only.
 - Do not store access token in localStorage.
 - Do not store access token in sessionStorage.
 - Do not store access token in persistent cookies.
-- **Persistence / App Bootstrap**: On page reload/app bootstrap, frontend should call refresh endpoint to re-establish auth state if the refresh cookie exists.
-- If refresh fails, clear auth state and redirect to `/login`.
+- On page reload/app bootstrap, frontend should call refresh endpoint to re-establish auth state if the refresh cookie exists.
+- If refresh fails, clear auth state and redirect to login.
 
 ## 8. Must-change-password routing strategy
 - Unauthenticated users go to `/login`.
@@ -80,7 +78,7 @@ No backend changes are required. The API contract fully supports the planned fro
 
 ## 10. Error handling strategy
 - Axios interceptors will catch `401 Unauthorized` responses. If a 401 occurs and a refresh attempt also fails, the auth state is cleared, and the user is redirected to `/login`.
-- Form validation errors and API `ProblemDetails` responses (e.g., `400 Bad Request` for password policy violations) will be mapped to user-friendly UI alerts (e.g., Ant Design `message` or form errors).
+- Form validation errors and API `ProblemDetails` responses will be mapped to user-friendly UI alerts.
 
 ## 11. CSRF/browser-cookie considerations
 - Frontend must follow the existing backend cookie/CSRF contract.
