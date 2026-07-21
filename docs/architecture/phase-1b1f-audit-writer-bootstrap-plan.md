@@ -1,7 +1,7 @@
 # Phase 1B.1-F — Audit Writer and Initial Admin Bootstrap Plan
 
 ## Status
-PLAN — AWAITING PROJECT OWNER DECISION ON OD-F-01 THROUGH OD-F-12
+ACCEPTED PLAN — PHASE 1B.1-F IMPLEMENTATION MAY BE AUTHORIZED BY SLICE
 
 ## Accepted baseline
 - Phase 1B.1-E closure accepted: commit `0e7017f4b9f218bbe6f082a649eab5e046ef13be`
