@@ -1,6 +1,6 @@
 # Phase 1B.1-J Login UI and MustChangePassword UI Foundation Plan
 
-**Status**: PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status**: PHASE 1B.1-J PLAN ACCEPTED — SEE phase-1b1j-project-owner-plan-acceptance.md
 
 **Baseline**: `10c7e6ff1cf138fab34c172ecf5e56722a175120`
 
