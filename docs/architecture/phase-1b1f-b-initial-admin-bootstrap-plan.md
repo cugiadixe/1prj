@@ -2,7 +2,8 @@
 
 ## Status
 
-DRAFT — AWAITING PROJECT OWNER REVIEW
+ACCEPTED PLAN — PHASE 1B.1-F-B IMPLEMENTATION MAY BE AUTHORIZED BY SLICE
+SEE phase-1b1f-b-project-owner-plan-acceptance.md
 
 ---
 
