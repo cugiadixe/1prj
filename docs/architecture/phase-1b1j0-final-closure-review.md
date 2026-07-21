@@ -82,3 +82,5 @@ PHASE 1B.1-J0 CLOSURE RECOMMENDED
 ## 12. Next step
 Record Project Owner final acceptance of Phase 1B.1-J0.
 Phase 1B.1-J frontend implementation may resume only after final acceptance is committed.
+
+PHASE 1B.1-J0 FINAL ACCEPTANCE RECORDED — SEE phase-1b1j0-project-owner-final-acceptance.md
