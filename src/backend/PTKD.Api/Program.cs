@@ -29,6 +29,7 @@ using PTKD.Infrastructure.Persistence.Interceptors;
 using PTKD.Infrastructure.Persistence.Retries;
 using PTKD.Infrastructure.Security.Authentication;
 using PTKD.Infrastructure.Security.Cryptography;
+using PTKD.Infrastructure.Security.Audit;
 using PTKD.Infrastructure.Time;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -113,6 +114,9 @@ builder.Services.AddSingleton<IJwtSigningKeyProvider, JwtSigningKeyProvider>();
 builder.Services.AddScoped<IJwtAccessTokenService, JwtAccessTokenService>();
 builder.Services.AddScoped<IRefreshTokenMaterialService, RefreshTokenMaterialService>();
 builder.Services.AddScoped<ITokenSessionLifecycleService, TokenSessionLifecycleService>();
+
+// Audit Services (Phase 1B.1-F-A)
+builder.Services.AddScoped<PTKD.Application.Security.Audit.IAuditWriter, SqlSecurityAuditWriter>();
 
 // CSRF (Phase 1B.1-C-B)
 builder.Services.AddScoped<CsrfTokenService>();
