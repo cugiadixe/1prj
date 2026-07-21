@@ -4,6 +4,8 @@
 
 **Plan acceptance**: PHASE 1B.1-H PLAN ACCEPTED — SEE [phase-1b1h-project-owner-plan-acceptance.md](phase-1b1h-project-owner-plan-acceptance.md)
 
+**Implementation acceptance**: PHASE 1B.1-H IMPLEMENTATION ACCEPTED — SEE [phase-1b1h-project-owner-implementation-acceptance.md](phase-1b1h-project-owner-implementation-acceptance.md)
+
 **Baseline**: `9d1ba2258ac6e6b7de534aeb4ea6f2db62e85f2c`
 
 **Previous completed phase**: Phase 1B.1-G COMPLETE
