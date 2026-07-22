@@ -131,3 +131,5 @@ Recommended: no read audit event.
 
 DEC-1B-L-08 — Permission catalog:
 Recommended: no new permission code and no permission-catalog.md change.
+
+PHASE 1B.1-L PLAN ACCEPTED — SEE phase-1b1l-project-owner-plan-acceptance.md
