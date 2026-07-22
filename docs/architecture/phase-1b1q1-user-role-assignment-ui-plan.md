@@ -1,7 +1,7 @@
 # Phase 1B.1-Q1 User Role Assignment UI Plan
 
 **Status:**
-PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+PHASE 1B.1-Q1 PLAN ACCEPTED — SEE phase-1b1q1-project-owner-plan-acceptance.md
 
 **Baseline:**
 20ad5b2fc4ff435b5bef1129e3cbebce5936476e
