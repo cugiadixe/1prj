@@ -4,7 +4,7 @@
 PASSED — PHASE 1B.1-P2 CLOSURE RECOMMENDED
 
 **Closure baseline:**
-ba1b42ea62d29e798d1a1006509fbe79899f8dce
+ba1b42e9a9640c0670d571a84ffa873dcd0df524
 
 **Reviewed plan commit:**
 170a708f2c66c5f6e6ac1702d37785a232072d18
@@ -16,7 +16,7 @@ ba1b42ea62d29e798d1a1006509fbe79899f8dce
 1f6019488d67c5417dfeb6716bc75a9e34e5659a
 
 **Reviewed implementation acceptance commit:**
-ba1b42ea62d29e798d1a1006509fbe79899f8dce
+ba1b42e9a9640c0670d571a84ffa873dcd0df524
 
 ## 1. Purpose
 The purpose of this review is to verify that Phase 1B.1-P2 (Admin Group Permission Management UI) has been fully and correctly implemented according to the accepted plan and Project Owner decisions, and is ready for closure.
