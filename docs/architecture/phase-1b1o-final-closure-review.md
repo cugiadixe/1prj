@@ -109,3 +109,5 @@ PHASE 1B.1-O CLOSURE RECOMMENDED
 
 ## 18. Next step
 Record Project Owner final acceptance of Phase 1B.1-O.
+
+PHASE 1B.1-O FINAL ACCEPTANCE RECORDED — SEE phase-1b1o-project-owner-final-acceptance.md
