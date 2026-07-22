@@ -117,3 +117,5 @@ None.
 
 ## Closure recommendation
 PHASE 1B.1-Q2 CLOSURE RECOMMENDED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
+
+PHASE 1B.1-Q2 FINAL ACCEPTANCE RECORDED — SEE phase-1b1q2-project-owner-final-acceptance.md
