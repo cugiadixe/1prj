@@ -137,3 +137,5 @@ Accepted. Q2 admin group membership, bulk assignment, ENTITY, DENY, department b
 
 ## Implementation authorization
 Phase 1B.1-Q1 User Role Assignment UI implementation is authorized under the accepted scope and decisions above.
+
+PHASE 1B.1-Q1 IMPLEMENTATION ACCEPTED — SEE phase-1b1q1-project-owner-implementation-acceptance.md
