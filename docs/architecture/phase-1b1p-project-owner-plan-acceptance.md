@@ -2,6 +2,7 @@
 
 Status:
 ACCEPTED — PHASE 1B.1-P PLAN ACCEPTED; PHASE 1B.1-P1 IMPLEMENTATION AUTHORIZED
+PHASE 1B.1-P1 IMPLEMENTATION ACCEPTED — SEE phase-1b1p1-project-owner-implementation-acceptance.md
 
 Accepted phase:
 Phase 1B.1-P — Role and Admin Group Permission Management UI Discovery and Plan
