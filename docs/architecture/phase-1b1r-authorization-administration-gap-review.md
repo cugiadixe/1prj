@@ -1,6 +1,6 @@
 # Phase 1B.1-R Authorization Administration Gap Review
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER REVIEW
+**Status:** PHASE 1B.1-R GAP REVIEW ACCEPTED — DETAILED PLANNING AUTHORIZED; SEE phase-1b1r-project-owner-gap-review-acceptance.md
 **Baseline:** 87fdb4d4509b6b43cfbb2f1ed0bf4ccd7987a3a6
 **Previous completed phase:** Phase 1B.1-Q COMPLETE
 
