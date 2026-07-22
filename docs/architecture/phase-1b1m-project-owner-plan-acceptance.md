@@ -2,6 +2,7 @@
 
 Status:
 ACCEPTED — IMPLEMENTATION AUTHORIZED
+PHASE 1B.1-M IMPLEMENTATION ACCEPTED — SEE phase-1b1m-project-owner-implementation-acceptance.md
 
 Accepted phase:
 Phase 1B.1-M — Current Company Context and X-Company-Id Frontend Foundation
