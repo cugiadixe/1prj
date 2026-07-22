@@ -60,3 +60,5 @@ PHASE 1B.1-L CLOSURE RECOMMENDED
 
 Next step:
 Record Project Owner final acceptance of Phase 1B.1-L.
+
+PHASE 1B.1-L FINAL ACCEPTANCE RECORDED — SEE phase-1b1l-project-owner-final-acceptance.md
