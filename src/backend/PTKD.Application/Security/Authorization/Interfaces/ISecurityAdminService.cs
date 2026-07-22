@@ -64,4 +64,6 @@ public interface ISecurityAdminService
     // ── Effective Permissions ──────────────────────────────────────────────
 
     Task<EffectivePermissionsResponse> GetEffectivePermissionsAsync(long userId, long? companyId, CancellationToken ct = default);
+
+        Task<UserCompaniesResponse> GetSelectableCompaniesAsync(long userId, CancellationToken ct = default);
 }

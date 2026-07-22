@@ -28,6 +28,7 @@ export interface AuthContextValue {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   onPasswordChanged: () => void;
+  refreshPermissions: (companyId?: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,6 +101,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  const refreshPermissions = useCallback(async (companyId?: number) => {
+    try {
+      const permResult = await apiFetchMyPermissions(companyId);
+      setPermissions(permResult.permissions);
+      const { accessToken, mustChangePassword, user } = getAuthState();
+      setAuthState(accessToken ?? "", mustChangePassword, user, permResult.permissions);
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   const clearAuth = useCallback(() => {
     clearAuthState();
     setIsAuthenticated(false);
@@ -156,11 +168,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const status = err?.response?.status;
         const originalRequest = err?.config;
 
-        // On 401 from non-auth endpoints, attempt silent refresh once
+        // On 401 from non-loop endpoints, attempt silent refresh once.
+        // Exclude the four endpoints that would cause infinite loops:
+        //   /auth/login, /auth/refresh, /auth/logout, /auth/change-password
+        // /auth/me/* endpoints (companies, permissions) ARE eligible for retry.
+        const isLoopEndpoint =
+          originalRequest?.url?.includes('/auth/login') ||
+          originalRequest?.url?.includes('/auth/refresh') ||
+          originalRequest?.url?.includes('/auth/logout') ||
+          originalRequest?.url?.includes('/auth/change-password');
         if (
           status === 401 &&
           !originalRequest?._retried &&
-          !originalRequest?.url?.includes('/auth/')
+          !isLoopEndpoint
         ) {
           if (originalRequest) originalRequest._retried = true;
           try {
@@ -209,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /**
    * Called after successful change-password.
-   * Phase G requires fresh login after password change — clear auth and redirect to /login.
+   * Phase G requires fresh login after password change â€” clear auth and redirect to /login.
    */
   const onPasswordChanged = useCallback(() => {
     clearAuth();
@@ -226,6 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         logout,
         onPasswordChanged,
+        refreshPermissions,
       }}
     >
       {children}

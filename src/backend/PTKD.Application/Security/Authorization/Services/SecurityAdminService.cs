@@ -663,6 +663,29 @@ public sealed class SecurityAdminService : ISecurityAdminService
 		});
 	}
 
+	public async Task<UserCompaniesResponse> GetSelectableCompaniesAsync(long userId, CancellationToken ct = default)
+	{
+		var now = UtcNow();
+		var companies = await _db.UserCompanyAssignments
+			.AsNoTracking()
+			.Include(a => a.Company)
+			.Where(a => a.UserId == userId && a.AssignmentStatus == "ACTIVE" && a.Company.IsActive)
+			.Where(a => a.EffectiveFrom <= now && (a.EffectiveTo == null || a.EffectiveTo > now))
+			.Select(a => new UserCompanyDto
+			{
+				CompanyId = a.CompanyId,
+				CompanyCode = a.Company.CompanyCode,
+				CompanyName = a.Company.Name,
+				IsDefault = a.IsPrimary
+			})
+			.ToListAsync(ct);
+
+		var response = new UserCompaniesResponse
+		{
+			Companies = companies.OrderBy(c => c.CompanyName).ThenBy(c => c.CompanyId).ToList()
+		};
+		return response;
+	}
 	public async Task<EffectivePermissionsResponse> GetEffectivePermissionsAsync(long userId, long? companyId, CancellationToken ct = default(CancellationToken))
 	{
 		DateTime now = UtcNow();

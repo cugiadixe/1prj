@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { CompanyProvider } from './auth/CompanyProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthenticatedShell from './components/AuthenticatedShell';
 import LoginPage from './pages/LoginPage';
@@ -33,6 +34,7 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
+          <CompanyProvider>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -56,6 +58,7 @@ const App: React.FC = () => {
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+        </CompanyProvider>
         </AuthProvider>
       </Router>
     </QueryClientProvider>

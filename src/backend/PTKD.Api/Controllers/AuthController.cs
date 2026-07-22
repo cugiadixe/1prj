@@ -333,6 +333,28 @@ public sealed class AuthController : ControllerBase
         return Ok(new CurrentUserPermissionsResponseDto(dtos));
     }
 
+    /// <summary>
+    /// GET /api/v2/auth/me/companies
+    /// Returns the current user's selectable companies.
+    /// </summary>
+    [HttpGet("me/companies")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [ProducesResponseType(typeof(UserCompaniesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCurrentUserCompanies(CancellationToken cancellationToken)
+    {
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !long.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized(BuildGenericAuthProblem());
+        }
+
+        var response = await _securityAdminService.GetSelectableCompaniesAsync(userId, cancellationToken);
+        return Ok(response);
+    }
+
     // ── Cookie helpers ────────────────────────────────────────────────────
 
     private void SetRefreshCookie(string token, DateTime expires)

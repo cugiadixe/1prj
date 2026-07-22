@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auth API client for Phase 1B.1-J.
  * All auth requests go to /api/v2/auth/* using the shared axiosClient.
  * withCredentials=true is required so the browser sends the HttpOnly RefreshToken cookie.
@@ -125,5 +125,25 @@ export async function apiFetchMyPermissions(companyId?: number): Promise<Current
       headers,
     }
   );
+  return data;
+}
+
+export interface UserCompanyDto {
+  companyId: number;
+  companyCode: string;
+  companyName: string;
+  isDefault: boolean;
+}
+
+export interface UserCompaniesResponse {
+  companies: UserCompanyDto[];
+}
+
+/**
+ * GET /api/v2/auth/me/companies
+ * Retrieves the current user's selectable companies.
+ */
+export async function apiFetchMyCompanies(): Promise<UserCompaniesResponse> {
+  const { data } = await axiosClient.get<UserCompaniesResponse>('/auth/me/companies');
   return data;
 }

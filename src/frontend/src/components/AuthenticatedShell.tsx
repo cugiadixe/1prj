@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Layout, Menu, Typography } from 'antd';
+import { Button, Layout, Menu, Typography, Select } from 'antd';
+import { useCompany } from '../auth/CompanyProvider';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth, usePermissions } from '../auth/AuthProvider';
 
@@ -15,6 +16,7 @@ const AuthenticatedShell: React.FC = () => {
   const { logout, user } = useAuth();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
+  const { companies, currentCompanyId, switchCompany } = useCompany();
 
   const handleLogout = async () => {
     await logout();
@@ -58,6 +60,15 @@ const AuthenticatedShell: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {companies.length > 0 && (
+            <Select
+              value={currentCompanyId}
+              onChange={switchCompany}
+              style={{ width: 200 }}
+              data-testid="company-selector"
+              options={companies.map(c => ({ label: c.companyName, value: c.companyId }))}
+            />
+          )}
           {user?.displayName && (
             <Typography.Text style={{ color: '#fff' }}>
               {user.displayName}
