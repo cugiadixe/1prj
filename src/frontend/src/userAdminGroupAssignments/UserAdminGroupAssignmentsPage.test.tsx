@@ -3,14 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import UserRoleAssignmentsPage from './UserRoleAssignmentsPage';
+
+import UserAdminGroupAssignmentsPage from './UserAdminGroupAssignmentsPage';
 import { CompanyProvider } from '../auth/CompanyProvider';
-import { userRoleAssignmentsApi } from './userRoleAssignmentsApi';
-import { roleManagementApi } from '../roleManagement/roleManagementApi';
+import { userAdminGroupAssignmentsApi } from './userAdminGroupAssignmentsApi';
+import { adminGroupManagementApi } from '../adminGroupManagement/adminGroupManagementApi';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('./userRoleAssignmentsApi');
-vi.mock('../roleManagement/roleManagementApi');
+vi.mock('./userAdminGroupAssignmentsApi');
+vi.mock('../adminGroupManagement/adminGroupManagementApi');
 vi.mock('../auth/AuthProvider', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../auth/AuthProvider')>();
   return {
@@ -26,8 +27,8 @@ vi.mock('../auth/AuthProvider', async (importOriginal) => {
   };
 });
 
-const mockedUserRoleAssignmentsApi = vi.mocked(userRoleAssignmentsApi);
-const mockedRoleManagementApi = vi.mocked(roleManagementApi);
+const mockedUserAdminGroupAssignmentsApi = vi.mocked(userAdminGroupAssignmentsApi);
+const mockedAdminGroupManagementApi = vi.mocked(adminGroupManagementApi);
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -38,18 +39,18 @@ const createTestQueryClient = () =>
     },
   });
 
-describe('UserRoleAssignmentsPage', () => {
+describe('UserAdminGroupAssignmentsPage', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = createTestQueryClient();
     vi.clearAllMocks();
 
-    mockedRoleManagementApi.getRoles.mockResolvedValue([
+    mockedAdminGroupManagementApi.getAdminGroups.mockResolvedValue([
       {
         id: 1,
-        roleCode: 'ADMIN',
-        name: 'Administrator',
+        groupCode: 'ADMIN_GROUP',
+        name: 'Administrators Group',
         description: null,
         scopeType: 'GLOBAL',
         companyId: null,
@@ -59,8 +60,8 @@ describe('UserRoleAssignmentsPage', () => {
       },
       {
         id: 2,
-        roleCode: 'USER',
-        name: 'Regular User',
+        groupCode: 'COMPANY_ADMIN_GROUP',
+        name: 'Company Admins',
         description: null,
         scopeType: 'COMPANY',
         companyId: null,
@@ -70,18 +71,16 @@ describe('UserRoleAssignmentsPage', () => {
       },
     ]);
 
-    mockedUserRoleAssignmentsApi.getUserRoleAssignments.mockResolvedValue([
+    mockedUserAdminGroupAssignmentsApi.getUserAdminGroupAssignments.mockResolvedValue([
       {
         id: 101,
         userId: 1,
-        roleId: 1,
-        roleCode: 'ADMIN',
-        roleName: 'Administrator',
-        scopeType: 'GLOBAL',
-        companyId: null,
+        adminGroupId: 1,
+        groupCode: 'ADMIN_GROUP',
+        groupName: 'Administrators Group',
+        assignmentStatus: 'Active',
         effectiveFrom: new Date(Date.now() - 10000).toISOString(),
         effectiveTo: null,
-        isActive: true,
         rowVersion: 'v1',
       },
     ]);
@@ -90,10 +89,10 @@ describe('UserRoleAssignmentsPage', () => {
   const renderComponent = (userId: string = '1') => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/security/users/${userId}/role-assignments`]}>
+        <MemoryRouter initialEntries={[`/security/users/${userId}/admin-group-assignments`]}>
           <CompanyProvider>
             <Routes>
-              <Route path="/security/users/:userId/role-assignments" element={<UserRoleAssignmentsPage />} />
+              <Route path="/security/users/:userId/admin-group-assignments" element={<UserAdminGroupAssignmentsPage />} />
             </Routes>
           </CompanyProvider>
         </MemoryRouter>
@@ -101,14 +100,14 @@ describe('UserRoleAssignmentsPage', () => {
     );
   };
 
-  it('renders user ID and role assignments table', async () => {
+  it('renders user ID and admin group assignments table', async () => {
     renderComponent('1');
 
     expect(await screen.findByTestId('user-id-display')).toHaveTextContent('User ID: 1');
     expect(await screen.findByTestId('assignments-table')).toBeInTheDocument();
     
     await waitFor(() => {
-      expect(screen.getByTestId('assignment-role-name-101')).toHaveTextContent('Administrator');
+      expect(screen.getByTestId('assignment-group-name-101')).toHaveTextContent('Administrators Group');
       expect(screen.getByTestId('assignment-scope-GLOBAL')).toBeInTheDocument();
       expect(screen.getByTestId('assignment-status-101')).toHaveTextContent('ACTIVE');
     });
@@ -125,29 +124,27 @@ describe('UserRoleAssignmentsPage', () => {
 
     await screen.findByTestId('assignments-table');
     
-    const assignBtn = screen.getByTestId('assign-role-button');
+    const assignBtn = screen.getByTestId('assign-admin-group-button');
     await user.click(assignBtn);
 
-    const modal = await screen.findByTestId('assign-role-modal');
+    const modal = await screen.findByTestId('assign-admin-group-modal');
     expect(modal).toBeInTheDocument();
 
-    const select = screen.getByTestId('assign-role-select');
+    const select = screen.getByTestId('assign-admin-group-select');
     await user.click(select);
-    const option = await screen.findByTestId('role-option-1');
+    const option = await screen.findByTestId('admin-group-option-1');
     await user.click(option);
 
     // Mock successful assign
-    mockedUserRoleAssignmentsApi.assignRoleToUser.mockResolvedValue({
+    mockedUserAdminGroupAssignmentsApi.assignAdminGroupToUser.mockResolvedValue({
       id: 102,
       userId: 1,
-      roleId: 1,
-      roleCode: 'ADMIN',
-      roleName: 'Administrator',
-      scopeType: 'GLOBAL',
-      companyId: null,
+      adminGroupId: 1,
+      groupCode: 'ADMIN_GROUP',
+      groupName: 'Administrators Group',
+      assignmentStatus: 'Active',
       effectiveFrom: new Date().toISOString(),
       effectiveTo: null,
-      isActive: true,
       rowVersion: 'v1',
     });
 
@@ -155,8 +152,8 @@ describe('UserRoleAssignmentsPage', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(mockedUserRoleAssignmentsApi.assignRoleToUser).toHaveBeenCalledWith(1, expect.objectContaining({
-        roleId: 1
+      expect(mockedUserAdminGroupAssignmentsApi.assignAdminGroupToUser).toHaveBeenCalledWith(1, expect.objectContaining({
+        adminGroupId: 1
       }), undefined); // companyId is undefined for GLOBAL
     });
   });
@@ -167,26 +164,26 @@ describe('UserRoleAssignmentsPage', () => {
 
     await screen.findByTestId('assignments-table');
     
-    const assignBtn = screen.getByTestId('assign-role-button');
+    const assignBtn = screen.getByTestId('assign-admin-group-button');
     await user.click(assignBtn);
 
-    const modal = await screen.findByTestId('assign-role-modal');
+    const modal = await screen.findByTestId('assign-admin-group-modal');
     expect(modal).toBeInTheDocument();
 
-    const select = screen.getByTestId('assign-role-select');
+    const select = screen.getByTestId('assign-admin-group-select');
     await user.click(select);
     
-    const option = await screen.findByTestId('role-option-2'); // COMPANY role
+    const option = await screen.findByTestId('admin-group-option-2'); // COMPANY admin group
     await user.click(option);
 
     const submitBtn = within(modal).getByRole('button', { name: /ok/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId('assign-error')).toHaveTextContent('A specific company must be selected to assign a COMPANY-scoped role.');
+      expect(screen.getByTestId('assign-error')).toHaveTextContent('A specific company must be selected to assign a COMPANY-scoped admin group.');
     });
     
-    expect(mockedUserRoleAssignmentsApi.assignRoleToUser).not.toHaveBeenCalled();
+    expect(mockedUserAdminGroupAssignmentsApi.assignAdminGroupToUser).not.toHaveBeenCalled();
   });
 
   it('deactivates assignment', async () => {
@@ -201,13 +198,13 @@ describe('UserRoleAssignmentsPage', () => {
     const modal = await screen.findByTestId('deactivate-assignment-modal');
     expect(modal).toBeInTheDocument();
 
-    mockedUserRoleAssignmentsApi.deactivateUserRoleAssignment.mockResolvedValue(undefined);
+    mockedUserAdminGroupAssignmentsApi.deactivateUserAdminGroupAssignment.mockResolvedValue(undefined);
 
     const submitBtn = within(modal).getByRole('button', { name: /deactivate/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(mockedUserRoleAssignmentsApi.deactivateUserRoleAssignment).toHaveBeenCalledWith(
+      expect(mockedUserAdminGroupAssignmentsApi.deactivateUserAdminGroupAssignment).toHaveBeenCalledWith(
         1,
         101,
         { rowVersion: 'v1' },
@@ -217,13 +214,13 @@ describe('UserRoleAssignmentsPage', () => {
   });
 
   it('handles permission denied error (403)', async () => {
-    mockedUserRoleAssignmentsApi.getUserRoleAssignments.mockRejectedValue({ response: { status: 403 } });
+    mockedUserAdminGroupAssignmentsApi.getUserAdminGroupAssignments.mockRejectedValue({ response: { status: 403 } });
     renderComponent('1');
     expect(await screen.findByTestId('assignments-permission-denied')).toBeInTheDocument();
   });
 
   it('handles not found error (404)', async () => {
-    mockedUserRoleAssignmentsApi.getUserRoleAssignments.mockRejectedValue({ response: { status: 404 } });
+    mockedUserAdminGroupAssignmentsApi.getUserAdminGroupAssignments.mockRejectedValue({ response: { status: 404 } });
     renderComponent('1');
     expect(await screen.findByTestId('assignments-not-found')).toBeInTheDocument();
   });

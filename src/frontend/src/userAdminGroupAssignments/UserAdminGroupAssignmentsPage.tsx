@@ -16,12 +16,12 @@ import { useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import { useCompany } from '../auth/CompanyProvider';
-import { roleManagementApi } from '../roleManagement/roleManagementApi';
-import { userRoleAssignmentsApi } from './userRoleAssignmentsApi';
+import { adminGroupManagementApi } from '../adminGroupManagement/adminGroupManagementApi';
+import { userAdminGroupAssignmentsApi } from './userAdminGroupAssignmentsApi';
 import type {
-  CreateUserRoleAssignmentRequest,
+  CreateUserAdminGroupAssignmentRequest,
   DeactivateAssignmentRequest,
-} from './userRoleAssignmentsApi';
+} from './userAdminGroupAssignmentsApi';
 import {
   getErrorMessage,
   isPermissionDenied,
@@ -29,11 +29,11 @@ import {
   PERMISSION_DENIED,
   NOT_FOUND,
 } from './errorMessages';
-import type { UserRoleAssignmentDto } from './userRoleAssignmentsApi';
+import type { UserAdminGroupAssignmentDto } from './userAdminGroupAssignmentsApi';
 
 const { Title, Text } = Typography;
 
-const UserRoleAssignmentsPage: React.FC = () => {
+const UserAdminGroupAssignmentsPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const queryClient = useQueryClient();
   const { currentCompanyId } = useCompany();
@@ -41,7 +41,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
   const userIdNum = userId ? parseInt(userId, 10) : NaN;
 
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
-  const [deactivatingAssignment, setDeactivatingAssignment] = useState<UserRoleAssignmentDto | null>(null);
+  const [deactivatingAssignment, setDeactivatingAssignment] = useState<UserAdminGroupAssignmentDto | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [form] = Form.useForm();
@@ -53,50 +53,50 @@ const UserRoleAssignmentsPage: React.FC = () => {
     isError: isAssignmentsError,
     error: assignmentsError,
   } = useQuery({
-    queryKey: ['user-role-assignments', userIdNum],
-    queryFn: () => userRoleAssignmentsApi.getUserRoleAssignments(userIdNum),
+    queryKey: ['user-admin-group-assignments', userIdNum],
+    queryFn: () => userAdminGroupAssignmentsApi.getUserAdminGroupAssignments(userIdNum),
     enabled: !isNaN(userIdNum),
   });
 
-  const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => roleManagementApi.getRoles(),
+  const { data: adminGroups = [], isLoading: isLoadingAdminGroups } = useQuery({
+    queryKey: ['admin-groups'],
+    queryFn: () => adminGroupManagementApi.getAdminGroups(),
   });
 
   // Mutations
   const assignMutation = useMutation({
     mutationFn: async (values: any) => {
       if (isNaN(userIdNum)) return;
-      const roleId = values.roleId as number;
-      const role = roles.find(r => r.id === roleId);
+      const adminGroupId = values.adminGroupId as number;
+      const adminGroup = adminGroups.find(g => g.id === adminGroupId);
 
-      // Enforce company context for COMPANY scoped roles
+      // Enforce company context for COMPANY scoped admin groups
       let companyIdToPass: number | undefined = undefined;
-      if (role?.scopeType === 'COMPANY') {
+      if (adminGroup?.scopeType === 'COMPANY') {
         if (!currentCompanyId) {
           throw new Error('COMPANY_CONTEXT_REQUIRED');
         }
         companyIdToPass = currentCompanyId;
       }
 
-      const request: CreateUserRoleAssignmentRequest = {
-        roleId,
+      const request: CreateUserAdminGroupAssignmentRequest = {
+        adminGroupId,
         effectiveFrom: values.effectiveFrom.toISOString(),
         effectiveTo: values.effectiveTo ? values.effectiveTo.toISOString() : null,
       };
 
-      await userRoleAssignmentsApi.assignRoleToUser(userIdNum, request, companyIdToPass);
+      await userAdminGroupAssignmentsApi.assignAdminGroupToUser(userIdNum, request, companyIdToPass);
     },
     onSuccess: () => {
       setIsAssignModalVisible(false);
       form.resetFields();
       setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: ['user-role-assignments', userIdNum] });
+      void queryClient.invalidateQueries({ queryKey: ['user-admin-group-assignments', userIdNum] });
     },
     onError: (err: unknown) => {
       const errMessage = getErrorMessage(err);
       if (err instanceof Error && err.message === 'COMPANY_CONTEXT_REQUIRED') {
-        setActionError('A specific company must be selected to assign a COMPANY-scoped role.');
+        setActionError('A specific company must be selected to assign a COMPANY-scoped admin group.');
       } else {
         setActionError(errMessage);
       }
@@ -104,11 +104,23 @@ const UserRoleAssignmentsPage: React.FC = () => {
   });
 
   const deactivateMutation = useMutation({
-    mutationFn: async (assignment: UserRoleAssignmentDto) => {
+    mutationFn: async (assignment: UserAdminGroupAssignmentDto) => {
       if (isNaN(userIdNum)) return;
       
+      // Look up admin group to find scopeType since it's not on the assignment DTO directly? 
+      // Wait, let's check UserAdminGroupAssignmentDto: it DOES NOT have scopeType!
+      // I need to look up the admin group from `adminGroups` or rely on backend.
+      // Q1 used `assignment.scopeType` because UserRoleAssignmentDto HAS scopeType.
+      // Ah, wait... Does UserAdminGroupAssignmentDto have scopeType? 
+      // No, only groupCode and groupName. 
+      // I will find the admin group to check its scope type.
+      
+      const adminGroup = adminGroups.find(g => g.id === assignment.adminGroupId);
       let companyIdToPass: number | undefined = undefined;
-      if (assignment.scopeType === 'COMPANY') {
+      
+      // If we don't have the adminGroup loaded yet, we can't reliably know if it's COMPANY scoped.
+      // But we always load adminGroups on this page.
+      if (adminGroup?.scopeType === 'COMPANY') {
         if (!currentCompanyId) {
             throw new Error('COMPANY_CONTEXT_REQUIRED');
         }
@@ -116,12 +128,12 @@ const UserRoleAssignmentsPage: React.FC = () => {
       }
 
       const request: DeactivateAssignmentRequest = { rowVersion: assignment.rowVersion };
-      await userRoleAssignmentsApi.deactivateUserRoleAssignment(userIdNum, assignment.id, request, companyIdToPass);
+      await userAdminGroupAssignmentsApi.deactivateUserAdminGroupAssignment(userIdNum, assignment.id, request, companyIdToPass);
     },
     onSuccess: () => {
       setDeactivatingAssignment(null);
       setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: ['user-role-assignments', userIdNum] });
+      void queryClient.invalidateQueries({ queryKey: ['user-admin-group-assignments', userIdNum] });
     },
     onError: (err: unknown) => {
       const errMessage = getErrorMessage(err);
@@ -134,7 +146,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
   });
 
   // Derived state
-  const activeRoles = useMemo(() => roles.filter(r => r.isActive), [roles]);
+  const activeAdminGroups = useMemo(() => adminGroups.filter(g => g.isActive), [adminGroups]);
 
   // Handlers
   const handleAssignClick = () => {
@@ -156,7 +168,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
     });
   };
 
-  const handleDeactivateClick = (assignment: UserRoleAssignmentDto) => {
+  const handleDeactivateClick = (assignment: UserAdminGroupAssignmentDto) => {
     setActionError(null);
     setDeactivatingAssignment(assignment);
   };
@@ -191,20 +203,23 @@ const UserRoleAssignmentsPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Role',
-      key: 'role',
-      render: (record: UserRoleAssignmentDto) => (
+      title: 'Admin Group',
+      key: 'adminGroup',
+      render: (record: UserAdminGroupAssignmentDto) => (
         <Space direction="vertical" size={0}>
-          <Text strong data-testid={`assignment-role-name-${record.id}`}>{record.roleName}</Text>
-          <Text type="secondary" data-testid={`assignment-role-code-${record.id}`}>{record.roleCode}</Text>
+          <Text strong data-testid={`assignment-group-name-${record.id}`}>{record.groupName}</Text>
+          <Text type="secondary" data-testid={`assignment-group-code-${record.id}`}>{record.groupCode}</Text>
         </Space>
       ),
     },
     {
       title: 'Scope',
-      dataIndex: 'scopeType',
       key: 'scopeType',
-      render: (scopeType: string) => <Tag data-testid={`assignment-scope-${scopeType}`}>{scopeType}</Tag>,
+      render: (record: UserAdminGroupAssignmentDto) => {
+        const adminGroup = adminGroups.find(g => g.id === record.adminGroupId);
+        const scopeType = adminGroup?.scopeType || 'UNKNOWN';
+        return <Tag data-testid={`assignment-scope-${scopeType}`}>{scopeType}</Tag>;
+      },
     },
     {
       title: 'Effective From',
@@ -221,9 +236,10 @@ const UserRoleAssignmentsPage: React.FC = () => {
     {
       title: 'Status',
       key: 'status',
-      render: (record: UserRoleAssignmentDto) => {
+      render: (record: UserAdminGroupAssignmentDto) => {
         const isPastEffectiveTo = record.effectiveTo ? new Date(record.effectiveTo) < new Date() : false;
-        const effectivelyActive = record.isActive && !isPastEffectiveTo;
+        // The DTO has assignmentStatus in backend, but we also manually check effectively active
+        const effectivelyActive = record.assignmentStatus === 'Active' && !isPastEffectiveTo;
         return (
           <Tag color={effectivelyActive ? 'green' : 'default'} data-testid={`assignment-status-${record.id}`}>
             {effectivelyActive ? 'ACTIVE' : 'INACTIVE'}
@@ -234,8 +250,8 @@ const UserRoleAssignmentsPage: React.FC = () => {
     {
       title: 'Action',
       key: 'action',
-      render: (record: UserRoleAssignmentDto) => (
-        record.isActive && (
+      render: (record: UserAdminGroupAssignmentDto) => (
+        record.assignmentStatus === 'Active' && (
           <Button
             type="link"
             danger
@@ -250,20 +266,20 @@ const UserRoleAssignmentsPage: React.FC = () => {
   ];
 
   return (
-    <div data-testid="user-role-assignments-page">
+    <div data-testid="user-admin-group-assignments-page">
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div>
-            <Title level={3}>User Role Assignments</Title>
+            <Title level={3}>User Admin Group Memberships</Title>
             <Text type="secondary" data-testid="user-id-display">User ID: {userIdNum}</Text>
           </div>
           <Space>
             <Button
               type="primary"
               onClick={handleAssignClick}
-              data-testid="assign-role-button"
+              data-testid="assign-admin-group-button"
             >
-              Assign Role
+              Assign Admin Group
             </Button>
           </Space>
         </div>
@@ -272,36 +288,36 @@ const UserRoleAssignmentsPage: React.FC = () => {
           dataSource={assignments}
           columns={columns}
           rowKey="id"
-          loading={isLoadingAssignments}
+          loading={isLoadingAssignments || isLoadingAdminGroups}
           pagination={false}
           data-testid="assignments-table"
         />
       </Space>
 
-      {/* Assign Role Modal */}
+      {/* Assign Admin Group Modal */}
       <Modal
         open={isAssignModalVisible}
-        title="Assign Role"
+        title="Assign Admin Group"
         onCancel={handleAssignCancel}
         onOk={handleAssignSubmit}
         confirmLoading={assignMutation.isPending}
         destroyOnClose
-        data-testid="assign-role-modal"
+        data-testid="assign-admin-group-modal"
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="roleId"
-            label="Role"
-            rules={[{ required: true, message: 'Please select a role.' }]}
+            name="adminGroupId"
+            label="Admin Group"
+            rules={[{ required: true, message: 'Please select an admin group.' }]}
           >
             <Select
-              loading={isLoadingRoles}
-              placeholder="Select a role"
-              data-testid="assign-role-select"
+              loading={isLoadingAdminGroups}
+              placeholder="Select an admin group"
+              data-testid="assign-admin-group-select"
             >
-              {activeRoles.map(role => (
-                <Select.Option key={role.id} value={role.id} data-testid={`role-option-${role.id}`}>
-                  {role.name} ({role.scopeType})
+              {activeAdminGroups.map(group => (
+                <Select.Option key={group.id} value={group.id} data-testid={`admin-group-option-${group.id}`}>
+                  {group.name} ({group.scopeType})
                 </Select.Option>
               ))}
             </Select>
@@ -331,7 +347,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
       {/* Deactivate Assignment Modal */}
       <Modal
         open={!!deactivatingAssignment}
-        title="Deactivate Role Assignment"
+        title="Deactivate Admin Group Assignment"
         onCancel={handleDeactivateCancel}
         onOk={handleDeactivateConfirm}
         confirmLoading={deactivateMutation.isPending}
@@ -340,8 +356,8 @@ const UserRoleAssignmentsPage: React.FC = () => {
         destroyOnClose
         data-testid="deactivate-assignment-modal"
       >
-        <p>Are you sure you want to deactivate the role assignment for <strong>{deactivatingAssignment?.roleName}</strong>?</p>
-        <Alert type="warning" message="This action will immediately revoke the role from the user." style={{ marginBottom: 16 }} />
+        <p>Are you sure you want to deactivate the admin group assignment for <strong>{deactivatingAssignment?.groupName}</strong>?</p>
+        <Alert type="warning" message="This action will immediately revoke the admin group membership from the user." style={{ marginBottom: 16 }} />
         {actionError && (
           <Alert type="error" message={actionError} data-testid="deactivate-error" />
         )}
@@ -350,4 +366,4 @@ const UserRoleAssignmentsPage: React.FC = () => {
   );
 };
 
-export default UserRoleAssignmentsPage;
+export default UserAdminGroupAssignmentsPage;
