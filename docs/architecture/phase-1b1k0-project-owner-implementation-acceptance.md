@@ -2,6 +2,7 @@
 
 **Status:**
 ACCEPTED — PHASE 1B.1-K0 IMPLEMENTATION ACCEPTED
+PHASE 1B.1-K0 CLOSURE REVIEW PASSED — SEE phase-1b1k0-final-closure-review.md
 
 **Accepted phase:**
 Phase 1B.1-K0 — Account Management Discovery API
