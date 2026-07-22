@@ -1,7 +1,7 @@
 # Phase 1B.1-P2 Admin Group Permission Management UI Plan
 
 Status:
-PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+PHASE 1B.1-P2 PLAN ACCEPTED — SEE phase-1b1p2-project-owner-plan-acceptance.md
 
 Baseline:
 cd8e0d7bcd7b8f2d76d9f78539c2b4181d85dcbf
