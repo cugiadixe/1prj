@@ -14,6 +14,7 @@ import AccountDetailPage from './pages/AccountDetailPage';
 import PermissionAssignmentPage from './permissionAssignment/PermissionAssignmentPage';
 import AuditViewerPage from './auditViewer/AuditViewerPage';
 import RoleManagementPage from './roleManagement/RoleManagementPage';
+import AdminGroupManagementPage from './adminGroupManagement/AdminGroupManagementPage';
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,8 @@ const App: React.FC = () => {
               <Route path="security/audit" element={<AuditViewerPage />} />
               {/* Phase 1B.1-P1 — Role Management UI */}
               <Route path="security/roles" element={<RoleManagementPage />} />
+              {/* Phase 1B.1-P2 — Admin Group Management UI */}
+              <Route path="security/admin-groups" element={<AdminGroupManagementPage />} />
             </Route>
 
             {/* Catch-all */}
