@@ -154,3 +154,5 @@ PHASE 1B.1-P2 CLOSURE RECOMMENDED
 
 ## 20. Next step
 Record Project Owner final acceptance of Phase 1B.1-P2.
+
+PHASE 1B.1-P2 FINAL ACCEPTANCE RECORDED — SEE phase-1b1p2-project-owner-final-acceptance.md
