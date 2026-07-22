@@ -14,10 +14,15 @@ Accepted plan acceptance commit:
 7efcc169148e14d18d1047c13497895a162d3d82
 
 Accepted implementation commit:
-41accfe5427b3780ef46f2c3d596bb0566270634
+41accfe41b7d8ce8dea9cf907b8a38d6e283bf74
 
 Implementation acceptance baseline:
-41accfe5427b3780ef46f2c3d596bb0566270634
+41accfe41b7d8ce8dea9cf907b8a38d6e283bf74
+
+Note:
+The Phase 1B.1-M implementation acceptance baseline uses the actual committed implementation hash:
+41accfe41b7d8ce8dea9cf907b8a38d6e283bf74.
+A previously reported hash, 41accfe5427b3780ef46f2c3d596bb0566270634, was superseded by the actual committed hash recorded as the parent of this acceptance chain.
 
 Accepted implementation files:
 - src/backend/PTKD.Api/Controllers/AuthController.cs
