@@ -298,6 +298,23 @@ public sealed class TestDatabaseFixture : IDisposable
             IF OBJECT_ID(N'dbo.FK_Users_updated_by', N'F') IS NOT NULL
                 ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_updated_by;
 
+            DROP TABLE IF EXISTS dbo.Security_Audit_Events;
+            DROP TABLE IF EXISTS dbo.Security_Bootstrap_State;
+            DROP TABLE IF EXISTS dbo.Authorization_Policy_State;
+            DROP TABLE IF EXISTS dbo.User_Admin_Group_Assignments;
+            DROP TABLE IF EXISTS dbo.Admin_Group_Permissions;
+            DROP TABLE IF EXISTS dbo.Admin_Groups;
+            DROP TABLE IF EXISTS dbo.User_Individual_Permissions;
+            DROP TABLE IF EXISTS dbo.User_Role_Assignments;
+            DROP TABLE IF EXISTS dbo.Department_Permissions;
+            DROP TABLE IF EXISTS dbo.Role_Permissions;
+            DROP TABLE IF EXISTS dbo.Roles;
+            DROP TABLE IF EXISTS dbo.Permissions;
+            DROP TABLE IF EXISTS dbo.Refresh_Tokens;
+            DROP TABLE IF EXISTS dbo.Password_History;
+            DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
+            DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
+
             DROP TABLE IF EXISTS dbo.Employment_Histories;
             DROP TABLE IF EXISTS dbo.User_Department_Assignments;
             DROP TABLE IF EXISTS dbo.User_Company_Assignments;

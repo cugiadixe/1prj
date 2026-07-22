@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AuthProvider, useAuth } from './AuthProvider';
+import { AuthProvider, useAuth, usePermissions } from './AuthProvider';
 import { clearAuthState } from './authState';
 import * as authApi from './authApi';
 
@@ -177,5 +177,42 @@ describe('AuthProvider', () => {
     await waitFor(() =>
       expect(screen.getByTestId('isAuthenticated').textContent).toBe('false'),
     );
+  });
+
+  describe('usePermissions', () => {
+    it('fetches permissions on login and exposes them via hasPermission', async () => {
+      vi.spyOn(authApi, 'apiRefresh').mockRejectedValue(new Error('No session'));
+      vi.spyOn(authApi, 'apiLogin').mockResolvedValue(mockLoginResponse(false));
+      vi.spyOn(authApi, 'apiFetchMyPermissions').mockResolvedValue({
+        permissions: [
+          { permissionCode: 'SECURITY_ACCOUNT_MANAGE', scope: 'GLOBAL', companyId: null },
+          { permissionCode: 'TEST_PERM', scope: 'COMPANY', companyId: 10 }
+        ]
+      });
+
+      const PermInspector: React.FC = () => {
+        const { login } = useAuth();
+        const { permissions, hasPermission } = usePermissions();
+        return (
+          <div>
+            <button data-testid="do-login" onClick={() => login('u', 'p')}>Login</button>
+            <span data-testid="perm-length">{permissions.length}</span>
+            <span data-testid="has-global">{String(hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL'))}</span>
+            <span data-testid="has-company-10">{String(hasPermission('TEST_PERM', 'COMPANY', 10))}</span>
+            <span data-testid="has-company-20">{String(hasPermission('TEST_PERM', 'COMPANY', 20))}</span>
+            <span data-testid="has-any">{String(hasPermission('SECURITY_ACCOUNT_MANAGE'))}</span>
+          </div>
+        );
+      };
+
+      render(<PermInspector />, { wrapper: TestWrapper });
+      await userEvent.click(screen.getByTestId('do-login'));
+      await waitFor(() => expect(screen.getByTestId('perm-length').textContent).toBe('2'));
+
+      expect(screen.getByTestId('has-global').textContent).toBe('true');
+      expect(screen.getByTestId('has-company-10').textContent).toBe('true');
+      expect(screen.getByTestId('has-company-20').textContent).toBe('false');
+      expect(screen.getByTestId('has-any').textContent).toBe('true');
+    });
   });
 });

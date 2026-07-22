@@ -97,3 +97,33 @@ export async function apiChangePassword(
     headers: csrfHeaders(),
   });
 }
+
+export interface CurrentUserPermissionDto {
+  permissionCode: string;
+  scope: string;
+  companyId: number | null;
+}
+
+export interface CurrentUserPermissionsResponseDto {
+  permissions: CurrentUserPermissionDto[];
+}
+
+/**
+ * GET /api/v2/auth/me/permissions
+ * Retrieves the current user's effective permissions.
+ * If companyId is provided, returns GLOBAL + COMPANY-scoped permissions for that company.
+ */
+export async function apiFetchMyPermissions(companyId?: number): Promise<CurrentUserPermissionsResponseDto> {
+  const headers: Record<string, string> = {};
+  if (companyId !== undefined && companyId !== null) {
+    headers['X-Company-Id'] = companyId.toString();
+  }
+
+  const { data } = await axiosClient.get<CurrentUserPermissionsResponseDto>(
+    '/auth/me/permissions',
+    {
+      headers,
+    }
+  );
+  return data;
+}

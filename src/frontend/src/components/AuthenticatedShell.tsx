@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Layout, Menu, Typography } from 'antd';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthProvider';
+import { useAuth, usePermissions } from '../auth/AuthProvider';
 
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
@@ -13,6 +13,7 @@ const { Title } = Typography;
  */
 const AuthenticatedShell: React.FC = () => {
   const { logout, user } = useAuth();
+  const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -48,11 +49,11 @@ const AuthenticatedShell: React.FC = () => {
             <Menu.Item key="system-health">
               <Link to="/system-health">System Health</Link>
             </Menu.Item>
-            {/* Static security link — not permission-gated (DEC-1B-K-03).
-                Backend enforces SECURITY_ACCOUNT_MANAGE; 403 handled in-page. */}
-            <Menu.Item key="security-accounts" data-testid="nav-account-management">
-              <Link to="/security/accounts">Account Management</Link>
-            </Menu.Item>
+            {hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL') && (
+              <Menu.Item key="security-accounts" data-testid="nav-account-management">
+                <Link to="/security/accounts">Account Management</Link>
+              </Menu.Item>
+            )}
           </Menu>
         </div>
 

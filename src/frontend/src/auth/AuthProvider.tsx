@@ -7,11 +7,12 @@ import React, {
 } from 'react';
 import axiosClient from '../api/axiosClient';
 import {
+  apiFetchMyPermissions,
   apiLogin,
   apiLogout,
   apiRefresh,
 } from './authApi';
-import type { LoginRequest, LoginUserInfo } from './authApi';
+import type { CurrentUserPermissionDto, LoginRequest, LoginUserInfo } from './authApi';
 import {
   clearAuthState,
   getAuthState,
@@ -23,6 +24,7 @@ export interface AuthContextValue {
   mustChangePassword: boolean;
   user: LoginUserInfo | null;
   isBootstrapping: boolean;
+  permissions: CurrentUserPermissionDto[];
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   onPasswordChanged: () => void;
@@ -36,6 +38,22 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
+export function usePermissions() {
+  const { permissions } = useAuth();
+  const hasPermission = useCallback(
+    (code: string, scope?: string, companyId?: number) => {
+      return permissions.some(
+        (p) =>
+          p.permissionCode === code &&
+          (!scope || p.scope === scope) &&
+          (companyId === undefined || p.companyId === companyId),
+      );
+    },
+    [permissions],
+  );
+  return { permissions, hasPermission };
+}
+
 /**
  * AuthProvider bootstraps auth state on mount via silent refresh.
  * All token state is kept in authState module (in-memory).
@@ -47,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [user, setUser] = useState<LoginUserInfo | null>(null);
+  const [permissions, setPermissions] = useState<CurrentUserPermissionDto[]>([]);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   /**
@@ -54,15 +73,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
    * Never writes access token to localStorage/sessionStorage/cookies.
    */
   const applyAuth = useCallback(
-    (
+    async (
       accessToken: string,
       mcp: boolean,
       authUser: LoginUserInfo | null,
     ) => {
-      setAuthState(accessToken, mcp, authUser);
+      // Temporarily set the access token in memory so the permission fetch uses it
+      setAuthState(accessToken, mcp, authUser, []);
+
+      let fetchedPermissions: CurrentUserPermissionDto[] = [];
+      if (!mcp && authUser) {
+        try {
+          const permResult = await apiFetchMyPermissions();
+          fetchedPermissions = permResult.permissions;
+        } catch {
+          // Error fetching permissions (401/403) will leave permissions empty
+        }
+      }
+
+      setAuthState(accessToken, mcp, authUser, fetchedPermissions);
       setIsAuthenticated(true);
       setMustChangePassword(mcp);
       setUser(authUser);
+      setPermissions(fetchedPermissions);
     },
     [],
   );
@@ -72,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsAuthenticated(false);
     setMustChangePassword(false);
     setUser(null);
+    setPermissions([]);
   }, []);
 
   /**
@@ -84,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const response = await apiRefresh();
         if (!cancelled) {
-          applyAuth(response.accessToken, response.mustChangePassword, response.user);
+          await applyAuth(response.accessToken, response.mustChangePassword, response.user);
         }
       } catch {
         if (!cancelled) {
@@ -131,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (originalRequest) originalRequest._retried = true;
           try {
             const refreshed = await apiRefresh();
-            applyAuth(
+            await applyAuth(
               refreshed.accessToken,
               refreshed.mustChangePassword,
               refreshed.user,
@@ -160,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (username: string, password: string) => {
       const req: LoginRequest = { Username: username, Password: password };
       const response = await apiLogin(req);
-      applyAuth(response.accessToken, response.mustChangePassword, response.user);
+      await applyAuth(response.accessToken, response.mustChangePassword, response.user);
     },
     [applyAuth],
   );
@@ -188,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         mustChangePassword,
         user,
         isBootstrapping,
+        permissions,
         login,
         logout,
         onPasswordChanged,

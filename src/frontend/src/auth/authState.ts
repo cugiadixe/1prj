@@ -4,6 +4,8 @@
  * Refresh token is managed exclusively by the backend via HttpOnly Secure cookie.
  */
 
+import type { CurrentUserPermissionDto } from './authApi';
+
 export interface AuthUser {
   userId: number;
   username: string;
@@ -15,6 +17,7 @@ export interface AuthState {
   mustChangePassword: boolean;
   user: AuthUser | null;
   isAuthenticated: boolean;
+  permissions: CurrentUserPermissionDto[];
 }
 
 /**
@@ -27,6 +30,7 @@ let _state: AuthState = {
   mustChangePassword: false,
   user: null,
   isAuthenticated: false,
+  permissions: [],
 };
 
 export function getAuthState(): Readonly<AuthState> {
@@ -37,12 +41,14 @@ export function setAuthState(
   accessToken: string,
   mustChangePassword: boolean,
   user: AuthUser | null,
+  permissions: CurrentUserPermissionDto[] = [],
 ): void {
   _state = {
     accessToken,
     mustChangePassword,
     user,
     isAuthenticated: true,
+    permissions,
   };
 }
 
@@ -52,5 +58,6 @@ export function clearAuthState(): void {
     mustChangePassword: false,
     user: null,
     isAuthenticated: false,
+    permissions: [],
   };
 }

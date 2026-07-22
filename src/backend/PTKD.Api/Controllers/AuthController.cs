@@ -7,6 +7,8 @@ using PTKD.Api.Security;
 using PTKD.Application.Security.Authentication.Interfaces;
 using PTKD.Application.Security.Authentication.Models;
 using PTKD.Application.Security.Authentication.Services;
+using PTKD.Application.Security.Authorization.Interfaces;
+using PTKD.Application.Security.Authorization.DTOs;
 
 namespace PTKD.Api.Controllers;
 
@@ -22,15 +24,21 @@ public sealed class AuthController : ControllerBase
     private readonly IAuthenticationAccountService _authService;
     private readonly ITokenSessionLifecycleService _sessionService;
     private readonly CsrfTokenService _csrfService;
+    private readonly IPermissionEvaluator _permissionEvaluator;
+    private readonly ISecurityAdminService _securityAdminService;
 
     public AuthController(
         IAuthenticationAccountService authService,
         ITokenSessionLifecycleService sessionService,
-        CsrfTokenService csrfService)
+        CsrfTokenService csrfService,
+        IPermissionEvaluator permissionEvaluator,
+        ISecurityAdminService securityAdminService)
     {
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
         _csrfService = csrfService ?? throw new ArgumentNullException(nameof(csrfService));
+        _permissionEvaluator = permissionEvaluator ?? throw new ArgumentNullException(nameof(permissionEvaluator));
+        _securityAdminService = securityAdminService ?? throw new ArgumentNullException(nameof(securityAdminService));
     }
 
     /// <summary>
@@ -267,6 +275,62 @@ public sealed class AuthController : ControllerBase
         _csrfService.Delete(Response);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// GET /api/v2/auth/me/permissions
+    /// Returns the current user's effective permissions.
+    /// </summary>
+    [HttpGet("me/permissions")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [ProducesResponseType(typeof(CurrentUserPermissionsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCurrentUserPermissions(CancellationToken cancellationToken)
+    {
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !long.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized(BuildGenericAuthProblem());
+        }
+
+        long? parsedCompanyId = null;
+        var headerValue = Request.Headers["X-Company-Id"].ToString();
+
+        if (!string.IsNullOrWhiteSpace(headerValue))
+        {
+            if (!long.TryParse(headerValue, out var cid))
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Malformed Company Context",
+                    Detail = "The X-Company-Id header must be a valid integer.",
+                    Type = "https://ptkd-erp.example.com/errors/malformed-company-context"
+                });
+            }
+            parsedCompanyId = cid;
+        }
+
+        var effectiveCodes = await _permissionEvaluator.GetEffectivePermissionsAsync(userId, parsedCompanyId, cancellationToken);
+        var catalog = await _securityAdminService.ListPermissionsAsync(cancellationToken);
+
+        var dtos = new List<CurrentUserPermissionDto>();
+        foreach (var code in effectiveCodes)
+        {
+            var cat = catalog.FirstOrDefault(c => c.PermissionCode == code);
+            if (cat != null)
+            {
+                dtos.Add(new CurrentUserPermissionDto(
+                    cat.PermissionCode,
+                    cat.DataScope,
+                    cat.DataScope == "COMPANY" ? parsedCompanyId : null));
+            }
+        }
+
+        return Ok(new CurrentUserPermissionsResponseDto(dtos));
     }
 
     // ── Cookie helpers ────────────────────────────────────────────────────

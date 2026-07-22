@@ -177,3 +177,15 @@ public sealed record EffectivePermissionsResponse(
     long? CompanyId,
     IReadOnlyList<string> PermissionCodes
 );
+
+// -- Current User Permissions ----------------------------------------------
+
+public sealed record CurrentUserPermissionDto(
+    string PermissionCode,
+    string Scope,
+    long? CompanyId
+);
+
+public sealed record CurrentUserPermissionsResponseDto(
+    IReadOnlyList<CurrentUserPermissionDto> Permissions
+);
