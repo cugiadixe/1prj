@@ -111,3 +111,5 @@ Accepted. Department baseline, bulk assignment, ENTITY, membership UI, workflow,
 
 ## Implementation authorization:
 Phase 1B.1-P2 Admin Group Permission Management UI implementation is authorized under the accepted scope and decisions above.
+
+PHASE 1B.1-P2 IMPLEMENTATION ACCEPTED — SEE phase-1b1p2-project-owner-implementation-acceptance.md
