@@ -3,6 +3,7 @@ Phase 1B.1-N Permission Assignment UI Plan
 
 Status:
 PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+PHASE 1B.1-N PLAN ACCEPTED — SEE phase-1b1n-project-owner-plan-acceptance.md
 
 Baseline:
 4d0266bc032c5affb06b11ab4203708a08f18702
