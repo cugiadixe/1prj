@@ -2,6 +2,7 @@
 
 Status:
 PASSED — PHASE 1B.1-P1 CLOSURE RECOMMENDED
+PHASE 1B.1-P1 FINAL ACCEPTANCE RECORDED — SEE phase-1b1p1-project-owner-final-acceptance.md
 
 Closure baseline:
 20a51a69871e2063406b5083eb3c590919520c60
