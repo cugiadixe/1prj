@@ -20,6 +20,17 @@ vi.mock('../accountManagement/accountManagementApi', () => ({
   revokeSessions: vi.fn(),
 }));
 
+// Mock AuthProvider
+vi.mock('../auth/AuthProvider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../auth/AuthProvider')>();
+  return {
+    ...actual,
+    usePermissions: vi.fn(() => ({
+      hasPermission: vi.fn(() => true)
+    }))
+  };
+});
+
 const MOCK_ACTIVE_ACCOUNT = {
   id: 42,
   userId: 100,

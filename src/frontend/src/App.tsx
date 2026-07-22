@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import SystemHealth from './pages/SystemHealth';
 import AccountManagementPage from './pages/AccountManagementPage';
 import AccountDetailPage from './pages/AccountDetailPage';
+import PermissionAssignmentPage from './permissionAssignment/PermissionAssignmentPage';
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,8 @@ const App: React.FC = () => {
               {/* Phase 1B.1-K — Account Management UI */}
               <Route path="security/accounts" element={<AccountManagementPage />} />
               <Route path="security/accounts/:accountId" element={<AccountDetailPage />} />
+              {/* Phase 1B.1-N — Permission Assignment UI */}
+              <Route path="security/permissions/assignments" element={<PermissionAssignmentPage />} />
             </Route>
 
             {/* Catch-all */}

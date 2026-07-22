@@ -12,7 +12,8 @@ import {
   Typography,
 } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { usePermissions } from '../auth/AuthProvider';
 import {
   getAccountDetail,
   activateAccount,
@@ -250,6 +251,7 @@ const AccountDetailPage: React.FC = () => {
   const { accountId } = useParams<{ accountId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
 
   const [activeAction, setActiveAction] = useState<ActionType>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -388,11 +390,22 @@ const AccountDetailPage: React.FC = () => {
 
   return (
     <div data-testid="account-detail-page">
-      <Space style={{ marginBottom: 16 }}>
-        <Button onClick={() => navigate('/security/accounts')} data-testid="back-to-list-button">
-          ← Back to Account List
-        </Button>
-      </Space>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Space>
+          <Button onClick={() => navigate('/security/accounts')} data-testid="back-to-list-button">
+            ← Back to Account List
+          </Button>
+        </Space>
+        {hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') && account && (
+          <Space>
+            <Link to={`/security/permissions/assignments?userId=${account.userId}`}>
+              <Button data-testid="link-permission-assignment">
+                Manage Permissions
+              </Button>
+            </Link>
+          </Space>
+        )}
+      </div>
 
       <Title level={3}>Account Detail</Title>
 
