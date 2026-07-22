@@ -134,3 +134,5 @@ K0 implementation requires its own plan acceptance before code changes begin.
 3. After K0 completion, authorize Phase K implementation.
 
 PHASE 1B.1-K PLAN REVIEW ACCEPTED — READY TO PLAN PHASE 1B.1-K0
+
+PHASE 1B.1-K RESUMPTION AUTHORIZED AFTER K0 FINAL ACCEPTANCE — SEE phase-1b1k-project-owner-resumption-authorization.md
