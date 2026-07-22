@@ -2,6 +2,7 @@
 
 **Status:**
 PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+PHASE 1B.1-Q PLAN ACCEPTED — SEE phase-1b1q-project-owner-plan-acceptance.md
 
 **Baseline:**
 376ad58d485bb5cd3cd1165e50e29daa581d2286
