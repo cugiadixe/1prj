@@ -3,6 +3,7 @@ Phase 1B.1-M Final Closure Review
 
 Status:
 PASSED — PHASE 1B.1-M CLOSURE RECOMMENDED
+PHASE 1B.1-M FINAL ACCEPTANCE RECORDED — SEE phase-1b1m-project-owner-final-acceptance.md
 
 Closure baseline:
 3ad9cb312f23a8f4446388941e4ae0b96d3a7aa7
