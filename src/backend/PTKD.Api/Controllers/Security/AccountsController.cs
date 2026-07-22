@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PTKD.Api.Security.Authorization;
+using PTKD.Application.Common.Models;
 using PTKD.Application.Security.AccountManagement;
 using PTKD.Application.Security.AccountManagement.DTOs;
 using PTKD.Application.Security.Authorization.Attributes;
@@ -21,6 +22,51 @@ public sealed class AccountsController : ControllerBase
     public AccountsController(IAccountManagementService service)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<AccountSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SearchAccounts(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] string? providerType,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (page < 1)
+            return ValidationProblem("Page must be at least 1.", "PAGE_INVALID");
+
+        if (pageSize < 1 || pageSize > 100)
+            return ValidationProblem("PageSize must be between 1 and 100.", "PAGE_SIZE_INVALID");
+
+        var parameters = new AccountSearchParameters
+        {
+            Search = search,
+            Status = status,
+            ProviderType = providerType,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        var result = await _service.SearchAccountsAsync(parameters, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("by-user/{userId:long}")]
+    [ProducesResponseType(typeof(AccountSummaryDto[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAccountsByUserId(long userId, CancellationToken cancellationToken)
+    {
+        var (accounts, userExists) = await _service.GetAccountsByUserIdAsync(userId, cancellationToken);
+
+        if (!userExists)
+            return NotFoundProblem("USER_NOT_FOUND", "User not found.");
+
+        return Ok(accounts);
     }
 
     [HttpGet("{accountId:long}")]

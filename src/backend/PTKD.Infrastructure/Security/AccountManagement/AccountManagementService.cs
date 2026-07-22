@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using PTKD.Application.Common.Models;
 using PTKD.Application.Security.AccountManagement;
 using PTKD.Application.Security.AccountManagement.DTOs;
 using PTKD.Application.Security.Audit;
@@ -40,6 +41,101 @@ public sealed class AccountManagementService : IAccountManagementService
         _transactionalAuditWriter = transactionalAuditWriter ?? throw new ArgumentNullException(nameof(transactionalAuditWriter));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
+    }
+
+    public async Task<PagedResult<AccountSummaryDto>> SearchAccountsAsync(
+        AccountSearchParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var page = Math.Max(1, parameters.Page);
+        var pageSize = Math.Clamp(parameters.PageSize, 1, 100);
+
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        var query = context.UserAuthAccounts
+            .AsNoTracking()
+            .Join(context.Users, a => a.UserId, u => u.Id, (a, u) => new { a, u });
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var term = parameters.Search.Trim();
+            query = query.Where(x =>
+                x.a.ProviderSubject.Contains(term) ||
+                x.u.EmployeeCode.Contains(term) ||
+                x.u.FullName.Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Status))
+            query = query.Where(x => x.a.AuthAccountStatus == parameters.Status);
+
+        if (!string.IsNullOrWhiteSpace(parameters.ProviderType))
+            query = query.Where(x => x.a.ProviderType == parameters.ProviderType);
+
+        var totalCount = await query.LongCountAsync(cancellationToken);
+
+        var items = await query
+            .OrderBy(x => x.a.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new AccountSummaryDto
+            {
+                AccountId = x.a.Id,
+                UserId = x.a.UserId,
+                Username = x.a.ProviderSubject,
+                ProviderType = x.a.ProviderType,
+                Status = x.a.AuthAccountStatus,
+                MustChangePassword = x.a.MustChangePassword,
+                EmployeeCode = x.u.EmployeeCode,
+                FullName = x.u.FullName,
+                EmploymentStatus = x.u.EmploymentStatus,
+                CreatedAt = x.a.CreatedAt,
+                UpdatedAt = x.a.UpdatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<AccountSummaryDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Items = items
+        };
+    }
+
+    public async Task<(IReadOnlyList<AccountSummaryDto> Accounts, bool UserExists)> GetAccountsByUserIdAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        var userExists = await context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == userId, cancellationToken);
+
+        if (!userExists)
+            return (Array.Empty<AccountSummaryDto>(), false);
+
+        var accounts = await context.UserAuthAccounts
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .Join(context.Users, a => a.UserId, u => u.Id, (a, u) => new AccountSummaryDto
+            {
+                AccountId = a.Id,
+                UserId = a.UserId,
+                Username = a.ProviderSubject,
+                ProviderType = a.ProviderType,
+                Status = a.AuthAccountStatus,
+                MustChangePassword = a.MustChangePassword,
+                EmployeeCode = u.EmployeeCode,
+                FullName = u.FullName,
+                EmploymentStatus = u.EmploymentStatus,
+                CreatedAt = a.CreatedAt,
+                UpdatedAt = a.UpdatedAt
+            })
+            .OrderBy(x => x.AccountId)
+            .ToListAsync(cancellationToken);
+
+        return (accounts, true);
     }
 
     public async Task<AccountDetailDto?> GetAccountDetailAsync(

@@ -1,9 +1,21 @@
+using PTKD.Application.Common.Models;
 using PTKD.Application.Security.AccountManagement.DTOs;
 
 namespace PTKD.Application.Security.AccountManagement;
 
 public interface IAccountManagementService
 {
+    // K0 discovery: list/search accounts. Page and PageSize validated by service (max 100).
+    Task<PagedResult<AccountSummaryDto>> SearchAccountsAsync(
+        AccountSearchParameters parameters,
+        CancellationToken cancellationToken = default);
+
+    // K0 discovery: by-user lookup. Returns USER_NOT_FOUND when userId does not exist.
+    // Returns empty list when user exists but has no auth accounts.
+    Task<(IReadOnlyList<AccountSummaryDto> Accounts, bool UserExists)> GetAccountsByUserIdAsync(
+        long userId,
+        CancellationToken cancellationToken = default);
+
     // Returns null when account is not found.
     Task<AccountDetailDto?> GetAccountDetailAsync(
         long accountId,
