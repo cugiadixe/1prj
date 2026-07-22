@@ -403,6 +403,11 @@ const AccountDetailPage: React.FC = () => {
                 Manage Permissions
               </Button>
             </Link>
+            <Link to={`/security/users/${account.userId}/role-assignments`}>
+              <Button data-testid="link-role-assignment">
+                Manage Roles
+              </Button>
+            </Link>
           </Space>
         )}
       </div>
