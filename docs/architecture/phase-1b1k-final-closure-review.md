@@ -147,3 +147,5 @@ PHASE 1B.1-K CLOSURE RECOMMENDED
 
 16. Next step
 Record Project Owner final acceptance of Phase 1B.1-K.
+
+PHASE 1B.1-K FINAL ACCEPTANCE RECORDED — SEE phase-1b1k-project-owner-final-acceptance.md
