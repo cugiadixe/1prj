@@ -8,6 +8,8 @@ import LoginPage from './pages/LoginPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import Home from './pages/Home';
 import SystemHealth from './pages/SystemHealth';
+import AccountManagementPage from './pages/AccountManagementPage';
+import AccountDetailPage from './pages/AccountDetailPage';
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,9 @@ const App: React.FC = () => {
             >
               <Route index element={<Home />} />
               <Route path="system-health" element={<SystemHealth />} />
+              {/* Phase 1B.1-K — Account Management UI */}
+              <Route path="security/accounts" element={<AccountManagementPage />} />
+              <Route path="security/accounts/:accountId" element={<AccountDetailPage />} />
             </Route>
 
             {/* Catch-all */}

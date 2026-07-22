@@ -48,6 +48,11 @@ const AuthenticatedShell: React.FC = () => {
             <Menu.Item key="system-health">
               <Link to="/system-health">System Health</Link>
             </Menu.Item>
+            {/* Static security link — not permission-gated (DEC-1B-K-03).
+                Backend enforces SECURITY_ACCOUNT_MANAGE; 403 handled in-page. */}
+            <Menu.Item key="security-accounts" data-testid="nav-account-management">
+              <Link to="/security/accounts">Account Management</Link>
+            </Menu.Item>
           </Menu>
         </div>
 

@@ -15,3 +15,13 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 });
+
+// Ant Design v6 rc-component/resize-observer requires ResizeObserver.
+// jsdom does not implement it, so we provide a minimal mock.
+if (typeof ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class MockResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
