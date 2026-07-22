@@ -141,3 +141,5 @@ Accepted out-of-scope:
 
 Implementation authorization:
 Phase 1B.1-Q2 User Admin Group Membership UI implementation is authorized under the accepted scope and decisions above.
+
+PHASE 1B.1-Q2 IMPLEMENTATION ACCEPTED — SEE phase-1b1q2-project-owner-implementation-acceptance.md
