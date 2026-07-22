@@ -1,6 +1,6 @@
 # Phase 1B.1-R Department Baseline Permission Management UI Plan
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status:** PHASE 1B.1-R PLAN ACCEPTED — SEE phase-1b1r-project-owner-plan-acceptance.md
 **Baseline:** ed1ae18edd8a2fb364b9b8acf3e21fd7bb208d5f
 **Previous completed phase:** Phase 1B.1-Q COMPLETE
 **Parent discovery:** Phase 1B.1-R Authorization Administration Gap Review accepted
