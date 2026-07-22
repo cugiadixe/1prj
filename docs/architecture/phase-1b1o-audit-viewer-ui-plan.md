@@ -134,3 +134,5 @@ None. Existing backend API and permissions fully support a frontend-only impleme
 - No permission-catalog.md change unless separately approved.
 - Existing auth, current permissions, current company, account management, permission assignment, and mustChangePassword tests remain passing.
 - Frontend tests cover SECURITY_AUDIT_VIEW gating, sanitized errors, read-only behavior, safe detail display, pagination/filter behavior, and absence of mutation controls.
+
+PHASE 1B.1-O PLAN ACCEPTED — SEE phase-1b1o-project-owner-plan-acceptance.md
