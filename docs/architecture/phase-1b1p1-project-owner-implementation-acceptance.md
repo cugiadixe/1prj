@@ -2,6 +2,7 @@
 
 Status:
 ACCEPTED — PHASE 1B.1-P1 IMPLEMENTATION ACCEPTED
+PHASE 1B.1-P1 CLOSURE REVIEW PASSED — SEE phase-1b1p1-final-closure-review.md
 
 Accepted phase:
 Phase 1B.1-P1 — Role Permission Management UI
