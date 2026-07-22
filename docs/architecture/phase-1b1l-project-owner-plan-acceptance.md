@@ -97,3 +97,5 @@ DEC-1B-L-08 — Permission catalog:
 Implementation authorization:
 - Phase 1B.1-L implementation may begin after this Project Owner plan acceptance is committed.
 - Implementation must stop and report if schema migration, new permission code, PermissionCodes.cs change, or permission-catalog.md change becomes required.
+
+PHASE 1B.1-L COMPANY-SCOPE BLOCKER RESOLVED — SEE phase-1b1l-company-scope-blocker-decision.md
