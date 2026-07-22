@@ -1,7 +1,8 @@
-﻿# Phase 1B.1-K0 Final Closure Review
+# Phase 1B.1-K0 Final Closure Review
 
 **Status:**
 PASSED — PHASE 1B.1-K0 CLOSURE RECOMMENDED
+PHASE 1B.1-K0 FINAL ACCEPTANCE RECORDED — SEE phase-1b1k0-project-owner-final-acceptance.md
 
 **Closure baseline:**
 29f977bfe360556e9025faab19dc8479cb71c364
