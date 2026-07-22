@@ -13,6 +13,7 @@ import AccountManagementPage from './pages/AccountManagementPage';
 import AccountDetailPage from './pages/AccountDetailPage';
 import PermissionAssignmentPage from './permissionAssignment/PermissionAssignmentPage';
 import AuditViewerPage from './auditViewer/AuditViewerPage';
+import RoleManagementPage from './roleManagement/RoleManagementPage';
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,8 @@ const App: React.FC = () => {
               <Route path="security/permissions/assignments" element={<PermissionAssignmentPage />} />
               {/* Phase 1B.1-O — Audit Viewer UI */}
               <Route path="security/audit" element={<AuditViewerPage />} />
+              {/* Phase 1B.1-P1 — Role Management UI */}
+              <Route path="security/roles" element={<RoleManagementPage />} />
             </Route>
 
             {/* Catch-all */}
