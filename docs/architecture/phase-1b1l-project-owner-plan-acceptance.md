@@ -99,3 +99,5 @@ Implementation authorization:
 - Implementation must stop and report if schema migration, new permission code, PermissionCodes.cs change, or permission-catalog.md change becomes required.
 
 PHASE 1B.1-L COMPANY-SCOPE BLOCKER RESOLVED — SEE phase-1b1l-company-scope-blocker-decision.md
+
+PHASE 1B.1-L IMPLEMENTATION ACCEPTED — SEE phase-1b1l-project-owner-implementation-acceptance.md
