@@ -2,6 +2,8 @@
 
 **Status:** PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
 
+PHASE 1B.1-K0 PLAN ACCEPTED — SEE phase-1b1k0-project-owner-plan-acceptance.md
+
 **Baseline:** `2e5d85cbe1aad8cdde6605db76b2b5bf85b292fd`
 
 **Previous completed phase:** Phase 1B.1-J COMPLETE (Login UI and MustChangePassword UI Foundation)
