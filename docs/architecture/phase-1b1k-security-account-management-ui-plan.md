@@ -2,6 +2,8 @@
 
 **Status:** PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
 
+PHASE 1B.1-K PLAN REVIEW ACCEPTED — IMPLEMENTATION NOT AUTHORIZED; SEE phase-1b1k-project-owner-plan-acceptance.md
+
 **Baseline:** `f4dddc03250d69b54b657ff32a1183e2caaed1a0`
 
 **Previous completed phase:** Phase 1B.1-J COMPLETE
