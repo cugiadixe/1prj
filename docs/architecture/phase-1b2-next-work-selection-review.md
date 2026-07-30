@@ -1,6 +1,6 @@
 # Phase 1B.2 Next Work Selection Review
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER REVIEW
+**Status:** ACCEPTED — SEE phase-1b2-next-work-selection-project-owner-acceptance.md
 
 **Baseline:** 6296935843c75d6633133181925645dd55470205
 
