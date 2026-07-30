@@ -1,10 +1,9 @@
-# Phase 1B.1-R Final Closure Review
+# Phase 1B.1-R Project Owner Final Acceptance
 
 **Status:**
-PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
-PHASE 1B.1-R FINAL ACCEPTED — SEE phase-1b1r-project-owner-final-acceptance.md
+ACCEPTED — PHASE 1B.1-R COMPLETE
 
-**Reviewed phase:**
+**Accepted phase:**
 Phase 1B.1-R — Department Baseline Permission Management UI
 
 **Previous completed phase:**
@@ -12,7 +11,7 @@ Phase 1B.1-Q COMPLETE
 
 ---
 
-## Reviewed commits
+## Accepted commits
 
 - Phase Q completion review: 87fdb4d4509b6b43cfbb2f1ed0bf4ccd7987a3a6
 - Phase R gap review: f9b86db45d8d720dd3d556e60853d883941c544e
@@ -21,32 +20,24 @@ Phase 1B.1-Q COMPLETE
 - Phase R plan acceptance: 8d8c3656b6c9b3b77fe542b997766be40d930a38
 - Phase R implementation: 1f895b23942c47cb868d0153e11ca47a2bb074a7
 - Phase R implementation acceptance: 7c717e7471f20ce9e40b3f0f7a5fadbc3585eaa3
+- Phase R closure review: 81f32d7b915ce7f80010df6b7b178b441aeb6604
 
-**Closure review baseline:**
-7c717e7471f20ce9e40b3f0f7a5fadbc3585eaa3
-
----
-
-## Closure decision
-
-Phase 1B.1-R passes closure review and is ready for Project Owner final acceptance.
+**Final acceptance baseline:**
+81f32d7b915ce7f80010df6b7b178b441aeb6604
 
 ---
 
-## Scope closure
+## Final acceptance decision
+
+The Project Owner accepts Phase 1B.1-R as complete.
+
+---
+
+## Accepted delivered scope
 
 - Department Baseline Permission Management UI delivered.
 - Frontend-only implementation delivered.
-- No backend change required.
-- No schema/database change required.
-- No migration/rollback required.
-- No production permission catalog change required.
-
----
-
-## Accepted implementation
-
-- Route implemented: /security/departments/permissions
+- Route delivered: /security/departments/permissions
 - Route, menu, and actions gated by SECURITY_ADMIN_MANAGE GLOBAL.
 - No SECURITY_ACCOUNT_MANAGE requirement.
 - No SECURITY_AUDIT_VIEW requirement.
@@ -55,11 +46,11 @@ Phase 1B.1-R passes closure review and is ready for Project Owner final acceptan
 - Existing DepartmentPermissionsController endpoints reused.
 - Existing PermissionsController catalog API reused.
 - Existing organization company/department lookup APIs reused only as needed.
-- Department baseline permission list implemented.
-- Department baseline permission replace-all PUT implemented.
+- Department baseline permission list delivered.
+- Department baseline permission replace-all PUT behavior delivered.
 - UI does not treat PUT as append-only single-permission add.
 - Existing intended permissions are preserved when using PUT.
-- Department baseline permission DELETE/remove implemented.
+- Department baseline permission DELETE/remove behavior delivered.
 - GLOBAL and COMPANY handled safely.
 - COMPANY baseline permission requires selected current company where relevant.
 - No silent fallback to GLOBAL.
@@ -73,7 +64,7 @@ Phase 1B.1-R passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Accepted committed files
+## Accepted committed implementation files
 
 - M src/frontend/src/App.tsx
 - M src/frontend/src/components/AuthenticatedShell.tsx
@@ -97,23 +88,7 @@ Phase 1B.1-R passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Deferred items preserved
-
-- Effective Permission Diagnostics UI remains deferred.
-- Authorization Matrix UI remains deferred.
-- ENTITY scope remains deferred.
-- DENY outside approved individual-permission behavior remains deferred.
-- Bulk assignment remains deferred.
-- Export/download remains deferred.
-- Workflow approval remains deferred.
-- Business modules remain deferred.
-- Permission formula redesign remains deferred.
-- Organization structure redesign remains deferred.
-- Audit mutation/export/retention remains deferred.
-
----
-
-## Closure constraints verified
+## Accepted constraints
 
 - No backend source/test changes.
 - No database changes.
@@ -133,19 +108,37 @@ Phase 1B.1-R passes closure review and is ready for Project Owner final acceptan
 - No Authorization Matrix UI.
 - No bulk assignment.
 - No export/download.
-- No frontend-side audit events.
+- No workflow approval.
+- No business modules.
 - No frontend-only authorization replacement.
+
+---
+
+## Accepted deferred items
+
+- Effective Permission Diagnostics UI remains deferred.
+- Authorization Matrix UI remains deferred.
+- ENTITY scope remains deferred.
+- DENY outside approved individual-permission behavior remains deferred.
+- Bulk assignment remains deferred.
+- Export/download remains deferred.
+- Workflow approval remains deferred.
+- Business modules remain deferred.
+- Permission formula redesign remains deferred.
+- Organization structure redesign remains deferred.
+- Audit mutation/export/retention remains deferred.
 
 ---
 
 ## Known non-blocking note
 
-- Backend test failures previously observed were diagnosed as shared test database race/concurrent execution against PTKD_TEST_PHASE1A2, not Phase R regression.
+- Backend test failures previously observed were diagnosed as shared test database race/concurrent execution against PTKD_TEST_PHASE1A2.
 - Sequential backend test execution passed completely.
+- This is recorded as environment/test execution sequencing evidence, not Phase R regression.
 
 ---
 
-## Residual risk
+## Residual risk accepted
 
 - Department baseline permission semantics depend on existing DepartmentPermissionsController backend behavior.
 - PUT replace-all semantics must remain respected by future UI changes.
@@ -153,8 +146,9 @@ Phase 1B.1-R passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Closure conclusion
+## Final acceptance conclusion
 
-Phase 1B.1-R is complete under the accepted scope and ready for Project Owner final acceptance.
+Phase 1B.1-R is complete under the accepted scope.
+The next phase may be planned separately after Project Owner authorization.
 
-PHASE 1B.1-R CLOSURE REVIEW PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
+PHASE 1B.1-R COMPLETE
