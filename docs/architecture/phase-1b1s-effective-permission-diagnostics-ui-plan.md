@@ -1,6 +1,6 @@
 # Phase 1B.1-S Effective Permission Diagnostics UI Plan
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status:** ACCEPTED — SEE phase-1b1s-project-owner-plan-acceptance.md
 **Baseline:** 96ee586850ad67f65252ed0732cedf7f9cf40b90
 **Previous completed phase:** Phase 1B.1-R COMPLETE
 
