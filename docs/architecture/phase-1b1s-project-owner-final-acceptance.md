@@ -1,10 +1,9 @@
-# Phase 1B.1-S Final Closure Review
+# Phase 1B.1-S Project Owner Final Acceptance
 
 **Status:**
-PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
-PHASE 1B.1-S FINAL ACCEPTED — SEE phase-1b1s-project-owner-final-acceptance.md
+ACCEPTED — PHASE 1B.1-S COMPLETE
 
-**Reviewed phase:**
+**Accepted phase:**
 Phase 1B.1-S — Effective Permission Diagnostics UI
 
 **Previous completed phase:**
@@ -12,39 +11,31 @@ Phase 1B.1-R COMPLETE
 
 ---
 
-## Reviewed commits
+## Accepted commits
 
 - Phase R final acceptance: 96ee586850ad67f65252ed0732cedf7f9cf40b90
 - Phase S detailed plan: 6508f4f51bee7397805b639dd00c1c4c78b7a878
 - Phase S plan acceptance: f0d2bba4819508013feb60e564f830ed9458fe83
 - Phase S implementation: b9736236781874188158abe6b8f10e75e6d16052
 - Phase S implementation acceptance: 10d309d2c098f6f5633ae501363391d0564ae9ab
+- Phase S closure review: 0916d41bd4e12e3fb56664c13ca4ed857de4d54d
 
-**Closure review baseline:**
-10d309d2c098f6f5633ae501363391d0564ae9ab
-
----
-
-## Closure decision
-
-Phase 1B.1-S passes closure review and is ready for Project Owner final acceptance.
+**Final acceptance baseline:**
+0916d41bd4e12e3fb56664c13ca4ed857de4d54d
 
 ---
 
-## Scope closure
+## Final acceptance decision
+
+The Project Owner accepts Phase 1B.1-S as complete.
+
+---
+
+## Accepted delivered scope
 
 - Effective Permission Diagnostics UI delivered.
 - Frontend-only implementation delivered.
-- No backend change required.
-- No schema/database change required.
-- No migration/rollback required.
-- No production permission catalog change required.
-
----
-
-## Accepted implementation
-
-- Route implemented: /security/effective-permissions
+- Route delivered: /security/effective-permissions
 - Route, menu, and actions gated by SECURITY_ADMIN_MANAGE GLOBAL.
 - No SECURITY_ACCOUNT_MANAGE requirement.
 - No SECURITY_AUDIT_VIEW requirement.
@@ -73,7 +64,7 @@ Phase 1B.1-S passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Accepted committed files
+## Accepted committed implementation files
 
 - M src/frontend/src/App.tsx
 - M src/frontend/src/components/AuthenticatedShell.tsx
@@ -97,28 +88,7 @@ Phase 1B.1-S passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Deferred items preserved
-
-- Source-level per-permission attribution remains deferred.
-- Denied permission list remains deferred unless backend later provides it.
-- Department baseline source context remains deferred until safe user-to-department GET mapping exists.
-- Authorization Matrix / Security Overview remains deferred.
-- ENTITY scope remains deferred.
-- DENY outside existing individual-permission behavior remains deferred.
-- Bulk assignment remains deferred.
-- Export/download remains deferred.
-- Workflow approval remains deferred.
-- Business modules remain deferred.
-- Backend aggregation/source-attribution endpoint remains deferred.
-- User search backend endpoint remains deferred.
-- User-department mapping endpoint remains deferred.
-- Permission formula redesign remains deferred.
-- Organization structure redesign remains deferred.
-- Audit mutation/export/retention remains deferred.
-
----
-
-## Closure constraints verified
+## Accepted constraints
 
 - No backend source/test changes.
 - No database changes.
@@ -150,7 +120,28 @@ Phase 1B.1-S passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Residual risk
+## Accepted deferred items
+
+- Source-level per-permission attribution remains deferred.
+- Denied permission list remains deferred unless backend later provides it.
+- Department baseline source context remains deferred until safe user-to-department GET mapping exists.
+- Authorization Matrix / Security Overview remains deferred.
+- ENTITY scope remains deferred.
+- DENY outside existing individual-permission behavior remains deferred.
+- Bulk assignment remains deferred.
+- Export/download remains deferred.
+- Workflow approval remains deferred.
+- Business modules remain deferred.
+- Backend aggregation/source-attribution endpoint remains deferred.
+- User search backend endpoint remains deferred.
+- User-department mapping endpoint remains deferred.
+- Permission formula redesign remains deferred.
+- Organization structure redesign remains deferred.
+- Audit mutation/export/retention remains deferred.
+
+---
+
+## Residual risk accepted
 
 - EffectivePermissionsController currently returns flat PermissionCodes[] only.
 - Phase S intentionally does not provide source-level attribution.
@@ -159,8 +150,9 @@ Phase 1B.1-S passes closure review and is ready for Project Owner final acceptan
 
 ---
 
-## Closure conclusion
+## Final acceptance conclusion
 
-Phase 1B.1-S is complete under the accepted scope and ready for Project Owner final acceptance.
+Phase 1B.1-S is complete under the accepted scope.
+The next phase may be planned separately after Project Owner authorization.
 
-PHASE 1B.1-S CLOSURE REVIEW PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
+PHASE 1B.1-S COMPLETE
