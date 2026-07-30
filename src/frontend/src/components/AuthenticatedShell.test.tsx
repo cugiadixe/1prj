@@ -41,33 +41,37 @@ describe('AuthenticatedShell Navigation Gating', () => {
     mockHasPermission = vi.fn().mockReturnValue(false);
   });
 
-  it('hides Role Management and Admin Group Management when SECURITY_ADMIN_MANAGE GLOBAL is missing', () => {
+  it('hides Role Management, Admin Group Management and Department Permissions when SECURITY_ADMIN_MANAGE GLOBAL is missing', () => {
     mockHasPermission.mockImplementation((perm) => perm !== 'SECURITY_ADMIN_MANAGE');
     renderShell();
     expect(screen.queryByTestId('nav-role-management')).not.toBeInTheDocument();
     expect(screen.queryByTestId('nav-admin-group-management')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-department-permissions')).not.toBeInTheDocument();
   });
 
-  it('shows Role Management and Admin Group Management when SECURITY_ADMIN_MANAGE GLOBAL is present', () => {
+  it('shows Role Management, Admin Group Management and Department Permissions when SECURITY_ADMIN_MANAGE GLOBAL is present', () => {
     mockHasPermission.mockImplementation((perm) => perm === 'SECURITY_ADMIN_MANAGE');
     renderShell();
     expect(screen.getByTestId('nav-role-management')).toBeInTheDocument();
     expect(screen.getByTestId('nav-admin-group-management')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-department-permissions')).toBeInTheDocument();
   });
 
-  it('does not show Role Management or Admin Group Management for SECURITY_AUDIT_VIEW alone', () => {
+  it('does not show Role Management, Admin Group Management or Department Permissions for SECURITY_AUDIT_VIEW alone', () => {
     mockHasPermission.mockImplementation((perm) => perm === 'SECURITY_AUDIT_VIEW');
     renderShell();
     expect(screen.queryByTestId('nav-role-management')).not.toBeInTheDocument();
     expect(screen.queryByTestId('nav-admin-group-management')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-department-permissions')).not.toBeInTheDocument();
     expect(screen.getByTestId('nav-audit-viewer')).toBeInTheDocument();
   });
 
-  it('does not show Role Management or Admin Group Management for SECURITY_ACCOUNT_MANAGE alone', () => {
+  it('does not show Role Management, Admin Group Management or Department Permissions for SECURITY_ACCOUNT_MANAGE alone', () => {
     mockHasPermission.mockImplementation((perm) => perm === 'SECURITY_ACCOUNT_MANAGE');
     renderShell();
     expect(screen.queryByTestId('nav-role-management')).not.toBeInTheDocument();
     expect(screen.queryByTestId('nav-admin-group-management')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-department-permissions')).not.toBeInTheDocument();
     expect(screen.getByTestId('nav-account-management')).toBeInTheDocument();
   });
 });

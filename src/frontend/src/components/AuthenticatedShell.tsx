@@ -71,6 +71,11 @@ const AuthenticatedShell: React.FC = () => {
                 <Link to="/security/admin-groups">Admin Group Management</Link>
               </Menu.Item>
             )}
+            {hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') && (
+              <Menu.Item key="security-department-permissions" data-testid="nav-department-permissions">
+                <Link to="/security/departments/permissions">Department Permissions</Link>
+              </Menu.Item>
+            )}
             {hasPermission('SECURITY_AUDIT_VIEW', 'GLOBAL') && (
               <Menu.Item key="security-audit" data-testid="nav-audit-viewer">
                 <Link to="/security/audit">Audit Viewer</Link>

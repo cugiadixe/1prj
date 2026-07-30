@@ -17,6 +17,7 @@ import RoleManagementPage from './roleManagement/RoleManagementPage';
 import UserRoleAssignmentsPage from './userRoleAssignments/UserRoleAssignmentsPage';
 import AdminGroupManagementPage from './adminGroupManagement/AdminGroupManagementPage';
 import UserAdminGroupAssignmentsPage from './userAdminGroupAssignments/UserAdminGroupAssignmentsPage';
+import DepartmentPermissionsPage from './departmentPermissions/DepartmentPermissionsPage';
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,8 @@ const App: React.FC = () => {
               <Route path="security/admin-groups" element={<AdminGroupManagementPage />} />
               {/* Phase 1B.1-Q2 — User Admin Group Memberships UI */}
               <Route path="security/users/:userId/admin-group-assignments" element={<UserAdminGroupAssignmentsPage />} />
+              {/* Phase 1B.1-R — Department Baseline Permission Management UI */}
+              <Route path="security/departments/permissions" element={<DepartmentPermissionsPage />} />
             </Route>
 
             {/* Catch-all */}
