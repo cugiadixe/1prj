@@ -2,6 +2,7 @@
 
 **Status:**
 ACCEPTED — PHASE 1B.1-S IMPLEMENTATION ACCEPTED
+PHASE 1B.1-S CLOSURE REVIEW PASSED — SEE phase-1b1s-final-closure-review.md
 
 **Accepted phase:**
 Phase 1B.1-S — Effective Permission Diagnostics UI
