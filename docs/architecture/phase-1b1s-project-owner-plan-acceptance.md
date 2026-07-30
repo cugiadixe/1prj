@@ -1,6 +1,7 @@
 # Phase 1B.1-S Project Owner Plan Acceptance
 
 **Status:** ACCEPTED — IMPLEMENTATION AUTHORIZED WITH USER LOOKUP CONSTRAINT
+PHASE 1B.1-S IMPLEMENTATION ACCEPTED — SEE phase-1b1s-project-owner-implementation-acceptance.md
 **Accepted phase:** Phase 1B.1-S — Effective Permission Diagnostics UI
 **Accepted Phase R final acceptance commit:** 96ee586850ad67f65252ed0732cedf7f9cf40b90
 **Accepted Phase S detailed plan commit:** 6508f4f51bee7397805b639dd00c1c4c78b7a878
