@@ -2,6 +2,7 @@
 
 **Status:**
 ACCEPTED — PHASE 1B.1-R IMPLEMENTATION ACCEPTED
+PHASE 1B.1-R CLOSURE REVIEW PASSED — SEE phase-1b1r-final-closure-review.md
 
 **Accepted phase:**
 Phase 1B.1-R — Department Baseline Permission Management UI
