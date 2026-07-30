@@ -1,6 +1,7 @@
 # Phase 1B.1-R Project Owner Plan Acceptance
 
 **Status:** ACCEPTED — IMPLEMENTATION AUTHORIZED
+PHASE 1B.1-R IMPLEMENTATION ACCEPTED — SEE phase-1b1r-project-owner-implementation-acceptance.md
 **Accepted phase:** Phase 1B.1-R — Department Baseline Permission Management UI
 **Accepted Phase Q completion review commit:** 87fdb4d4509b6b43cfbb2f1ed0bf4ccd7987a3a6
 **Accepted Phase R gap review commit:** f9b86db45d8d720dd3d556e60853d883941c544e
