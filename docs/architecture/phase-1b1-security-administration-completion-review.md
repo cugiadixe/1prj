@@ -1,6 +1,6 @@
 # Phase 1B.1 Security Administration Completion Review
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER REVIEW
+**Status:** ACCEPTED — SEE phase-1b1-security-administration-project-owner-completion-acceptance.md
 **Baseline:** cd7822f4af7c72eb099d626e20b905dc068a4428
 **Latest completed phase:** Phase 1B.1-S COMPLETE
 
