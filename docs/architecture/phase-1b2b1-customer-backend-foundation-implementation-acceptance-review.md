@@ -1,7 +1,7 @@
 # Phase 1B.2-B1 Customer Backend Foundation Implementation Acceptance Review
 
 **Status:**
-PASSED — READY FOR PROJECT OWNER IMPLEMENTATION ACCEPTANCE
+ACCEPTED — SEE phase-1b2b1-project-owner-implementation-acceptance.md
 
 **Implementation commit:**
 91828f55924085401ba2bf16a3519b59859dc1d2
