@@ -1,6 +1,6 @@
 # Phase 1B.2-A Customer Module Discovery and Detailed Plan
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status:** ACCEPTED — SEE phase-1b2a-project-owner-plan-acceptance.md
 
 **Baseline:** a9a368a870d19b6eae903f1041575584402fd089
 
