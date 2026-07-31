@@ -1,7 +1,7 @@
 # Phase 1B.2 Customer Module First Slice Completion Review
 
 **Status:**
-PROPOSED — AWAITING PROJECT OWNER REVIEW
+PHASE 1B.2 CUSTOMER MODULE FIRST SLICE ACCEPTED AS FUNCTIONALLY COMPLETE — SEE phase-1b2-customer-module-first-slice-project-owner-completion-acceptance.md
 
 **Review scope:**
 Phase 1B.2 — Customer Module First Slice (B1 + B2)
