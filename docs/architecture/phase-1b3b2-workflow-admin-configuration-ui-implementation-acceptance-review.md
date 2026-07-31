@@ -2,7 +2,7 @@
 
 ## Status
 
-PASSED — READY FOR PROJECT OWNER IMPLEMENTATION ACCEPTANCE
+PASSED — PHASE 1B.3-B2 IMPLEMENTATION ACCEPTED — SEE phase-1b3b2-project-owner-implementation-acceptance.md
 
 ## Implementation Commit
 
