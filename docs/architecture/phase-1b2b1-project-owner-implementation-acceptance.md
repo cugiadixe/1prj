@@ -1,7 +1,7 @@
 # Phase 1B.2-B1 Customer Backend Foundation Project Owner Implementation Acceptance
 
 **Status:**
-ACCEPTED — PHASE 1B.2-B1 CUSTOMER BACKEND FOUNDATION IMPLEMENTATION ACCEPTED
+ACCEPTED — PHASE 1B.2-B1 CLOSURE REVIEW PASSED — SEE phase-1b2b1-final-closure-review.md
 
 **Accepted implementation:**
 Phase 1B.2-B1 — Customer Backend Foundation
