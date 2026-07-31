@@ -33,7 +33,18 @@ public sealed class TestDatabaseFixture : IDisposable
         "Security_Audit_Events",
         "Profiles",
         "Customers",
-        "Customer_Company_Contexts"
+        "Customer_Company_Contexts",
+        "Business_Process_Catalog",
+        "Workflow_Definitions",
+        "Workflow_Definition_Versions",
+        "Workflow_Steps",
+        "Workflow_Step_Approver_Rules",
+        "Workflow_Conditions",
+        "Workflow_Bindings",
+        "Workflow_Instances",
+        "Workflow_Instance_Steps",
+        "Workflow_Instance_Step_Assignees",
+        "Workflow_Actions"
     };
 
     public TestDatabaseFixture()
@@ -341,6 +352,18 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.Password_History;
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
+
+            DROP TABLE IF EXISTS dbo.Workflow_Actions;
+            DROP TABLE IF EXISTS dbo.Workflow_Instance_Step_Assignees;
+            DROP TABLE IF EXISTS dbo.Workflow_Instance_Steps;
+            DROP TABLE IF EXISTS dbo.Workflow_Instances;
+            DROP TABLE IF EXISTS dbo.Workflow_Bindings;
+            DROP TABLE IF EXISTS dbo.Workflow_Conditions;
+            DROP TABLE IF EXISTS dbo.Workflow_Step_Approver_Rules;
+            DROP TABLE IF EXISTS dbo.Workflow_Steps;
+            DROP TABLE IF EXISTS dbo.Workflow_Definition_Versions;
+            DROP TABLE IF EXISTS dbo.Workflow_Definitions;
+            DROP TABLE IF EXISTS dbo.Business_Process_Catalog;
 
             DROP TABLE IF EXISTS dbo.Customer_Company_Contexts;
             DROP TABLE IF EXISTS dbo.Customers;

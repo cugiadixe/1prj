@@ -46,7 +46,13 @@ public sealed class SecuritySchemaTests : IDisposable
         "SECURITY_ROLE_MANAGE",
         "SECURITY_ROLE_VIEW",
         "SECURITY_USER_MANAGE",
-        "SECURITY_USER_VIEW"
+        "SECURITY_USER_VIEW",
+        "WORKFLOW_AUDIT_VIEW",
+        "WORKFLOW_BIND_PROCESS",
+        "WORKFLOW_CONFIG_MANAGE",
+        "WORKFLOW_PUBLISH",
+        "WORKFLOW_REASSIGN_PENDING",
+        "WORKFLOW_VIEW"
     ];
 
     private readonly TestDatabaseFixture _fixture;

@@ -23,6 +23,17 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<Profile> Profiles => Set<Profile>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerCompanyContext> CustomerCompanyContexts => Set<CustomerCompanyContext>();
+    public DbSet<BusinessProcessCatalog> BusinessProcessCatalogs => Set<BusinessProcessCatalog>();
+    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
+    public DbSet<WorkflowDefinitionVersion> WorkflowDefinitionVersions => Set<WorkflowDefinitionVersion>();
+    public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
+    public DbSet<WorkflowStepApproverRule> WorkflowStepApproverRules => Set<WorkflowStepApproverRule>();
+    public DbSet<WorkflowCondition> WorkflowConditions => Set<WorkflowCondition>();
+    public DbSet<WorkflowBinding> WorkflowBindings => Set<WorkflowBinding>();
+    public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
+    public DbSet<WorkflowInstanceStep> WorkflowInstanceSteps => Set<WorkflowInstanceStep>();
+    public DbSet<WorkflowInstanceStepAssignee> WorkflowInstanceStepAssignees => Set<WorkflowInstanceStepAssignee>();
+    public DbSet<WorkflowAction> WorkflowActions => Set<WorkflowAction>();
     public DbSet<UserAuthAccount> UserAuthAccounts => Set<UserAuthAccount>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

@@ -106,6 +106,11 @@ builder.Services.AddScoped<IUserAssignmentService, UserAssignmentService>();
 // Customer Services (Phase 1B.2-B1)
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerService, PTKD.Application.Customers.Services.CustomerService>();
 
+// Workflow Services (Phase 1B.3-B1)
+builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowConfigurationService, PTKD.Application.Workflows.Services.WorkflowConfigurationService>();
+builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowRuntimeService, PTKD.Application.Workflows.Services.WorkflowRuntimeService>();
+builder.Services.AddScoped<PTKD.Application.Workflows.Services.IApproverResolver, PTKD.Application.Workflows.Services.ApproverResolver>();
+
 // Authentication Services (Phase 1B.1-C-B)
 builder.Services.AddSingleton<AuthenticationAccountPolicy>();
 builder.Services.AddScoped<IPasswordHashService, AspNetCorePasswordHashService>();

@@ -45,4 +45,11 @@ public static class PermissionCodes
     public const string CustomerCreateFinal = "CUSTOMER_CREATE_FINAL";
 
     public const string CustomerMasterUpdate = "CUSTOMER_MASTER_UPDATE";
+
+    public const string WorkflowView = "WORKFLOW_VIEW";
+    public const string WorkflowConfigManage = "WORKFLOW_CONFIG_MANAGE";
+    public const string WorkflowPublish = "WORKFLOW_PUBLISH";
+    public const string WorkflowBindProcess = "WORKFLOW_BIND_PROCESS";
+    public const string WorkflowReassignPending = "WORKFLOW_REASSIGN_PENDING";
+    public const string WorkflowAuditView = "WORKFLOW_AUDIT_VIEW";
 }

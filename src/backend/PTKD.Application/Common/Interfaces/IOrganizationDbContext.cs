@@ -18,6 +18,17 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<Profile> Profiles { get; }
     DbSet<Customer> Customers { get; }
     DbSet<CustomerCompanyContext> CustomerCompanyContexts { get; }
+    DbSet<BusinessProcessCatalog> BusinessProcessCatalogs { get; }
+    DbSet<WorkflowDefinition> WorkflowDefinitions { get; }
+    DbSet<WorkflowDefinitionVersion> WorkflowDefinitionVersions { get; }
+    DbSet<WorkflowStep> WorkflowSteps { get; }
+    DbSet<WorkflowStepApproverRule> WorkflowStepApproverRules { get; }
+    DbSet<WorkflowCondition> WorkflowConditions { get; }
+    DbSet<WorkflowBinding> WorkflowBindings { get; }
+    DbSet<WorkflowInstance> WorkflowInstances { get; }
+    DbSet<WorkflowInstanceStep> WorkflowInstanceSteps { get; }
+    DbSet<WorkflowInstanceStepAssignee> WorkflowInstanceStepAssignees { get; }
+    DbSet<WorkflowAction> WorkflowActions { get; }
 
     System.Data.Common.DbConnection GetDbConnection();
     System.Data.Common.DbTransaction? GetCurrentDbTransaction();
