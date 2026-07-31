@@ -4,6 +4,8 @@
 
 PASSED — READY FOR PROJECT OWNER IMPLEMENTATION ACCEPTANCE
 
+PHASE 1B.3-B1 IMPLEMENTATION ACCEPTED — SEE phase-1b3b1-project-owner-implementation-acceptance.md
+
 ## Commits
 
 | Role | Hash |
