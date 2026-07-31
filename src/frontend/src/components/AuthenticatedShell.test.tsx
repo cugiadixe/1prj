@@ -90,4 +90,18 @@ describe('AuthenticatedShell Navigation Gating', () => {
     renderShell();
     expect(screen.queryByTestId('nav-customers')).not.toBeInTheDocument();
   });
+
+  it('shows Workflow Admin menu item when WORKFLOW_VIEW is granted', () => {
+    mockHasPermission.mockImplementation((perm: string) => perm === 'WORKFLOW_VIEW');
+    renderShell();
+    expect(screen.getByTestId('nav-workflow')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-workflow-bindings')).toBeInTheDocument();
+  });
+
+  it('hides Workflow Admin menu item when WORKFLOW_VIEW is not granted', () => {
+    mockHasPermission.mockReturnValue(false);
+    renderShell();
+    expect(screen.queryByTestId('nav-workflow')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-workflow-bindings')).not.toBeInTheDocument();
+  });
 });

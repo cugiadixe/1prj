@@ -23,6 +23,13 @@ import CustomersPage from './customers/CustomersPage';
 import CustomerDetailPage from './customers/CustomerDetailPage';
 import CustomerCreatePage from './customers/CustomerCreatePage';
 import CustomerEditPage from './customers/CustomerEditPage';
+import WorkflowDefinitionsPage from './workflow/WorkflowDefinitionsPage';
+import WorkflowDefinitionCreatePage from './workflow/WorkflowDefinitionCreatePage';
+import WorkflowDefinitionDetailPage from './workflow/WorkflowDefinitionDetailPage';
+import WorkflowDefinitionEditPage from './workflow/WorkflowDefinitionEditPage';
+import WorkflowVersionCreatePage from './workflow/WorkflowVersionCreatePage';
+import WorkflowVersionDetailPage from './workflow/WorkflowVersionDetailPage';
+import WorkflowBindingsPage from './workflow/WorkflowBindingsPage';
 
 const queryClient = new QueryClient();
 
@@ -86,6 +93,14 @@ const App: React.FC = () => {
               <Route path="customers/new" element={<CustomerCreatePage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="customers/:customerId/edit" element={<CustomerEditPage />} />
+              {/* Phase 1B.3-B2 — Workflow Admin Configuration UI */}
+              <Route path="workflow" element={<WorkflowDefinitionsPage />} />
+              <Route path="workflow/definitions/new" element={<WorkflowDefinitionCreatePage />} />
+              <Route path="workflow/definitions/:definitionId" element={<WorkflowDefinitionDetailPage />} />
+              <Route path="workflow/definitions/:definitionId/edit" element={<WorkflowDefinitionEditPage />} />
+              <Route path="workflow/definitions/:definitionId/versions/new" element={<WorkflowVersionCreatePage />} />
+              <Route path="workflow/definitions/:definitionId/versions/:versionId" element={<WorkflowVersionDetailPage />} />
+              <Route path="workflow/bindings" element={<WorkflowBindingsPage />} />
             </Route>
 
             {/* Catch-all */}

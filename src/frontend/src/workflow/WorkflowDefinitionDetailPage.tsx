@@ -1,0 +1,152 @@
+import React from 'react';
+import { Alert, Button, Descriptions, Space, Spin, Table, Tag, Typography } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { usePermissions } from '../auth/AuthProvider';
+import { getDefinitionById, getVersionsByDefinition } from './workflowApi';
+import { getErrorMessage, isPermissionDenied } from './errorMessages';
+import type { WorkflowVersionListItem } from './types';
+
+const { Title } = Typography;
+
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: 'default',
+  PUBLISHED: 'blue',
+  ACTIVE: 'green',
+  RETIRED: 'red',
+};
+
+const WorkflowDefinitionDetailPage: React.FC = () => {
+  const { definitionId } = useParams<{ definitionId: string }>();
+  const { hasPermission } = usePermissions();
+  const navigate = useNavigate();
+  const id = Number(definitionId);
+
+  const {
+    data: definition,
+    isLoading,
+    error: fetchError,
+  } = useQuery({
+    queryKey: ['workflow-definition', id],
+    queryFn: () => getDefinitionById(id),
+    enabled: !isNaN(id),
+  });
+
+  const { data: versions } = useQuery({
+    queryKey: ['workflow-versions', id],
+    queryFn: () => getVersionsByDefinition(id),
+    enabled: !isNaN(id),
+  });
+
+  if (isLoading) return <Spin data-testid="definition-detail-loading" />;
+
+  if (isPermissionDenied(fetchError)) {
+    return (
+      <Alert
+        type="error"
+        message="You do not have permission to view this workflow definition."
+        data-testid="permission-denied"
+      />
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <Alert
+        type="error"
+        message={getErrorMessage(fetchError)}
+        data-testid="definition-detail-error"
+      />
+    );
+  }
+
+  if (!definition) return null;
+
+  const versionColumns = [
+    {
+      title: 'Version',
+      dataIndex: 'versionNumber',
+      key: 'versionNumber',
+      render: (v: number) => `v${v}`,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'versionStatus',
+      key: 'versionStatus',
+      render: (status: string) => (
+        <Tag color={STATUS_COLORS[status] ?? 'default'}>{status}</Tag>
+      ),
+    },
+    {
+      title: 'Effective From',
+      dataIndex: 'effectiveFrom',
+      key: 'effectiveFrom',
+      render: (val: string | null) => val ? new Date(val).toLocaleDateString() : '—',
+    },
+    {
+      title: 'Effective To',
+      dataIndex: 'effectiveTo',
+      key: 'effectiveTo',
+      render: (val: string | null) => val ? new Date(val).toLocaleDateString() : '—',
+    },
+  ];
+
+  return (
+    <div data-testid="workflow-definition-detail-page">
+      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+        <Title level={4} style={{ margin: 0 }}>
+          Workflow: {definition.definitionName}
+        </Title>
+        <Space>
+          {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
+            <Button data-testid="edit-definition-btn">
+              <Link to={`/workflow/definitions/${id}/edit`}>Edit</Link>
+            </Button>
+          )}
+          {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
+            <Button type="primary" data-testid="create-version-btn">
+              <Link to={`/workflow/definitions/${id}/versions/new`}>New Version</Link>
+            </Button>
+          )}
+          <Button>
+            <Link to="/workflow">Back to List</Link>
+          </Button>
+        </Space>
+      </Space>
+
+      <Descriptions bordered column={2} style={{ marginBottom: 24 }} data-testid="definition-details">
+        <Descriptions.Item label="Code">{definition.definitionCode}</Descriptions.Item>
+        <Descriptions.Item label="Process">{definition.processCode}</Descriptions.Item>
+        <Descriptions.Item label="Active">
+          <Tag color={definition.isActive ? 'green' : 'red'}>
+            {definition.isActive ? 'Active' : 'Inactive'}
+          </Tag>
+        </Descriptions.Item>
+        <Descriptions.Item label="Created">{new Date(definition.createdAt).toLocaleDateString()}</Descriptions.Item>
+        {definition.description && (
+          <Descriptions.Item label="Description" span={2}>{definition.description}</Descriptions.Item>
+        )}
+      </Descriptions>
+
+      <Title level={5}>Versions</Title>
+      {versions && versions.length === 0 && (
+        <Alert type="info" message="No versions yet." data-testid="versions-empty" />
+      )}
+      {versions && versions.length > 0 && (
+        <Table
+          dataSource={versions}
+          columns={versionColumns}
+          rowKey="id"
+          data-testid="versions-table"
+          pagination={false}
+          onRow={(record: WorkflowVersionListItem) => ({
+            onClick: () => navigate(`/workflow/definitions/${id}/versions/${record.id}`),
+            style: { cursor: 'pointer' },
+          })}
+        />
+      )}
+    </div>
+  );
+};
+
+export default WorkflowDefinitionDetailPage;
