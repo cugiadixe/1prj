@@ -78,4 +78,16 @@ describe('AuthenticatedShell Navigation Gating', () => {
     expect(screen.queryByTestId('nav-effective-permissions')).not.toBeInTheDocument();
     expect(screen.getByTestId('nav-account-management')).toBeInTheDocument();
   });
+
+  it('shows Customers menu item when CUSTOMER_VIEW_BASIC is granted', () => {
+    mockHasPermission.mockImplementation((perm: string) => perm === 'CUSTOMER_VIEW_BASIC');
+    renderShell();
+    expect(screen.getByTestId('nav-customers')).toBeInTheDocument();
+  });
+
+  it('hides Customers menu item when CUSTOMER_VIEW_BASIC is not granted', () => {
+    mockHasPermission.mockReturnValue(false);
+    renderShell();
+    expect(screen.queryByTestId('nav-customers')).not.toBeInTheDocument();
+  });
 });

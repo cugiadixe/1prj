@@ -19,6 +19,10 @@ import AdminGroupManagementPage from './adminGroupManagement/AdminGroupManagemen
 import UserAdminGroupAssignmentsPage from './userAdminGroupAssignments/UserAdminGroupAssignmentsPage';
 import DepartmentPermissionsPage from './departmentPermissions/DepartmentPermissionsPage';
 import EffectivePermissionDiagnosticsPage from './effectivePermissionDiagnostics/EffectivePermissionDiagnosticsPage';
+import CustomersPage from './customers/CustomersPage';
+import CustomerDetailPage from './customers/CustomerDetailPage';
+import CustomerCreatePage from './customers/CustomerCreatePage';
+import CustomerEditPage from './customers/CustomerEditPage';
 
 const queryClient = new QueryClient();
 
@@ -77,6 +81,11 @@ const App: React.FC = () => {
               <Route path="security/departments/permissions" element={<DepartmentPermissionsPage />} />
               {/* Phase 1B.1-S — Effective Permission Diagnostics UI */}
               <Route path="security/effective-permissions" element={<EffectivePermissionDiagnosticsPage />} />
+              {/* Phase 1B.2-B2 — Customer Frontend UI */}
+              <Route path="customers" element={<CustomersPage />} />
+              <Route path="customers/new" element={<CustomerCreatePage />} />
+              <Route path="customers/:customerId" element={<CustomerDetailPage />} />
+              <Route path="customers/:customerId/edit" element={<CustomerEditPage />} />
             </Route>
 
             {/* Catch-all */}
