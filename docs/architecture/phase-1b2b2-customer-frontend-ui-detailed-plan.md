@@ -1,6 +1,6 @@
 # Phase 1B.2-B2 Customer Frontend UI Detailed Plan
 
-**Status:** PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+**Status:** ACCEPTED — PHASE 1B.2-B2 CUSTOMER FRONTEND UI PLAN ACCEPTED — SEE phase-1b2b2-project-owner-plan-acceptance.md
 
 **Baseline:** 498991318c7e18f4a9dae11409e90a7a42abc1f4
 
