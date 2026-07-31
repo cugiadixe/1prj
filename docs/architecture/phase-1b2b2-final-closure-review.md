@@ -1,7 +1,7 @@
 # Phase 1B.2-B2 Customer Frontend UI Final Closure Review
 
 **Status:**
-PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
+ACCEPTED — PHASE 1B.2-B2 FINAL ACCEPTED — SEE phase-1b2b2-project-owner-final-acceptance.md
 
 **Reviewed phase:**
 Phase 1B.2-B2 — Customer Frontend UI
