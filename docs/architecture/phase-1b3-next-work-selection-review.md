@@ -1,7 +1,7 @@
 # Phase 1B.3 Next Work Selection Review After Customer First Slice
 
 **Status:**
-PROPOSED — AWAITING PROJECT OWNER NEXT WORK SELECTION
+PHASE 1B.3-A WORKFLOW/APPROVAL ENGINE DISCOVERY SELECTED — SEE phase-1b3-project-owner-selection-acceptance.md
 
 **Baseline:**
 2f4c059dd7f5f91aa14f6f5560fc360808049668
