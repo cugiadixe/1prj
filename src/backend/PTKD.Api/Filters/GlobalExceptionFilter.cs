@@ -77,7 +77,7 @@ public class GlobalExceptionFilter : IExceptionFilter
                 Detail = concurrencyEx.Message,
                 Type = "https://ptkd-erp.internal/docs/errors/concurrency"
             };
-            problemDetails.Extensions["errorCode"] = "ORG_INVALID_ROW_VERSION";
+            problemDetails.Extensions["errorCode"] = concurrencyEx.ErrorCode;
             SetResult(context, problemDetails, StatusCodes.Status409Conflict);
         }
         else if (context.Exception is DbUpdateConcurrencyException)

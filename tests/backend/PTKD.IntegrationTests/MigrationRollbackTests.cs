@@ -22,16 +22,24 @@ public sealed class MigrationRollbackTests
         Assert.Contains("Applied V0001", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0002", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0004", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Applied V0005", firstOutput, StringComparison.Ordinal);
         Assert.Equal(1, GetSchemaVersionsCount("V0001"));
         Assert.Equal(1, GetSchemaVersionsCount("V0002"));
         Assert.Equal(1, GetSchemaVersionsCount("V0003"));
         Assert.Equal(1, GetSchemaVersionsCount("V0004"));
+
+        Assert.Equal(1, GetSchemaVersionsCount("V0005"));
 
         var secondOutput = ExecuteDbMigrator();
         Assert.Contains("Skipping V0001", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0002", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0003", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0004", secondOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0005", secondOutput, StringComparison.Ordinal);
+        Assert.Equal(1, GetSchemaVersionsCount("V0005"));
+
+        ExecuteRollback("U0005__drop_customer_schema.sql");
+        Assert.Equal(0, GetSchemaVersionsCount("V0005"));
         Assert.Equal(1, GetSchemaVersionsCount("V0004"));
 
         ExecuteRollback("U0004__deactivate_security_admin_manage_permission.sql");

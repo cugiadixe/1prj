@@ -37,4 +37,12 @@ public static class PermissionCodes
     /// Manage Organization Companies API access in Phase 1B.
     /// </summary>
     public const string OrganizationCompanyManage = "ORGANIZATION_COMPANY_MANAGE";
+
+    public const string CustomerViewBasic = "CUSTOMER_VIEW_BASIC";
+
+    public const string CustomerViewSensitive = "CUSTOMER_VIEW_SENSITIVE";
+
+    public const string CustomerCreateFinal = "CUSTOMER_CREATE_FINAL";
+
+    public const string CustomerMasterUpdate = "CUSTOMER_MASTER_UPDATE";
 }

@@ -15,6 +15,13 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<UserCompanyAssignment> UserCompanyAssignments { get; }
     DbSet<UserDepartmentAssignment> UserDepartmentAssignments { get; }
     DbSet<EmploymentHistory> EmploymentHistories { get; }
+    DbSet<Profile> Profiles { get; }
+    DbSet<Customer> Customers { get; }
+    DbSet<CustomerCompanyContext> CustomerCompanyContexts { get; }
+
+    System.Data.Common.DbConnection GetDbConnection();
+    System.Data.Common.DbTransaction? GetCurrentDbTransaction();
+    void ClearChangeTracker();
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default);

@@ -20,6 +20,9 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<UserCompanyAssignment> UserCompanyAssignments => Set<UserCompanyAssignment>();
     public DbSet<UserDepartmentAssignment> UserDepartmentAssignments => Set<UserDepartmentAssignment>();
     public DbSet<EmploymentHistory> EmploymentHistories => Set<EmploymentHistory>();
+    public DbSet<Profile> Profiles => Set<Profile>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<CustomerCompanyContext> CustomerCompanyContexts => Set<CustomerCompanyContext>();
     public DbSet<UserAuthAccount> UserAuthAccounts => Set<UserAuthAccount>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

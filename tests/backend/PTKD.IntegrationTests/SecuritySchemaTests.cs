@@ -27,6 +27,10 @@ public sealed class SecuritySchemaTests : IDisposable
 
     private static readonly string[] ExpectedPermissionCodes =
     [
+        "CUSTOMER_CREATE_FINAL",
+        "CUSTOMER_MASTER_UPDATE",
+        "CUSTOMER_VIEW_BASIC",
+        "CUSTOMER_VIEW_SENSITIVE",
         "ORGANIZATION_COMPANY_MANAGE",
         "ORGANIZATION_COMPANY_VIEW",
         "ORGANIZATION_DEPARTMENT_MANAGE",

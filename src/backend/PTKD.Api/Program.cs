@@ -103,6 +103,9 @@ builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserAssignmentService, UserAssignmentService>();
 
+// Customer Services (Phase 1B.2-B1)
+builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerService, PTKD.Application.Customers.Services.CustomerService>();
+
 // Authentication Services (Phase 1B.1-C-B)
 builder.Services.AddSingleton<AuthenticationAccountPolicy>();
 builder.Services.AddScoped<IPasswordHashService, AspNetCorePasswordHashService>();

@@ -30,7 +30,10 @@ public sealed class TestDatabaseFixture : IDisposable
         "User_Admin_Group_Assignments",
         "Authorization_Policy_State",
         "Security_Bootstrap_State",
-        "Security_Audit_Events"
+        "Security_Audit_Events",
+        "Profiles",
+        "Customers",
+        "Customer_Company_Contexts"
     };
 
     public TestDatabaseFixture()
@@ -127,6 +130,30 @@ public sealed class TestDatabaseFixture : IDisposable
                     connection,
                     transaction,
                     "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0004', 'V0004__seed_security_admin_manage_permission.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
+    public void ResetToV0005()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0004();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0005__create_customer_schema.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0005', 'V0005__create_customer_schema.sql', 'APPLIED');");
                 transaction.Commit();
             }
             catch
@@ -314,6 +341,10 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.Password_History;
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
+
+            DROP TABLE IF EXISTS dbo.Customer_Company_Contexts;
+            DROP TABLE IF EXISTS dbo.Customers;
+            DROP TABLE IF EXISTS dbo.Profiles;
 
             DROP TABLE IF EXISTS dbo.Employment_Histories;
             DROP TABLE IF EXISTS dbo.User_Department_Assignments;
