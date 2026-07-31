@@ -1,7 +1,7 @@
 # Phase 1B.3-A Workflow/Approval Engine Discovery and Detailed Plan
 
 **Status:**
-PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+PHASE 1B.3-A WORKFLOW/APPROVAL ENGINE PLAN ACCEPTED — SEE phase-1b3a-project-owner-plan-acceptance.md
 
 **Baseline:**
 ffae4a919f23ec7d13980cf7ae11351c54c27536
