@@ -1,18 +1,16 @@
-# Phase 1B.3-B1 Workflow Backend Foundation Final Closure Review
+# Phase 1B.3-B1 Workflow Backend Foundation Project Owner Final Acceptance
 
 ## Status
 
-PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
+ACCEPTED — PHASE 1B.3-B1 WORKFLOW BACKEND FOUNDATION COMPLETE
 
-PHASE 1B.3-B1 FINAL ACCEPTED — SEE phase-1b3b1-project-owner-final-acceptance.md
-
-## Reviewed Phase
+## Accepted Phase
 
 Phase 1B.3-B1 — Workflow Backend Foundation
 
-## Closure Baseline
+## Final Acceptance Baseline
 
-8dfd6c91577c54ad4cb7257c26080b2aba906213
+a31e8647b71874d009647b7e862ef738595cfff9
 
 ## Accepted Commits
 
@@ -24,31 +22,38 @@ Phase 1B.3-B1 — Workflow Backend Foundation
 | B1 implementation commit | f1fafacad81879fa72ca607616e68b34b7024bab |
 | B1 implementation acceptance review commit | 543c8d92ac4fe3a03c3523ad0d61c3e371b035c7 |
 | Project Owner B1 implementation acceptance commit | 8dfd6c91577c54ad4cb7257c26080b2aba906213 |
+| B1 closure review commit | a31e8647b71874d009647b7e862ef738595cfff9 |
 
 ---
 
-## Closure Findings
+## Project Owner Final Decision
 
-- Phase 1B.3-B1 was implemented under the accepted Phase 1B.3-A plan.
-- Permission sync was approved before implementation.
-- Workflow Backend Foundation implementation was accepted by Project Owner.
-- V0006 migration was accepted.
-- U0006 rollback was accepted.
-- 11 workflow database tables were accepted.
-- Workflow domain entities were accepted.
-- Workflow EF configurations were accepted.
-- Workflow application services were accepted.
-- Workflow validators were accepted.
-- Workflow API v2 controllers were accepted.
-- Workflow service registration was accepted.
-- Backend authorization was accepted.
-- Runtime service-layer authorization was accepted.
-- Audit behavior was accepted.
-- Sanitized error handling was accepted.
+The Project Owner accepts Phase 1B.3-B1 Workflow Backend Foundation as complete under the approved scope.
 
 ---
 
-## Permission Closure
+## Accepted Completed Scope
+
+- Workflow Backend Foundation complete.
+- Permission catalog-to-code synchronization complete for the six approved workflow constants.
+- V0006 migration complete.
+- U0006 rollback complete.
+- 11 workflow database tables complete.
+- Workflow domain entities complete.
+- Workflow EF configurations complete.
+- Workflow application services complete.
+- Workflow validators complete.
+- Workflow API v2 controllers complete.
+- Workflow service registration complete.
+- Backend authorization complete.
+- Runtime service-layer authorization complete.
+- Audit behavior complete.
+- Sanitized error handling complete.
+- Migration/rollback test coverage complete.
+
+---
+
+## Accepted Permission Sync
 
 - PermissionCodes.cs synchronized exactly six approved workflow constants:
   - WORKFLOW_VIEW
@@ -64,36 +69,37 @@ Phase 1B.3-B1 — Workflow Backend Foundation
 
 ---
 
-## Database Closure
+## Accepted Database Scope
 
-- Business_Process_Catalog accepted.
-- Workflow_Definitions accepted.
-- Workflow_Definition_Versions accepted.
-- Workflow_Steps accepted.
-- Workflow_Step_Approver_Rules accepted.
-- Workflow_Conditions accepted.
-- Workflow_Bindings accepted.
-- Workflow_Instances accepted.
-- Workflow_Instance_Steps accepted.
-- Workflow_Instance_Step_Assignees accepted.
-- Workflow_Actions accepted.
+- Business_Process_Catalog.
+- Workflow_Definitions.
+- Workflow_Definition_Versions.
+- Workflow_Steps.
+- Workflow_Step_Approver_Rules.
+- Workflow_Conditions.
+- Workflow_Bindings.
+- Workflow_Instances.
+- Workflow_Instance_Steps.
+- Workflow_Instance_Step_Assignees.
+- Workflow_Actions.
 - V0006 uses actual Permissions schema columns.
 - U0006 includes rollback coverage and dependency-order drops.
 - No production auto-migration is authorized.
 
 ---
 
-## Version/Snapshot Closure
+## Accepted Workflow Behavior
 
 - workflow_snapshot_json is captured when instance starts.
 - payload_hash is captured when instance starts.
 - Workflow instance stores frozen version_id and snapshot.
 - Active instances do not silently change approval route after workflow definition changes.
-- Active instance migration remains deferred and requires explicit admin action and audit.
+- Active instance migration is not implemented.
+- Future active instance migration requires explicit admin action and audit.
 
 ---
 
-## Authorization/Audit/Error Closure
+## Accepted Authorization/Audit/Error Behavior
 
 - Configuration endpoints use RequirePermission where applicable.
 - Runtime self-scoped endpoints use authenticated access and service-layer authorization.
@@ -103,10 +109,11 @@ Phase 1B.3-B1 — Workflow Backend Foundation
 - Configuration actions are audited.
 - Runtime actions are audited.
 - Sanitized error handling is implemented.
+- BusinessRuleValidationException, ConcurrencyException, and EntityNotFoundException patterns are used as appropriate.
 
 ---
 
-## Test Evidence Accepted
+## Accepted Test Evidence
 
 - dotnet build: 0 errors, 0 warnings.
 - Unit tests: 133 passed, 0 failed.
@@ -116,7 +123,7 @@ Phase 1B.3-B1 — Workflow Backend Foundation
 
 ---
 
-## Deferred Scope Confirmed
+## Accepted Deferred Scope
 
 - No frontend UI implemented.
 - No approval UI implemented.
@@ -132,11 +139,12 @@ Phase 1B.3-B1 — Workflow Backend Foundation
 
 ---
 
-## Residual Risks
+## Accepted Constraints
 
+- Backend must remain authoritative.
+- Runtime endpoints relying on service-layer authorization must remain covered by tests.
 - Future admin UI must match backend permissions and versioning model.
 - Future runtime UI must not bypass backend authorization.
-- Runtime self-scoped endpoints rely on service-layer authorization and must remain covered by tests.
 - Pilot business process remains undecided.
 - Active instance migration remains deferred.
 - Production migration remains separately controlled.
@@ -144,10 +152,19 @@ Phase 1B.3-B1 — Workflow Backend Foundation
 
 ---
 
-## Closure Decision
+## Residual Risks Accepted
 
-Phase 1B.3-B1 passes closure review and is ready for Project Owner final acceptance.
+- Runtime self-scoped endpoints rely on service-layer authorization.
+- Pilot business process is not yet selected.
+- Active instance migration remains future work.
+- Production migration/release requires separate approval.
+- Future B2/B3 UI must not weaken backend authorization.
 
-## Conclusion
+---
 
-PHASE 1B.3-B1 WORKFLOW BACKEND FOUNDATION CLOSURE REVIEW PASSED
+## Final Acceptance Conclusion
+
+Phase 1B.3-B1 Workflow Backend Foundation is complete.
+The next phase may be planned separately after Project Owner authorization.
+
+PHASE 1B.3-B1 WORKFLOW BACKEND FOUNDATION COMPLETE
