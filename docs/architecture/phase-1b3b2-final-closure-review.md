@@ -2,7 +2,7 @@
 
 ## Status
 
-PASSED — READY FOR PROJECT OWNER FINAL ACCEPTANCE
+PASSED — PHASE 1B.3-B2 FINAL ACCEPTED — SEE phase-1b3b2-project-owner-final-acceptance.md
 
 ## Reviewed Phase
 
