@@ -1,13 +1,13 @@
-# Phase 1B.2-B1 Customer Backend Foundation Final Closure Review
+# Phase 1B.2-B1 Customer Backend Foundation Project Owner Final Acceptance
 
 **Status:**
-ACCEPTED — PHASE 1B.2-B1 FINAL ACCEPTED — SEE phase-1b2b1-project-owner-final-acceptance.md
+ACCEPTED — PHASE 1B.2-B1 CUSTOMER BACKEND FOUNDATION COMPLETE
 
-**Reviewed phase:**
+**Accepted phase:**
 Phase 1B.2-B1 — Customer Backend Foundation
 
-**Closure baseline:**
-835b1b633761cb1e3cbadffa372a0274865fa970
+**Final acceptance baseline:**
+8881ebe264916ee91818b196489c508263e7288e
 
 ---
 
@@ -20,25 +20,31 @@ Phase 1B.2-B1 — Customer Backend Foundation
 | Implementation | 91828f55924085401ba2bf16a3519b59859dc1d2 |
 | Implementation acceptance review | 458a8ea478a97e2b8b38761054fde4dce851d73a |
 | Project Owner implementation acceptance | 835b1b633761cb1e3cbadffa372a0274865fa970 |
+| Closure review | 8881ebe264916ee91818b196489c508263e7288e |
 
 ---
 
-## Closure findings
+## Project Owner final decision
 
-- Phase 1B.2-B1 was implemented under the accepted Phase 1B.2-A plan.
-- Customer backend foundation implementation was accepted by Project Owner.
-- Database migration was accepted.
-- Rollback was accepted.
-- Profiles table was accepted.
-- Customers table was accepted.
-- Customer_Company_Contexts table was accepted.
-- rowVersion/concurrency was accepted.
-- Duplicate detection was accepted.
-- Sensitive projection/masking was accepted.
-- Atomic create Profile + Customer + Customer Company Context was accepted.
-- Admin update with reason and rowVersion was accepted.
-- Audit behavior was accepted.
-- API v2 Customer endpoints were accepted.
+The Project Owner accepts Phase 1B.2-B1 Customer Backend Foundation as complete under the approved scope.
+
+---
+
+## Accepted completed scope
+
+- Customer backend foundation complete.
+- Database migration complete.
+- Rollback complete.
+- Profiles table complete.
+- Customers table complete.
+- Customer_Company_Contexts table complete.
+- rowVersion/concurrency complete.
+- Duplicate detection complete.
+- Sensitive projection/masking complete.
+- Atomic create Profile + Customer + Customer Company Context complete.
+- Admin update with reason and rowVersion complete.
+- Audit behavior complete.
+- API v2 Customer endpoints complete according to the accepted plan.
 - Backend validation remains authoritative.
 - Backend authorization remains authoritative.
 - EF CRUD used for normal CRUD.
@@ -46,19 +52,24 @@ Phase 1B.2-B1 — Customer Backend Foundation
 
 ---
 
-## Permission closure
+## Accepted permission gates
 
-- CUSTOMER_VIEW_BASIC accepted.
-- CUSTOMER_VIEW_SENSITIVE accepted.
-- CUSTOMER_CREATE_FINAL accepted.
-- CUSTOMER_MASTER_UPDATE accepted.
+- CUSTOMER_VIEW_BASIC.
+- CUSTOMER_VIEW_SENSITIVE.
+- CUSTOMER_CREATE_FINAL.
+- CUSTOMER_MASTER_UPDATE.
+
+---
+
+## Accepted permission/code constraints
+
 - PermissionCodes.cs synchronization accepted as existing approved catalog-code synchronization only.
 - permission-catalog.md unchanged.
 - No new permission code names added.
 
 ---
 
-## Test evidence accepted
+## Accepted test evidence
 
 - Build passed with 0 errors.
 - Unit tests: 133 passed.
@@ -68,7 +79,7 @@ Phase 1B.2-B1 — Customer Backend Foundation
 
 ---
 
-## Deferred scope confirmed
+## Accepted deferred scope
 
 - Frontend Customer UI remains deferred.
 - Workflow/approval runtime remains deferred.
@@ -90,7 +101,7 @@ Phase 1B.2-B1 — Customer Backend Foundation
 
 ---
 
-## Residual risks
+## Residual risks accepted
 
 | # | Risk | Severity |
 |---|------|----------|
@@ -100,12 +111,12 @@ Phase 1B.2-B1 — Customer Backend Foundation
 | 4 | Customer merge remains a future capability | Medium |
 | 5 | ENTITY scope remains deferred and must not be introduced silently | Low |
 | 6 | Service/Payment integration remains future work | Low |
-| 7 | Company context data isolation (DATA-004) enforcement deferred until user company assignment filtering is fully specified | Medium |
 
 ---
 
-## Closure decision
+## Final acceptance conclusion
 
-Phase 1B.2-B1 passes closure review and is ready for Project Owner final acceptance.
+Phase 1B.2-B1 Customer Backend Foundation is complete.
+The next phase may be planned separately after Project Owner authorization.
 
-PHASE 1B.2-B1 CUSTOMER BACKEND FOUNDATION CLOSURE REVIEW PASSED
+PHASE 1B.2-B1 CUSTOMER BACKEND FOUNDATION COMPLETE
