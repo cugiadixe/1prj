@@ -1,7 +1,7 @@
 # Phase 1B.2-B2 Customer Frontend UI Implementation Acceptance Review
 
 **Status:**
-PASSED — READY FOR PROJECT OWNER IMPLEMENTATION ACCEPTANCE
+ACCEPTED — PHASE 1B.2-B2 IMPLEMENTATION ACCEPTED — SEE phase-1b2b2-project-owner-implementation-acceptance.md
 
 **Implementation commit:**
 9b9ff1900cbbf81d7fbd7a3622f5c1836a2291cd
