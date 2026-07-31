@@ -1,7 +1,7 @@
 # Phase 1B.2-B2 Customer Frontend UI Project Owner Implementation Acceptance
 
 **Status:**
-ACCEPTED — PHASE 1B.2-B2 CUSTOMER FRONTEND UI IMPLEMENTATION ACCEPTED
+ACCEPTED — PHASE 1B.2-B2 CLOSURE REVIEW PASSED — SEE phase-1b2b2-final-closure-review.md
 
 **Accepted implementation:**
 Phase 1B.2-B2 — Customer Frontend UI
