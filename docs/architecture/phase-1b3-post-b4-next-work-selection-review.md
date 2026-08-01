@@ -2,6 +2,7 @@
 
 ## Status
 PROPOSED — AWAITING PROJECT OWNER NEXT-WORK SELECTION
+PROJECT OWNER SELECTED OPTION A — SEE phase-1b3-post-b4-project-owner-next-work-decision.md
 
 ## Current baseline
 - Current HEAD:
