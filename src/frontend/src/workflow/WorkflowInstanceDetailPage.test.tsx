@@ -21,6 +21,13 @@ vi.mock('./workflowRuntimeApi', () => ({
   resubmitInstance: vi.fn(),
   withdrawInstance: vi.fn(),
   reassignStep: vi.fn(),
+  rejectStep: vi.fn(),
+  retryExecution: vi.fn(),
+  getInstanceActions: vi.fn(),
+}));
+
+vi.mock('./WorkflowActionHistoryPanel', () => ({
+  default: () => <div data-testid="action-history">Action History</div>,
 }));
 
 import { getInstance } from './workflowRuntimeApi';
@@ -229,22 +236,84 @@ describe('WorkflowInstanceDetailPage', () => {
     });
   });
 
-  it('does not render action history timeline', async () => {
+  it('renders action history panel', async () => {
     mockGetInstance.mockResolvedValue(mockInstance);
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument();
+      expect(screen.getByTestId('action-history')).toBeInTheDocument();
     });
-    expect(screen.queryByTestId('action-history')).not.toBeInTheDocument();
   });
 
-  it('does not render reject button', async () => {
+  it('shows reject button when user has WORKFLOW_REJECT, is assignee, and not requester', async () => {
     mockGetInstance.mockResolvedValue(mockInstance);
+    mockUseAuth.mockReturnValue({ user: { userId: 5, username: 'approver', displayName: 'Approver' } });
+    mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_REJECT');
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('reject-btn-1')).toBeInTheDocument();
+    });
+  });
+
+  it('hides reject button when user lacks WORKFLOW_REJECT permission', async () => {
+    mockGetInstance.mockResolvedValue(mockInstance);
+    mockUseAuth.mockReturnValue({ user: { userId: 5, username: 'approver', displayName: 'Approver' } });
+    mockHasPermission.mockReturnValue(false);
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument();
     });
-    expect(screen.queryByTestId('reject-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('reject-btn-1')).not.toBeInTheDocument();
+  });
+
+  it('hides reject button when user is requester', async () => {
+    mockGetInstance.mockResolvedValue(mockInstance);
+    mockUseAuth.mockReturnValue({ user: { userId: 99, username: 'requester', displayName: 'Requester' } });
+    mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_REJECT');
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('reject-btn-1')).not.toBeInTheDocument();
+  });
+
+  it('hides reject button when user is not assignee', async () => {
+    mockGetInstance.mockResolvedValue(mockInstance);
+    mockUseAuth.mockReturnValue({ user: { userId: 999, username: 'other', displayName: 'Other' } });
+    mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_REJECT');
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('reject-btn-1')).not.toBeInTheDocument();
+  });
+
+  it('shows retry button when instance is FAILED and user has WORKFLOW_RETRY_EXECUTION', async () => {
+    mockGetInstance.mockResolvedValue({ ...mockInstance, instanceStatus: 'FAILED', steps: [] });
+    mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_RETRY_EXECUTION');
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('retry-execution-btn')).toBeInTheDocument();
+    });
+  });
+
+  it('hides retry button when instance is not FAILED', async () => {
+    mockGetInstance.mockResolvedValue(mockInstance);
+    mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_RETRY_EXECUTION');
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('retry-execution-btn')).not.toBeInTheDocument();
+  });
+
+  it('hides retry button when user lacks WORKFLOW_RETRY_EXECUTION permission', async () => {
+    mockGetInstance.mockResolvedValue({ ...mockInstance, instanceStatus: 'FAILED', steps: [] });
+    mockHasPermission.mockReturnValue(false);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('retry-execution-btn')).not.toBeInTheDocument();
   });
 
   it('does not display raw payload JSON', async () => {

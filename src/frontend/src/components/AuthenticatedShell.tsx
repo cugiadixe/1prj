@@ -99,6 +99,9 @@ const AuthenticatedShell: React.FC = () => {
             <Menu.Item key="my-approvals" data-testid="nav-my-approvals">
               <Link to="/workflow/my-approvals">My Approvals</Link>
             </Menu.Item>
+            <Menu.Item key="my-requests" data-testid="nav-my-requests">
+              <Link to="/workflow/my-requests">My Requests</Link>
+            </Menu.Item>
             {hasPermission('WORKFLOW_VIEW', 'GLOBAL') && (
               <Menu.Item key="workflow" data-testid="nav-workflow">
                 <Link to="/workflow">Workflow Admin</Link>

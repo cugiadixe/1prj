@@ -3,6 +3,7 @@ import type {
   ApprovalActionRequest,
   MyApprovalItem,
   ReassignStepRequest,
+  WorkflowActionDto,
   WorkflowInstance,
 } from './types';
 
@@ -60,6 +61,35 @@ export async function withdrawInstance(
   const { data } = await axiosClient.post<WorkflowInstance>(
     `${BASE}/instances/${instanceId}/withdraw`,
     { targetVersion },
+  );
+  return data;
+}
+
+export async function getMyRequests(): Promise<WorkflowInstance[]> {
+  const { data } = await axiosClient.get<WorkflowInstance[]>(`${BASE}/my-requests`);
+  return data;
+}
+
+export async function getInstanceActions(instanceId: number): Promise<WorkflowActionDto[]> {
+  const { data } = await axiosClient.get<WorkflowActionDto[]>(`${BASE}/instances/${instanceId}/actions`);
+  return data;
+}
+
+export async function rejectStep(
+  instanceId: number,
+  stepId: number,
+  request: ApprovalActionRequest,
+): Promise<WorkflowInstance> {
+  const { data } = await axiosClient.post<WorkflowInstance>(
+    `${BASE}/instances/${instanceId}/steps/${stepId}/reject`,
+    request,
+  );
+  return data;
+}
+
+export async function retryExecution(instanceId: number): Promise<WorkflowInstance> {
+  const { data } = await axiosClient.post<WorkflowInstance>(
+    `${BASE}/instances/${instanceId}/retry-execution`,
   );
   return data;
 }

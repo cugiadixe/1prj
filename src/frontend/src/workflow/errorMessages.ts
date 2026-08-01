@@ -22,6 +22,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   WF_NO_ASSIGNEE_FOR_STEP: 'No valid approvers could be resolved for a step.',
   WF_REASON_REQUIRED: 'Reason is required for this action.',
   WF_USER_NOT_FOUND: 'Target user not found or inactive.',
+  WF_INSTANCE_NOT_FAILED: 'Only failed instances can be retried.',
+  WF_ALREADY_REJECTED: 'This step has already been rejected.',
 };
 
 export const GENERIC_ERROR = 'An error occurred. Please try again.';

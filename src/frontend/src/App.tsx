@@ -31,6 +31,7 @@ import WorkflowVersionCreatePage from './workflow/WorkflowVersionCreatePage';
 import WorkflowVersionDetailPage from './workflow/WorkflowVersionDetailPage';
 import WorkflowBindingsPage from './workflow/WorkflowBindingsPage';
 import WorkflowMyApprovalsPage from './workflow/WorkflowMyApprovalsPage';
+import WorkflowMyRequestsPage from './workflow/WorkflowMyRequestsPage';
 import WorkflowInstanceDetailPage from './workflow/WorkflowInstanceDetailPage';
 import CustomerProposalCreatePage from './customers/CustomerProposalCreatePage';
 import CustomerProposalDetailPage from './customers/CustomerProposalDetailPage';
@@ -111,6 +112,7 @@ const App: React.FC = () => {
               <Route path="workflow/bindings" element={<WorkflowBindingsPage />} />
               {/* Phase 1B.3-B3 — Workflow Runtime / My Approvals UI */}
               <Route path="workflow/my-approvals" element={<WorkflowMyApprovalsPage />} />
+              <Route path="workflow/my-requests" element={<WorkflowMyRequestsPage />} />
               <Route path="workflow/instances/:instanceId" element={<WorkflowInstanceDetailPage />} />
             </Route>
 

@@ -200,6 +200,18 @@ export interface WorkflowInstanceStepAssignee {
   approverSourceType: string;
 }
 
+export interface WorkflowActionDto {
+  id: number;
+  workflowInstanceStepId: number;
+  workflowInstanceId: number;
+  actionType: string;
+  actedBy: number;
+  onBehalfOf: number | null;
+  reason: string | null;
+  comment: string | null;
+  createdAt: string;
+}
+
 export interface ApprovalActionRequest {
   reason?: string | null;
   comment?: string | null;

@@ -20,12 +20,17 @@ import {
   approveStep,
   getInstance,
   reassignStep,
+  rejectStep,
   resubmitInstance,
+  retryExecution,
   returnStep,
   withdrawInstance,
 } from './workflowRuntimeApi';
 import { getErrorMessage, isConcurrencyError, isPermissionDenied } from './errorMessages';
 import type { WorkflowInstanceStep } from './types';
+import WorkflowActionHistoryPanel from './WorkflowActionHistoryPanel';
+import WorkflowRejectDialog from './WorkflowRejectDialog';
+import WorkflowRetryExecutionButton from './WorkflowRetryExecutionButton';
 
 const { Title } = Typography;
 
@@ -36,6 +41,10 @@ const INSTANCE_STATUS_COLORS: Record<string, string> = {
   PENDING_EXECUTION: 'cyan',
   COMPLETED: 'green',
   CANCELLED: 'default',
+  REJECTED: 'volcano',
+  EXECUTING: 'geekblue',
+  EXECUTED: 'green',
+  FAILED: 'magenta',
 };
 
 const STEP_STATUS_COLORS: Record<string, string> = {
@@ -43,6 +52,7 @@ const STEP_STATUS_COLORS: Record<string, string> = {
   WAITING: 'default',
   APPROVED: 'green',
   RETURNED: 'orange',
+  REJECTED: 'volcano',
   CANCELLED: 'default',
 };
 
@@ -58,6 +68,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
   const [activeStepId, setActiveStepId] = useState<number | null>(null);
   const [activeStepRowVersion, setActiveStepRowVersion] = useState<string>('');
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [approveForm] = Form.useForm();
   const [returnForm] = Form.useForm();
   const [reassignForm] = Form.useForm();
@@ -135,6 +146,30 @@ const WorkflowInstanceDetailPage: React.FC = () => {
     onError: handleError,
   });
 
+  const rejectMutation = useMutation({
+    mutationFn: (vals: { reason: string; comment?: string }) =>
+      rejectStep(numericId, activeStepId!, {
+        reason: vals.reason,
+        comment: vals.comment || null,
+        targetVersion: activeStepRowVersion,
+      }),
+    onSuccess: () => {
+      onSuccess();
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance-actions', numericId] });
+      setRejectModalOpen(false);
+    },
+    onError: handleError,
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: () => retryExecution(numericId),
+    onSuccess: () => {
+      onSuccess();
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance-actions', numericId] });
+    },
+    onError: handleError,
+  });
+
   if (isPermissionDenied(error)) {
     return (
       <Alert
@@ -163,6 +198,8 @@ const WorkflowInstanceDetailPage: React.FC = () => {
   const isRequester = currentUserId === instance.requesterId;
   const canResubmit = isRequester && instance.instanceStatus === 'RETURNED';
   const canWithdraw = isRequester && (instance.instanceStatus === 'PENDING_APPROVAL' || instance.instanceStatus === 'RETURNED');
+  const canRetry = hasPermission('WORKFLOW_RETRY_EXECUTION', 'GLOBAL') && instance.instanceStatus === 'FAILED';
+  const canReject = hasPermission('WORKFLOW_REJECT', 'GLOBAL');
 
   const openApproveModal = (step: WorkflowInstanceStep) => {
     setActiveStepId(step.id);
@@ -183,6 +220,12 @@ const WorkflowInstanceDetailPage: React.FC = () => {
     setActiveStepRowVersion(step.rowVersion);
     reassignForm.resetFields();
     setReassignModalOpen(true);
+  };
+
+  const openRejectModal = (step: WorkflowInstanceStep) => {
+    setActiveStepId(step.id);
+    setActiveStepRowVersion(step.rowVersion);
+    setRejectModalOpen(true);
   };
 
   const handleResubmit = () => {
@@ -239,6 +282,11 @@ const WorkflowInstanceDetailPage: React.FC = () => {
                 Return
               </Button>
             )}
+            {canReject && isAssignee && !isRequester && (
+              <Button size="small" danger onClick={() => openRejectModal(record)} data-testid={`reject-btn-${record.id}`}>
+                Reject
+              </Button>
+            )}
             {canReassign && (
               <Button size="small" onClick={() => openReassignModal(record)} data-testid={`reassign-btn-${record.id}`}>
                 Reassign
@@ -269,6 +317,12 @@ const WorkflowInstanceDetailPage: React.FC = () => {
             <Button danger onClick={handleWithdraw} loading={withdrawMutation.isPending} data-testid="withdraw-btn">
               Withdraw
             </Button>
+          )}
+          {canRetry && (
+            <WorkflowRetryExecutionButton
+              loading={retryMutation.isPending}
+              onRetry={() => retryMutation.mutate()}
+            />
           )}
         </Space>
       </Space>
@@ -362,6 +416,16 @@ const WorkflowInstanceDetailPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <WorkflowActionHistoryPanel instanceId={numericId} />
+
+      {/* Reject Modal */}
+      <WorkflowRejectDialog
+        open={rejectModalOpen}
+        loading={rejectMutation.isPending}
+        onCancel={() => setRejectModalOpen(false)}
+        onSubmit={(vals) => rejectMutation.mutate(vals)}
+      />
 
       {/* Reassign Modal */}
       <Modal

@@ -122,4 +122,10 @@ describe('AuthenticatedShell Navigation Gating', () => {
     renderShell();
     expect(screen.getByTestId('nav-my-approvals')).toBeInTheDocument();
   });
+
+  it('shows My Requests menu item to all authenticated users without permission gate', () => {
+    mockHasPermission.mockReturnValue(false);
+    renderShell();
+    expect(screen.getByTestId('nav-my-requests')).toBeInTheDocument();
+  });
 });

@@ -8,6 +8,10 @@ import {
   resubmitInstance,
   withdrawInstance,
   reassignStep,
+  getMyRequests,
+  getInstanceActions,
+  rejectStep,
+  retryExecution,
 } from './workflowRuntimeApi';
 
 vi.mock('../api/axiosClient', () => ({
@@ -72,18 +76,33 @@ describe('workflowRuntimeApi', () => {
     expect('createInstance' in mod).toBe(false);
   });
 
-  it('does not expose getMyRequests function', async () => {
-    const mod = await import('./workflowRuntimeApi');
-    expect('getMyRequests' in mod).toBe(false);
+  it('getMyRequests calls GET /workflows/my-requests', async () => {
+    mockAxios.get.mockResolvedValue({ data: [] });
+    await getMyRequests();
+    expect(mockAxios.get).toHaveBeenCalledWith('/workflows/my-requests');
   });
 
-  it('does not expose getActionHistory function', async () => {
-    const mod = await import('./workflowRuntimeApi');
-    expect('getActionHistory' in mod).toBe(false);
+  it('getInstanceActions calls GET /workflows/instances/:id/actions', async () => {
+    mockAxios.get.mockResolvedValue({ data: [] });
+    await getInstanceActions(1);
+    expect(mockAxios.get).toHaveBeenCalledWith('/workflows/instances/1/actions');
   });
 
-  it('does not expose rejectStep function', async () => {
+  it('rejectStep calls POST /workflows/instances/:id/steps/:stepId/reject', async () => {
+    const req = { reason: 'bad data', comment: null, targetVersion: 'AA' };
+    mockAxios.post.mockResolvedValue({ data: { id: 1 } });
+    await rejectStep(1, 2, req);
+    expect(mockAxios.post).toHaveBeenCalledWith('/workflows/instances/1/steps/2/reject', req);
+  });
+
+  it('retryExecution calls POST /workflows/instances/:id/retry-execution', async () => {
+    mockAxios.post.mockResolvedValue({ data: { id: 1 } });
+    await retryExecution(1);
+    expect(mockAxios.post).toHaveBeenCalledWith('/workflows/instances/1/retry-execution');
+  });
+
+  it('does not expose createInstance function', async () => {
     const mod = await import('./workflowRuntimeApi');
-    expect('rejectStep' in mod).toBe(false);
+    expect('createInstance' in mod).toBe(false);
   });
 });
