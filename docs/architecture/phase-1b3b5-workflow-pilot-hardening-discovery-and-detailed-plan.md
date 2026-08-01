@@ -2,6 +2,7 @@
 
 ## Status
 PROPOSED — AWAITING PROJECT OWNER APPROVAL
+PHASE 1B.3-B5 PLAN ACCEPTED — SEE phase-1b3b5-project-owner-plan-acceptance.md
 
 ## Baseline
 - Current HEAD:
