@@ -3,6 +3,7 @@
 ## Status
 
 PROPOSED — AWAITING PROJECT OWNER BACKEND/DATA SCOPE ACCEPTANCE
+PHASE 1B.4-B BACKEND/DATA FOUNDATION SCOPE ACCEPTED — SEE phase-1b4b-project-owner-backend-data-scope-acceptance.md
 
 ## Planning Baseline
 
