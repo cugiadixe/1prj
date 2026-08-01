@@ -6,6 +6,7 @@ import { usePermissions } from '../auth/AuthProvider';
 import { getCustomerById, getCompanyContexts } from './customersApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
 import type { CustomerCompanyContext } from './types';
+import CustomerMasterChangeRequestForm from './CustomerMasterChangeRequestForm';
 
 const { Title } = Typography;
 
@@ -13,7 +14,7 @@ const CustomerDetailPage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const { hasPermission } = usePermissions();
   const id = Number(customerId);
-
+  const [showChangeForm, setShowChangeForm] = React.useState(false);
   const {
     data: customer,
     isLoading,
@@ -56,6 +57,17 @@ const CustomerDetailPage: React.FC = () => {
   }
 
   if (!customer) return null;
+
+  if (showChangeForm) {
+    return (
+      <CustomerMasterChangeRequestForm
+        customerId={id}
+        customerName={customer.profile.fullName}
+        targetRowVersion={customer.rowVersion}
+        onCancel={() => setShowChangeForm(false)}
+      />
+    );
+  }
 
   const profile = customer.profile;
   const isMasked = (val: string | null) =>
@@ -102,6 +114,11 @@ const CustomerDetailPage: React.FC = () => {
           <Button>
             <Link to="/customers">Back to List</Link>
           </Button>
+          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') && (
+            <Button data-testid="request-change-btn" onClick={() => setShowChangeForm(true)}>
+              Request Change
+            </Button>
+          )}
           {hasPermission('CUSTOMER_MASTER_UPDATE', 'GLOBAL') && (
             <Button type="primary" data-testid="edit-customer-btn">
               <Link to={`/customers/${id}/edit`}>Edit</Link>
