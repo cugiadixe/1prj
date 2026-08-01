@@ -2,7 +2,7 @@
 
 ## Status
 
-PROPOSED — AWAITING PROJECT OWNER PLAN REVIEW
+PHASE 1B.3-B4 PLAN ACCEPTED — SEE phase-1b3b4-project-owner-plan-acceptance.md
 
 ## Baseline
 
