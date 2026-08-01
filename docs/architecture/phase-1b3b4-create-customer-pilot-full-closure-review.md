@@ -2,6 +2,7 @@
 
 ## Status
 PASSED — READY FOR PROJECT OWNER FINAL B4 ACCEPTANCE
+PHASE 1B.3-B4 CREATE_CUSTOMER PILOT ACCEPTED — SEE phase-1b3b4-project-owner-final-acceptance.md
 
 ## 3. Closure scope
 Phase 1B.3-B4 — CREATE_CUSTOMER Workflow Pilot Integration
