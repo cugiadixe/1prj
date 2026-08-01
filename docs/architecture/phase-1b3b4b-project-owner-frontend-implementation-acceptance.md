@@ -1,13 +1,12 @@
-# Phase 1B.3-B4-B CREATE_CUSTOMER Frontend Pilot Implementation Acceptance Review
+# Phase 1B.3-B4-B CREATE_CUSTOMER Frontend Pilot Project Owner Implementation Acceptance
 
-**Status:** PASSED — READY FOR PROJECT OWNER FRONTEND IMPLEMENTATION ACCEPTANCE
-**PHASE 1B.3-B4-B FRONTEND IMPLEMENTATION ACCEPTED — SEE phase-1b3b4b-project-owner-frontend-implementation-acceptance.md**
+**Status:** ACCEPTED — PHASE 1B.3-B4-B CREATE_CUSTOMER FRONTEND PILOT ACCEPTED
 
-**Reviewed implementation:** Phase 1B.3-B4-B — CREATE_CUSTOMER Frontend Proposal / Status UX
+**Accepted implementation:** Phase 1B.3-B4-B — CREATE_CUSTOMER Frontend Proposal / Status UX
 
-**Implementation commit:** `1464dbb5d47f24011e3aa0ec866b2ac7a149d997`
+**Accepted frontend implementation commit:** `1464dbb5d47f24011e3aa0ec866b2ac7a149d997`
 
-**Implementation parent:** `17e049d0f791dc8e0b1056d18d856a31a82c69f8`
+**Accepted frontend implementation acceptance review commit:** `7205bf394fcfb959dbb0fdf6015ccf474761bf1c`
 
 **B4-A backend acceptance commit:** `17e049d0f791dc8e0b1056d18d856a31a82c69f8`
 
@@ -15,27 +14,11 @@
 
 **B4 implementation authorization commit:** `a68518d7edaa64d197baa320dfb7318e89b318a9`
 
-## Exact Committed File List
+## Project Owner Decision
+The Project Owner accepts the Phase 1B.3-B4-B CREATE_CUSTOMER frontend pilot implementation.
 
-```text
-M	src/frontend/src/App.tsx
-M	src/frontend/src/components/AuthenticatedShell.test.tsx
-M	src/frontend/src/components/AuthenticatedShell.tsx
-A	src/frontend/src/customers/CustomerMyProposalsPage.test.tsx
-A	src/frontend/src/customers/CustomerMyProposalsPage.tsx
-A	src/frontend/src/customers/CustomerProposalCreatePage.test.tsx
-A	src/frontend/src/customers/CustomerProposalCreatePage.tsx
-A	src/frontend/src/customers/CustomerProposalDetailPage.test.tsx
-A	src/frontend/src/customers/CustomerProposalDetailPage.tsx
-M	src/frontend/src/customers/CustomersPage.test.tsx
-M	src/frontend/src/customers/CustomersPage.tsx
-A	src/frontend/src/customers/customerProposalApi.test.ts
-A	src/frontend/src/customers/customerProposalApi.ts
-A	src/frontend/src/customers/customerProposalTypes.ts
-```
-
-## Accepted Scope Findings
-- CREATE_CUSTOMER only implemented.
+## Accepted Frontend Scope
+- CREATE_CUSTOMER only.
 - Frontend proposal/status UX implemented.
 - Direct-create coexistence Option A preserved.
 - Existing direct customer create route unchanged.
@@ -82,9 +65,15 @@ A	src/frontend/src/customers/customerProposalTypes.ts
 - No localStorage/sessionStorage/cookie persistence for permissions, workflow state, approval eligibility, or proposal state.
 - No sensitive logging.
 
+## Accepted Test Evidence
+- `npx oxlint` — passed.
+- `npx tsc -b` — passed, 0 errors.
+- `npx vitest run` — 40 test files passed, 345 tests passed, 0 failed.
+- `git diff --check` — clean.
+
 ## Accepted Deferred Scope
 - No backend source/tests changed.
-- No docs changed.
+- No docs changed in implementation commit.
 - No migrations/rollbacks/database scripts changed.
 - No PermissionCodes.cs change.
 - No permission-catalog.md change.
@@ -97,20 +86,8 @@ A	src/frontend/src/customers/customerProposalTypes.ts
 - No Service/Payment/Merge/Card/Plot/ENTITY.
 - No production migration/release.
 
-## Test Evidence
-- `npx oxlint` — passed.
-- `npx tsc -b` — passed, 0 errors.
-- `npx vitest run` — 40 test files passed, 345 tests passed, 0 failed.
-- `git diff --check` — clean.
-
-## Residual Risks and Follow-up
-- B4 full closure still required after frontend acceptance.
-- My Requests/action history/reject remain deferred.
-- CUSTOMER_MASTER_CHANGE remains deferred.
-- Execution failure retry UX may need future enhancement after operational feedback.
-- User lookup/reassign UX remains future concern.
-- Production migration/release remains deferred.
-- Future payload changes must preserve metadata-only exposure.
+## Accepted Next Task
+Proceed to Phase 1B.3-B4 full closure review, covering accepted B4-A backend and B4-B frontend implementation.
 
 ## Conclusion
-PHASE 1B.3-B4-B CREATE_CUSTOMER FRONTEND PILOT IMPLEMENTATION ACCEPTANCE REVIEW PASSED
+PHASE 1B.3-B4-B CREATE_CUSTOMER FRONTEND PILOT ACCEPTED
