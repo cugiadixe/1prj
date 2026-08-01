@@ -29,6 +29,7 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<WorkflowInstanceStep> WorkflowInstanceSteps { get; }
     DbSet<WorkflowInstanceStepAssignee> WorkflowInstanceStepAssignees { get; }
     DbSet<WorkflowAction> WorkflowActions { get; }
+    DbSet<CustomerChangeRequest> CustomerChangeRequests { get; }
 
     System.Data.Common.DbConnection GetDbConnection();
     System.Data.Common.DbTransaction? GetCurrentDbTransaction();

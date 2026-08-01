@@ -44,7 +44,8 @@ public sealed class TestDatabaseFixture : IDisposable
         "Workflow_Instances",
         "Workflow_Instance_Steps",
         "Workflow_Instance_Step_Assignees",
-        "Workflow_Actions"
+        "Workflow_Actions",
+        "Customer_Change_Requests"
     };
 
     public TestDatabaseFixture()
@@ -353,6 +354,7 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
 
+            DROP TABLE IF EXISTS dbo.Customer_Change_Requests;
             DROP TABLE IF EXISTS dbo.Workflow_Actions;
             DROP TABLE IF EXISTS dbo.Workflow_Instance_Step_Assignees;
             DROP TABLE IF EXISTS dbo.Workflow_Instance_Steps;

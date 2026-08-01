@@ -20,12 +20,14 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
     private readonly IApproverResolver _approverResolver;
+    private readonly IWorkflowExecutionHandlerFactory _executionHandlerFactory;
 
-    public WorkflowRuntimeService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter, IApproverResolver approverResolver)
+    public WorkflowRuntimeService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter, IApproverResolver approverResolver, IWorkflowExecutionHandlerFactory executionHandlerFactory)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
         _approverResolver = approverResolver;
+        _executionHandlerFactory = executionHandlerFactory;
     }
 
     public async Task<WorkflowInstanceDto> CreateInstanceAsync(CreateWorkflowInstanceRequest request, long requesterId, CancellationToken ct = default)
@@ -213,6 +215,31 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
 
             await transaction.CommitAsync(ct);
+
+            if (instance.InstanceStatus == "PENDING_EXECUTION")
+            {
+                var handler = _executionHandlerFactory.GetHandler(instance.ProcessCode);
+                if (handler != null)
+                {
+                    try
+                    {
+                        await handler.ExecuteAsync(instance, ct);
+                    }
+                    catch (Exception)
+                    {
+                        await using var failCtx = _dbContextFactory.CreateDbContext();
+                        var failStrategy = failCtx.CreateExecutionStrategy();
+                        await failStrategy.ExecuteAsync(async () =>
+                        {
+                            await using var ctx = _dbContextFactory.CreateDbContext();
+                            var wi = await ctx.WorkflowInstances.FirstAsync(w => w.Id == instanceId, ct);
+                            wi.SetFailed();
+                            await ctx.SaveChangesAsync(ct);
+                        });
+                        throw;
+                    }
+                }
+            }
 
             return await LoadInstanceDtoAsync(context, instanceId, ct);
         });

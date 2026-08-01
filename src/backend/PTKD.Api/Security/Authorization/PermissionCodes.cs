@@ -52,4 +52,6 @@ public static class PermissionCodes
     public const string WorkflowBindProcess = "WORKFLOW_BIND_PROCESS";
     public const string WorkflowReassignPending = "WORKFLOW_REASSIGN_PENDING";
     public const string WorkflowAuditView = "WORKFLOW_AUDIT_VIEW";
+
+    public const string CustomerChangeRequestCreate = "CUSTOMER_CHANGE_REQUEST_CREATE";
 }
