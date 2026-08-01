@@ -248,6 +248,30 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0009()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0008();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0009__add_customer_change_request_target_fields.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0009', 'V0009__add_customer_change_request_target_fields.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);

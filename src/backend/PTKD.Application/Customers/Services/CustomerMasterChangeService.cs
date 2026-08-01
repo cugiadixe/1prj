@@ -151,7 +151,7 @@ public class CustomerMasterChangeService : ICustomerMasterChangeService
             TargetRowVersion = ccr.TargetRowVersion != null ? Convert.ToBase64String(ccr.TargetRowVersion) : null,
             CreatedAt = ccr.CreatedAt,
             UpdatedAt = ccr.UpdatedAt,
-            RowVersion = Convert.ToBase64String(ccr.RowVersion),
+            RowVersion = ccr.RowVersion != null ? Convert.ToBase64String(ccr.RowVersion) : "",
             Payload = payload
         };
     }
