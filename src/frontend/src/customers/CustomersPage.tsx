@@ -72,11 +72,18 @@ const CustomersPage: React.FC = () => {
     <div data-testid="customers-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Customers</Title>
-        {hasPermission('CUSTOMER_CREATE_FINAL', 'GLOBAL') && (
-          <Button type="primary" data-testid="create-customer-btn">
-            <Link to="/customers/new">Create Customer</Link>
-          </Button>
-        )}
+        <Space>
+          {hasPermission('CUSTOMER_CREATE_FINAL', 'GLOBAL') && (
+            <Button type="primary" data-testid="create-customer-btn">
+              <Link to="/customers/new">Create Customer</Link>
+            </Button>
+          )}
+          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') && (
+            <Button type="default" data-testid="submit-customer-proposal-btn">
+              <Link to="/customers/proposals/new">Submit Proposal</Link>
+            </Button>
+          )}
+        </Space>
       </Space>
 
       <Space style={{ marginBottom: 16 }}>

@@ -91,6 +91,11 @@ const AuthenticatedShell: React.FC = () => {
                 <Link to="/customers">Customers</Link>
               </Menu.Item>
             )}
+            {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') && (
+              <Menu.Item key="customer-proposals" data-testid="nav-customer-proposals">
+                <Link to="/customers/proposals">My Proposals</Link>
+              </Menu.Item>
+            )}
             <Menu.Item key="my-approvals" data-testid="nav-my-approvals">
               <Link to="/workflow/my-approvals">My Approvals</Link>
             </Menu.Item>

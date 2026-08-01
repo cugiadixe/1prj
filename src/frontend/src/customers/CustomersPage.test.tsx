@@ -97,6 +97,24 @@ describe('CustomersPage', () => {
     });
   });
 
+  it('shows submit proposal button only with CUSTOMER_CHANGE_REQUEST_CREATE', async () => {
+    mockSearchCustomers.mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 });
+    mockHasPermission.mockImplementation((p: string) => p === 'CUSTOMER_CHANGE_REQUEST_CREATE');
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('submit-customer-proposal-btn')).toBeInTheDocument();
+    });
+  });
+
+  it('hides submit proposal button without CUSTOMER_CHANGE_REQUEST_CREATE', async () => {
+    mockSearchCustomers.mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 });
+    mockHasPermission.mockReturnValue(false);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.queryByTestId('submit-customer-proposal-btn')).not.toBeInTheDocument();
+    });
+  });
+
   it('shows error state on API failure', async () => {
     mockSearchCustomers.mockRejectedValue(new Error('Network error'));
     renderPage();

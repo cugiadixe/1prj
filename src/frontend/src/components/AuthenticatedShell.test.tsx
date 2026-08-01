@@ -91,6 +91,18 @@ describe('AuthenticatedShell Navigation Gating', () => {
     expect(screen.queryByTestId('nav-customers')).not.toBeInTheDocument();
   });
 
+  it('shows My Proposals menu item when CUSTOMER_CHANGE_REQUEST_CREATE is granted', () => {
+    mockHasPermission.mockImplementation((perm: string) => perm === 'CUSTOMER_CHANGE_REQUEST_CREATE');
+    renderShell();
+    expect(screen.getByTestId('nav-customer-proposals')).toBeInTheDocument();
+  });
+
+  it('hides My Proposals menu item when CUSTOMER_CHANGE_REQUEST_CREATE is not granted', () => {
+    mockHasPermission.mockReturnValue(false);
+    renderShell();
+    expect(screen.queryByTestId('nav-customer-proposals')).not.toBeInTheDocument();
+  });
+
   it('shows Workflow Admin menu item when WORKFLOW_VIEW is granted', () => {
     mockHasPermission.mockImplementation((perm: string) => perm === 'WORKFLOW_VIEW');
     renderShell();

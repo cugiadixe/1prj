@@ -32,6 +32,9 @@ import WorkflowVersionDetailPage from './workflow/WorkflowVersionDetailPage';
 import WorkflowBindingsPage from './workflow/WorkflowBindingsPage';
 import WorkflowMyApprovalsPage from './workflow/WorkflowMyApprovalsPage';
 import WorkflowInstanceDetailPage from './workflow/WorkflowInstanceDetailPage';
+import CustomerProposalCreatePage from './customers/CustomerProposalCreatePage';
+import CustomerProposalDetailPage from './customers/CustomerProposalDetailPage';
+import CustomerMyProposalsPage from './customers/CustomerMyProposalsPage';
 
 const queryClient = new QueryClient();
 
@@ -95,6 +98,9 @@ const App: React.FC = () => {
               <Route path="customers/new" element={<CustomerCreatePage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="customers/:customerId/edit" element={<CustomerEditPage />} />
+              <Route path="customers/proposals" element={<CustomerMyProposalsPage />} />
+              <Route path="customers/proposals/new" element={<CustomerProposalCreatePage />} />
+              <Route path="customers/proposals/:id" element={<CustomerProposalDetailPage />} />
               {/* Phase 1B.3-B2 — Workflow Admin Configuration UI */}
               <Route path="workflow" element={<WorkflowDefinitionsPage />} />
               <Route path="workflow/definitions/new" element={<WorkflowDefinitionCreatePage />} />
