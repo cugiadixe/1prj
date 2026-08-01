@@ -1,16 +1,16 @@
-# Phase 1B.3-B3 Workflow Runtime / My Approvals UI Final Closure Review
+# Phase 1B.3-B3 Workflow Runtime / My Approvals UI Project Owner Final Acceptance
 
 ## Status
 
-PHASE 1B.3-B3 FINAL ACCEPTED — SEE phase-1b3b3-project-owner-final-acceptance.md
+ACCEPTED — PHASE 1B.3-B3 WORKFLOW RUNTIME / MY APPROVALS UI COMPLETE
 
-## Reviewed Phase
+## Accepted Phase
 
 Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 
-## Closure Baseline
+## Final Acceptance Baseline
 
-6969065ce38339369895c79a7487f36c9ed59f33
+053e88a2fd28b30ef0bb62dd6ebcf91cf4fb48f1
 
 ## Accepted Commits
 
@@ -23,52 +23,57 @@ Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 | B3 implementation commit | 49182a43886b2647133d027b1a6eb4420470f0cc |
 | B3 implementation acceptance review commit | ed504050812d0637c3247a25ad6982ffebf55a9b |
 | Project Owner B3 implementation acceptance commit | 6969065ce38339369895c79a7487f36c9ed59f33 |
+| B3 closure review commit | 053e88a2fd28b30ef0bb62dd6ebcf91cf4fb48f1 |
 
 ---
 
-## Closure Findings
+## Project Owner Final Decision
 
-- Phase 1B.3-B3 was implemented under the accepted B3 plan.
-- Phase 1B.3-B3 remained frontend-only.
-- Workflow Runtime / My Approvals UI implementation was accepted by Project Owner.
-- My Approvals menu/navigation was accepted.
-- My Approvals inbox/list was accepted.
-- Workflow instance detail was accepted.
-- Approve action UI was accepted.
-- Return action UI was accepted.
-- Resubmit action UI was accepted.
-- Withdraw action UI was accepted.
-- Reassign action UI was accepted where supported by existing backend endpoint.
-- Runtime status/detail UI was accepted.
-- Safe payload/metadata display was accepted.
-- Version/snapshot freeze notice was accepted.
-- Sanitized error handling was accepted.
-- Stale task/concurrency refresh UX was accepted.
-- Loading/empty/error states were accepted.
+The Project Owner accepts Phase 1B.3-B3 Workflow Runtime / My Approvals UI as complete under the approved frontend-only scope.
 
 ---
 
-## Route Closure
+## Accepted Completed Scope
 
-- /workflow/my-approvals accepted.
-- /workflow/instances/:instanceId accepted.
+- Workflow Runtime / My Approvals UI complete.
+- My Approvals menu/navigation complete.
+- My Approvals inbox/list complete.
+- Workflow instance detail complete.
+- Approve action UI complete.
+- Return action UI complete.
+- Resubmit action UI complete.
+- Withdraw action UI complete.
+- Reassign action UI complete where supported by existing backend endpoint.
+- Runtime status/detail UI complete.
+- Safe payload/metadata display complete.
+- Version/snapshot freeze notice complete.
+- Sanitized error handling complete.
+- Stale task/concurrency refresh UX complete.
+- Loading/empty/error states complete.
 
 ---
 
-## Runtime Endpoint Closure
+## Accepted Routes
 
-- getMyApprovals accepted.
-- getInstance accepted.
-- approveStep accepted.
-- returnStep accepted.
-- resubmitInstance accepted.
-- withdrawInstance accepted.
-- reassignStep accepted.
-- Existing B1 runtime endpoints were used only.
+- /workflow/my-approvals.
+- /workflow/instances/:instanceId.
 
 ---
 
-## Endpoint Limitation Closure
+## Accepted Runtime Endpoint Usage
+
+- getMyApprovals.
+- getInstance.
+- approveStep.
+- returnStep.
+- resubmitInstance.
+- withdrawInstance.
+- reassignStep.
+- Existing B1 runtime endpoints used only.
+
+---
+
+## Accepted Endpoint Limitations
 
 - No my-requests endpoint call was implemented.
 - No My Requests UI was implemented.
@@ -81,7 +86,7 @@ Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 
 ---
 
-## Permission and Authorization Closure
+## Accepted Permission and Authorization Behavior
 
 - Backend remains authoritative.
 - Frontend does not grant eligibility by permission alone.
@@ -92,7 +97,7 @@ Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 
 ---
 
-## Safe Payload and Safety Closure
+## Accepted Safe Payload and Safety Behavior
 
 - No raw PayloadJson display was implemented.
 - No raw BeforeDataJson display was implemented.
@@ -102,18 +107,18 @@ Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 
 ---
 
-## UX Closure
+## Accepted UX Behavior
 
-- Version/snapshot freeze notice was implemented.
+- Version/snapshot freeze notice complete.
 - UI does not imply active instances change route after configuration changes.
 - Active instance migration UI was not implemented.
-- Stale task/concurrency refresh UX was implemented.
-- Sanitized 403/404/error handling was implemented.
-- No silent overwrite behavior was introduced.
+- Stale task/concurrency refresh UX complete.
+- Sanitized 403/404/error handling complete.
+- No silent overwrite behavior introduced.
 
 ---
 
-## Test Evidence Accepted
+## Accepted Test Evidence
 
 - npx oxlint: clean or only pre-existing warnings unrelated to B3.
 - npx tsc -b: 0 errors.
@@ -122,7 +127,7 @@ Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 
 ---
 
-## Deferred Scope Confirmed
+## Accepted Deferred Scope
 
 - No backend source changed.
 - No backend tests changed.
@@ -143,22 +148,19 @@ Phase 1B.3-B3 — Workflow Runtime / My Approvals UI
 
 ---
 
-## Residual Risks
+## Accepted Residual Risks and Future Constraints
 
 - My Requests requires future backend gap-resolution phase.
 - Action history/timeline requires future backend gap-resolution phase.
 - Reject action requires future backend gap-resolution phase.
 - Future pilot integration remains undecided and deferred to B4+.
-- Reassign UX currently uses manual User ID entry.
+- Reassign UX currently uses manual User ID entry and may require future user lookup UX.
 - Backend remains authoritative.
 - Future workflow runtime UI changes must continue avoiding raw sensitive payload exposure.
 
 ---
 
-## Closure Decision
+## Final Acceptance Conclusion
 
-Phase 1B.3-B3 passes closure review and is ready for Project Owner final acceptance.
-
-## Conclusion
-
-PHASE 1B.3-B3 WORKFLOW RUNTIME / MY APPROVALS UI CLOSURE REVIEW PASSED
+Phase 1B.3-B3 Workflow Runtime / My Approvals UI is complete.
+The next phase may be planned separately after Project Owner authorization.
