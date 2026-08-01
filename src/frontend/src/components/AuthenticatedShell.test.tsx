@@ -104,4 +104,10 @@ describe('AuthenticatedShell Navigation Gating', () => {
     expect(screen.queryByTestId('nav-workflow')).not.toBeInTheDocument();
     expect(screen.queryByTestId('nav-workflow-bindings')).not.toBeInTheDocument();
   });
+
+  it('shows My Approvals menu item to all authenticated users without permission gate', () => {
+    mockHasPermission.mockReturnValue(false);
+    renderShell();
+    expect(screen.getByTestId('nav-my-approvals')).toBeInTheDocument();
+  });
 });

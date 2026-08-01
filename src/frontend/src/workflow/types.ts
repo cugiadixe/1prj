@@ -155,6 +155,63 @@ export interface UpdateWorkflowBindingRequest {
   targetVersion: string;
 }
 
+export interface MyApprovalItem {
+  instanceId: number;
+  stepId: number;
+  processCode: string;
+  businessEntityType: string;
+  businessEntityId: number;
+  stepName: string;
+  instanceStatus: string;
+  assignedAt: string | null;
+}
+
+export interface WorkflowInstance {
+  id: number;
+  workflowVersionId: number;
+  processCode: string;
+  companyId: number | null;
+  requesterId: number;
+  businessEntityType: string;
+  businessEntityId: number;
+  instanceStatus: string;
+  roundNo: number;
+  rowVersion: string;
+  createdAt: string;
+  updatedAt: string | null;
+  steps: WorkflowInstanceStep[];
+}
+
+export interface WorkflowInstanceStep {
+  id: number;
+  stepOrder: number;
+  stepName: string;
+  roundNo: number;
+  stepStatus: string;
+  assignedAt: string | null;
+  completedAt: string | null;
+  completedBy: number | null;
+  rowVersion: string;
+  assignees: WorkflowInstanceStepAssignee[];
+}
+
+export interface WorkflowInstanceStepAssignee {
+  userId: number;
+  approverSourceType: string;
+}
+
+export interface ApprovalActionRequest {
+  reason?: string | null;
+  comment?: string | null;
+  targetVersion: string;
+}
+
+export interface ReassignStepRequest {
+  newAssigneeUserId: number;
+  reason: string;
+  targetVersion: string;
+}
+
 export interface WorkflowSearchParams {
   processCode?: string;
   isActive?: boolean;
