@@ -23,8 +23,13 @@ public class CustomerChangeRequestConfiguration : IEntityTypeConfiguration<Custo
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
         builder.Property(e => e.RowVersion).HasColumnName("row_version").IsRowVersion().IsRequired();
 
+        builder.Property(e => e.TargetCustomerId).HasColumnName("target_customer_id");
+        builder.Property(e => e.TargetRowVersion).HasColumnName("target_row_version");
+
         builder.HasIndex(e => new { e.RequesterId, e.RequestStatus }).HasDatabaseName("IX_CCR_requester");
         builder.HasIndex(e => e.WorkflowInstanceId).HasDatabaseName("IX_CCR_workflow_instance")
             .HasFilter("[workflow_instance_id] IS NOT NULL");
+        builder.HasIndex(e => e.TargetCustomerId).HasDatabaseName("IX_CCR_target_customer")
+            .HasFilter("[target_customer_id] IS NOT NULL");
     }
 }

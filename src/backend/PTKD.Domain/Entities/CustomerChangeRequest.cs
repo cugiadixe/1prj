@@ -12,6 +12,8 @@ public class CustomerChangeRequest
     public string PayloadJson { get; private set; } = null!;
     public long? WorkflowInstanceId { get; private set; }
     public long? CreatedCustomerId { get; private set; }
+    public long? TargetCustomerId { get; private set; }
+    public byte[]? TargetRowVersion { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
     public byte[] RowVersion { get; private set; } = null!;
@@ -44,6 +46,26 @@ public class CustomerChangeRequest
     public void SetExecuted(long createdCustomerId)
     {
         CreatedCustomerId = createdCustomerId;
+        RequestStatus = "EXECUTED";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public static CustomerChangeRequest CreateForUpdate(
+        string processCode,
+        long requesterId,
+        string payloadJson,
+        long targetCustomerId,
+        byte[] targetRowVersion,
+        long? companyId = null)
+    {
+        var request = new CustomerChangeRequest(processCode, requesterId, payloadJson, companyId);
+        request.TargetCustomerId = targetCustomerId;
+        request.TargetRowVersion = targetRowVersion;
+        return request;
+    }
+
+    public void SetExecutedForUpdate()
+    {
         RequestStatus = "EXECUTED";
         UpdatedAt = DateTime.UtcNow;
     }
