@@ -2,7 +2,7 @@
 
 ## Status
 
-ACCEPTED — PHASE 1B.3-B3 WORKFLOW RUNTIME / MY APPROVALS UI IMPLEMENTATION ACCEPTED
+PHASE 1B.3-B3 CLOSURE REVIEW PASSED — SEE phase-1b3b3-final-closure-review.md
 
 ## Accepted Implementation
 
