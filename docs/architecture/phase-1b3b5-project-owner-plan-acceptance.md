@@ -2,6 +2,7 @@
 
 ## Status
 ACCEPTED — PHASE 1B.3-B5 PLAN APPROVED
+B5-B BACKEND SCOPE AUTHORIZED — SEE phase-1b3b5b-project-owner-backend-scope-authorization.md
 
 ## Accepted plan
 Phase 1B.3-B5 — Workflow Pilot Hardening Discovery and Detailed Plan
