@@ -35,6 +35,9 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<WorkflowInstanceStepAssignee> WorkflowInstanceStepAssignees => Set<WorkflowInstanceStepAssignee>();
     public DbSet<WorkflowAction> WorkflowActions => Set<WorkflowAction>();
     public DbSet<CustomerChangeRequest> CustomerChangeRequests => Set<CustomerChangeRequest>();
+    public DbSet<CustomerMergeRequest> CustomerMergeRequests => Set<CustomerMergeRequest>();
+    public DbSet<CustomerMergeRequestCandidate> CustomerMergeRequestCandidates => Set<CustomerMergeRequestCandidate>();
+    public DbSet<CustomerMergeHistory> CustomerMergeHistory => Set<CustomerMergeHistory>();
     public DbSet<UserAuthAccount> UserAuthAccounts => Set<UserAuthAccount>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

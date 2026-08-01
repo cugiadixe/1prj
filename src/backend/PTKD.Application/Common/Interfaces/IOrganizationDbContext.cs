@@ -30,6 +30,9 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<WorkflowInstanceStepAssignee> WorkflowInstanceStepAssignees { get; }
     DbSet<WorkflowAction> WorkflowActions { get; }
     DbSet<CustomerChangeRequest> CustomerChangeRequests { get; }
+    DbSet<CustomerMergeRequest> CustomerMergeRequests { get; }
+    DbSet<CustomerMergeRequestCandidate> CustomerMergeRequestCandidates { get; }
+    DbSet<CustomerMergeHistory> CustomerMergeHistory { get; }
 
     System.Data.Common.DbConnection GetDbConnection();
     System.Data.Common.DbTransaction? GetCurrentDbTransaction();
