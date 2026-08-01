@@ -90,7 +90,8 @@
 | WFC-14 | Overdue step remains PENDING with is_overdue=1 and only valid assignee/delegate may act. |
 | WFC-15 | Reassigning PENDING requires WORKFLOW_REASSIGN_PENDING, reason, self-approval check and audit. |
 | WFC-16 | Admin cannot configure SQL/JavaScript or fields/operators outside the DEV whitelist. |
-
+| WFC-17 | REJECT by authorized current approver permanently terminates the instance; instance cannot be resubmitted or executed. |
+| WFC-18 | RETRY on a FAILED execution instance triggers execution securely without breaking idempotency. |
 ## Definition of acceptance evidence
 
 For each implemented criterion, the delivery report must include:

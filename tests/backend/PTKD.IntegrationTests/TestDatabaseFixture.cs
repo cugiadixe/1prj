@@ -176,6 +176,78 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0006()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0005();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0006__create_workflow_schema.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0006', 'V0006__create_workflow_schema.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
+    public void ResetToV0007()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0006();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0007__create_customer_change_request.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0007', 'V0007__create_customer_change_request.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
+    public void ResetToV0008()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0007();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0008__harden_workflow_runtime.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0008', 'V0008__harden_workflow_runtime.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
@@ -298,21 +370,7 @@ public sealed class TestDatabaseFixture : IDisposable
             IF DATABASE_PRINCIPAL_ID(N'PTKD_Security_Audit_Runtime') IS NOT NULL
                 DROP ROLE PTKD_Security_Audit_Runtime;
 
-            DROP TABLE IF EXISTS dbo.User_Admin_Group_Assignments;
-            DROP TABLE IF EXISTS dbo.Admin_Group_Permissions;
-            DROP TABLE IF EXISTS dbo.Admin_Groups;
-            DROP TABLE IF EXISTS dbo.User_Individual_Permissions;
-            DROP TABLE IF EXISTS dbo.User_Role_Assignments;
-            DROP TABLE IF EXISTS dbo.Department_Permissions;
-            DROP TABLE IF EXISTS dbo.Role_Permissions;
-            DROP TABLE IF EXISTS dbo.Roles;
-            DROP TABLE IF EXISTS dbo.Refresh_Tokens;
-            DROP TABLE IF EXISTS dbo.Password_History;
-            DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
-            DROP TABLE IF EXISTS dbo.Security_Audit_Events;
-            DROP TABLE IF EXISTS dbo.Security_Bootstrap_State;
-            DROP TABLE IF EXISTS dbo.Authorization_Policy_State;
-            DROP TABLE IF EXISTS dbo.Permissions;
+
 
             IF OBJECT_ID(N'dbo.FK_EmploymentHistories_created_by', N'F') IS NOT NULL
                 ALTER TABLE dbo.Employment_Histories DROP CONSTRAINT FK_EmploymentHistories_created_by;

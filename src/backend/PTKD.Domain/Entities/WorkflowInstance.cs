@@ -77,6 +77,12 @@ public class WorkflowInstance
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void SetRejected()
+    {
+        InstanceStatus = "REJECTED";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetPendingExecution()
     {
         InstanceStatus = "PENDING_EXECUTION";

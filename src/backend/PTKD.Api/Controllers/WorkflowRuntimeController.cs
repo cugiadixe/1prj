@@ -82,6 +82,35 @@ public class WorkflowRuntimeController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("my-requests")]
+    public async Task<IActionResult> GetMyRequests(CancellationToken ct)
+    {
+        var result = await _runtimeService.GetMyRequestsAsync(GetActorUserId(), ct);
+        return Ok(result);
+    }
+
+    [HttpGet("instances/{instanceId}/actions")]
+    public async Task<IActionResult> GetInstanceActions(long instanceId, CancellationToken ct)
+    {
+        var result = await _runtimeService.GetInstanceActionsAsync(instanceId, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
+    [HttpPost("instances/{instanceId}/steps/{stepId}/reject")]
+    public async Task<IActionResult> RejectStep(long instanceId, long stepId, [FromBody] ApprovalActionRequest request, CancellationToken ct)
+    {
+        var result = await _runtimeService.RejectStepAsync(instanceId, stepId, request, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
+    [HttpPost("instances/{instanceId}/retry-execution")]
+    [RequirePermission(PermissionCodes.WorkflowRetryExecution, PermissionScope.Global)]
+    public async Task<IActionResult> RetryExecution(long instanceId, CancellationToken ct)
+    {
+        var result = await _runtimeService.RetryExecutionAsync(instanceId, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
     private long GetActorUserId()
     {
         var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value

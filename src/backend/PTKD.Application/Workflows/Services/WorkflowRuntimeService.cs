@@ -12,6 +12,7 @@ using PTKD.Application.Security.Audit;
 using PTKD.Application.Workflows.DTOs;
 using PTKD.Domain.Entities;
 using PTKD.Domain.ValueObjects;
+using PTKD.Application.Security.Authorization.Interfaces;
 
 namespace PTKD.Application.Workflows.Services;
 
@@ -21,13 +22,15 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
     private readonly ITransactionalAuditWriter _auditWriter;
     private readonly IApproverResolver _approverResolver;
     private readonly IWorkflowExecutionHandlerFactory _executionHandlerFactory;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
-    public WorkflowRuntimeService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter, IApproverResolver approverResolver, IWorkflowExecutionHandlerFactory executionHandlerFactory)
+    public WorkflowRuntimeService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter, IApproverResolver approverResolver, IWorkflowExecutionHandlerFactory executionHandlerFactory, IPermissionEvaluator permissionEvaluator)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
         _approverResolver = approverResolver;
         _executionHandlerFactory = executionHandlerFactory;
+        _permissionEvaluator = permissionEvaluator;
     }
 
     public async Task<WorkflowInstanceDto> CreateInstanceAsync(CreateWorkflowInstanceRequest request, long requesterId, CancellationToken ct = default)
@@ -482,6 +485,244 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             await transaction.CommitAsync(ct);
 
             return await LoadInstanceDtoAsync(context, instance.Id, ct);
+        });
+    }
+
+    public async Task<WorkflowInstanceDto[]> GetMyRequestsAsync(long requesterId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var instances = await context.WorkflowInstances
+            .AsNoTracking()
+            .Where(i => i.RequesterId == requesterId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToArrayAsync(ct);
+
+        var instanceIds = instances.Select(i => i.Id).ToArray();
+        var steps = await context.WorkflowInstanceSteps
+            .AsNoTracking()
+            .Include(s => s.Assignees)
+            .Where(s => instanceIds.Contains(s.WorkflowInstanceId))
+            .ToArrayAsync(ct);
+
+        return instances.Select(instance => new WorkflowInstanceDto
+        {
+            Id = instance.Id,
+            WorkflowVersionId = instance.WorkflowVersionId,
+            ProcessCode = instance.ProcessCode,
+            CompanyId = instance.CompanyId,
+            RequesterId = instance.RequesterId,
+            BusinessEntityType = instance.BusinessEntityType,
+            BusinessEntityId = instance.BusinessEntityId,
+            InstanceStatus = instance.InstanceStatus,
+            RoundNo = instance.RoundNo,
+            RowVersion = Convert.ToBase64String(instance.RowVersion),
+            CreatedAt = instance.CreatedAt,
+            UpdatedAt = instance.UpdatedAt,
+            Steps = steps
+                .Where(s => s.WorkflowInstanceId == instance.Id)
+                .OrderBy(s => s.RoundNo).ThenBy(s => s.StepOrder)
+                .Select(s => new WorkflowInstanceStepDto
+                {
+                    Id = s.Id,
+                    StepOrder = s.StepOrder,
+                    StepName = s.StepName,
+                    RoundNo = s.RoundNo,
+                    StepStatus = s.StepStatus,
+                    AssignedAt = s.AssignedAt,
+                    CompletedAt = s.CompletedAt,
+                    CompletedBy = s.CompletedBy,
+                    RowVersion = Convert.ToBase64String(s.RowVersion),
+                    Assignees = s.Assignees.Select(a => new WorkflowInstanceStepAssigneeDto
+                    {
+                        UserId = a.UserId,
+                        ApproverSourceType = a.ApproverSourceType
+                    }).ToArray()
+                }).ToArray()
+        }).ToArray();
+    }
+
+    public async Task<WorkflowActionDto[]> GetInstanceActionsAsync(long instanceId, long userId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        var instance = await context.WorkflowInstances
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
+            ?? throw new EntityNotFoundException("WF_INSTANCE_NOT_FOUND", "Workflow instance not found.");
+
+        if (instance.RequesterId != userId)
+        {
+            var isAssignee = await context.WorkflowInstanceStepAssignees
+                .AsNoTracking()
+                .AnyAsync(a => a.UserId == userId && a.Step.WorkflowInstanceId == instanceId, ct);
+
+            if (!isAssignee)
+            {
+                var canView = await _permissionEvaluator.EvaluateAsync(userId, "WORKFLOW_VIEW", instance.CompanyId, ct)
+                    || await _permissionEvaluator.EvaluateAsync(userId, "WORKFLOW_VIEW", null, ct);
+
+                if (!canView)
+                    throw new BusinessRuleValidationException("WF_ACTION_HISTORY_UNAUTHORIZED", "You do not have permission to view this instance's action history.");
+            }
+        }
+
+        return await context.WorkflowActions
+            .AsNoTracking()
+            .Where(a => a.WorkflowInstanceId == instanceId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => new WorkflowActionDto
+            {
+                Id = a.Id,
+                WorkflowInstanceStepId = a.WorkflowInstanceStepId,
+                WorkflowInstanceId = a.WorkflowInstanceId,
+                ActionType = a.ActionType,
+                ActedBy = a.ActedBy,
+                OnBehalfOf = a.OnBehalfOf,
+                Reason = a.Reason,
+                Comment = a.Comment,
+                CreatedAt = a.CreatedAt
+            })
+            .ToArrayAsync(ct);
+    }
+
+    public async Task<WorkflowInstanceDto> RejectStepAsync(long instanceId, long stepId, ApprovalActionRequest request, long actorUserId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            throw new BusinessRuleValidationException("WF_REASON_REQUIRED", "Reason is required for reject action.");
+
+        var rowVersion = RowVersion.FromBase64(request.TargetVersion).Value;
+
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var instance = await context.WorkflowInstances
+                .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
+                ?? throw new EntityNotFoundException("WF_INSTANCE_NOT_FOUND", "Workflow instance not found.");
+
+            if (instance.InstanceStatus != "PENDING_APPROVAL")
+                throw new BusinessRuleValidationException("WF_INSTANCE_NOT_PENDING", "Instance is not pending approval.");
+
+            var step = await context.WorkflowInstanceSteps
+                .Include(s => s.Assignees)
+                .FirstOrDefaultAsync(s => s.Id == stepId && s.WorkflowInstanceId == instanceId, ct)
+                ?? throw new EntityNotFoundException("WF_STEP_NOT_FOUND", "Instance step not found.");
+
+            if (step.StepStatus != "PENDING")
+                throw new BusinessRuleValidationException("WF_STEP_NOT_PENDING", "Step is not pending.");
+
+            if (!step.RowVersion.SequenceEqual(rowVersion))
+                throw new ConcurrencyException("WF_INVALID_ROW_VERSION", "The step has been modified by another user.");
+
+            if (!step.Assignees.Any(a => a.UserId == actorUserId))
+                throw new BusinessRuleValidationException("WF_NOT_ASSIGNEE", "You are not an assignee for this step.");
+
+            step.SetReturned(actorUserId); // Reusing SetReturned for step status, as per original enum (CANCELLED or RETURNED usually, wait step status has APPROVED, RETURNED, CANCELLED. We will use CANCELLED or RETURNED). Let's use RETURNED for the step to indicate negative completion.
+
+            var futureSteps = await context.WorkflowInstanceSteps
+                .Where(s => s.WorkflowInstanceId == instanceId && s.RoundNo == instance.RoundNo && s.StepStatus == "WAITING")
+                .ToListAsync(ct);
+            foreach (var futureStep in futureSteps)
+                futureStep.SetCancelled();
+
+            instance.SetRejected();
+
+            var action = new WorkflowAction(stepId, instanceId, "REJECT", actorUserId, request.Reason, request.Comment);
+            context.WorkflowActions.Add(action);
+            await context.SaveChangesAsync(ct);
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "APPROVAL_ACTION_TAKEN",
+                EntityType = "WorkflowInstanceStep",
+                EntityId = stepId.ToString(),
+                Outcome = "SUCCESS",
+                CorrelationId = instance.CorrelationId,
+                ActorUserId = actorUserId,
+                AfterStateJson = JsonSerializer.Serialize(new { ActionType = "REJECT", StepId = stepId, InstanceId = instanceId, request.Reason })
+            };
+            audit.ThrowIfContainsSensitiveData();
+            await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
+
+            await transaction.CommitAsync(ct);
+
+            return await LoadInstanceDtoAsync(context, instanceId, ct);
+        });
+    }
+
+    public async Task<WorkflowInstanceDto> RetryExecutionAsync(long instanceId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var instance = await context.WorkflowInstances
+                .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
+                ?? throw new EntityNotFoundException("WF_INSTANCE_NOT_FOUND", "Workflow instance not found.");
+
+            if (instance.InstanceStatus != "FAILED")
+                throw new BusinessRuleValidationException("WF_INSTANCE_NOT_FAILED", "Only FAILED instances can be retried.");
+
+            instance.SetPendingExecution();
+
+            // We need a dummy step ID for the action or just the last step
+            var lastStep = await context.WorkflowInstanceSteps
+                .Where(s => s.WorkflowInstanceId == instanceId)
+                .OrderByDescending(s => s.RoundNo).ThenByDescending(s => s.StepOrder)
+                .FirstOrDefaultAsync(ct);
+
+            var action = new WorkflowAction(lastStep?.Id ?? 0, instanceId, "RETRY", actorUserId, "Manual execution retry initiated.");
+            context.WorkflowActions.Add(action);
+
+            await context.SaveChangesAsync(ct);
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "WORKFLOW_EXECUTION_RETRIED",
+                EntityType = "WorkflowInstance",
+                EntityId = instanceId.ToString(),
+                Outcome = "SUCCESS",
+                CorrelationId = instance.CorrelationId,
+                ActorUserId = actorUserId,
+                AfterStateJson = JsonSerializer.Serialize(new { instance.InstanceStatus })
+            };
+            audit.ThrowIfContainsSensitiveData();
+            await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
+
+            await transaction.CommitAsync(ct);
+
+            // Trigger execution
+            var handler = _executionHandlerFactory.GetHandler(instance.ProcessCode);
+            if (handler != null)
+            {
+                try
+                {
+                    await handler.ExecuteAsync(instance, ct);
+                }
+                catch (Exception)
+                {
+                    await using var failCtx = _dbContextFactory.CreateDbContext();
+                    var failStrategy = failCtx.CreateExecutionStrategy();
+                    await failStrategy.ExecuteAsync(async () =>
+                    {
+                        await using var ctx = _dbContextFactory.CreateDbContext();
+                        var wi = await ctx.WorkflowInstances.FirstAsync(w => w.Id == instanceId, ct);
+                        wi.SetFailed();
+                        await ctx.SaveChangesAsync(ct);
+                    });
+                    throw; // Allow caller to see failure
+                }
+            }
+
+            return await LoadInstanceDtoAsync(context, instanceId, ct);
         });
     }
 

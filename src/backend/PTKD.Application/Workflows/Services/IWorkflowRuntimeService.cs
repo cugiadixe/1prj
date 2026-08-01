@@ -14,4 +14,8 @@ public interface IWorkflowRuntimeService
     Task<WorkflowInstanceDto> ResubmitInstanceAsync(long instanceId, string targetVersion, long requesterId, CancellationToken ct = default);
     Task<WorkflowInstanceDto> WithdrawInstanceAsync(long instanceId, string targetVersion, long requesterId, CancellationToken ct = default);
     Task<WorkflowInstanceDto> ReassignStepAsync(long instanceId, long stepId, ReassignStepRequest request, long actorUserId, CancellationToken ct = default);
+    Task<WorkflowInstanceDto[]> GetMyRequestsAsync(long requesterId, CancellationToken ct = default);
+    Task<WorkflowActionDto[]> GetInstanceActionsAsync(long instanceId, long userId, CancellationToken ct = default);
+    Task<WorkflowInstanceDto> RejectStepAsync(long instanceId, long stepId, ApprovalActionRequest request, long actorUserId, CancellationToken ct = default);
+    Task<WorkflowInstanceDto> RetryExecutionAsync(long instanceId, long actorUserId, CancellationToken ct = default);
 }

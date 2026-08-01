@@ -252,3 +252,21 @@ public class WorkflowSearchRequest
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
+
+public class WorkflowActionDto
+{
+    public long Id { get; set; }
+    public long WorkflowInstanceStepId { get; set; }
+    public long WorkflowInstanceId { get; set; }
+    public string ActionType { get; set; } = null!;
+    public long ActedBy { get; set; }
+    public long? OnBehalfOf { get; set; }
+    public string? Reason { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class RetryExecutionRequest
+{
+    public string TargetVersion { get; set; } = null!;
+}

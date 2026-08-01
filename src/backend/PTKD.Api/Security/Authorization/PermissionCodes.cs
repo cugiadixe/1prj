@@ -48,6 +48,8 @@ public static class PermissionCodes
 
     public const string WorkflowView = "WORKFLOW_VIEW";
     public const string WorkflowConfigManage = "WORKFLOW_CONFIG_MANAGE";
+    public const string WorkflowReject = "WORKFLOW_REJECT";
+    public const string WorkflowRetryExecution = "WORKFLOW_RETRY_EXECUTION";
     public const string WorkflowPublish = "WORKFLOW_PUBLISH";
     public const string WorkflowBindProcess = "WORKFLOW_BIND_PROCESS";
     public const string WorkflowReassignPending = "WORKFLOW_REASSIGN_PENDING";
