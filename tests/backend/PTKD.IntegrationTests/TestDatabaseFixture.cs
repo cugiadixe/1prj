@@ -48,7 +48,11 @@ public sealed class TestDatabaseFixture : IDisposable
         "Customer_Change_Requests",
         "Customer_Merge_Requests",
         "Customer_Merge_Request_Candidates",
-        "Customer_Merge_History"
+        "Customer_Merge_History",
+        "Service_Types",
+        "Service_Price_History",
+        "Services",
+        "Service_History"
     };
 
     public TestDatabaseFixture()
@@ -299,6 +303,30 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0011()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0010();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0011__service_module_foundation.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0011', 'V0011__service_module_foundation.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
@@ -463,6 +491,10 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
 
+            DROP TABLE IF EXISTS dbo.Service_History;
+            DROP TABLE IF EXISTS dbo.Services;
+            DROP TABLE IF EXISTS dbo.Service_Price_History;
+            DROP TABLE IF EXISTS dbo.Service_Types;
             DROP TABLE IF EXISTS dbo.Customer_Merge_History;
             DROP TABLE IF EXISTS dbo.Customer_Merge_Request_Candidates;
             DROP TABLE IF EXISTS dbo.Customer_Merge_Requests;

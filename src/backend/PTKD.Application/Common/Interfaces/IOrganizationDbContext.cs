@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using PTKD.Domain.Entities;
 
@@ -33,7 +34,12 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<CustomerMergeRequest> CustomerMergeRequests { get; }
     DbSet<CustomerMergeRequestCandidate> CustomerMergeRequestCandidates { get; }
     DbSet<CustomerMergeHistory> CustomerMergeHistory { get; }
+    DbSet<ServiceType> ServiceTypes { get; }
+    DbSet<ServicePriceHistory> ServicePriceHistories { get; }
+    DbSet<Service> Services { get; }
+    DbSet<ServiceHistory> ServiceHistories { get; }
 
+    EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
     System.Data.Common.DbConnection GetDbConnection();
     System.Data.Common.DbTransaction? GetCurrentDbTransaction();
     void ClearChangeTracker();

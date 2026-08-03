@@ -38,6 +38,10 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<CustomerMergeRequest> CustomerMergeRequests => Set<CustomerMergeRequest>();
     public DbSet<CustomerMergeRequestCandidate> CustomerMergeRequestCandidates => Set<CustomerMergeRequestCandidate>();
     public DbSet<CustomerMergeHistory> CustomerMergeHistory => Set<CustomerMergeHistory>();
+    public DbSet<ServiceType> ServiceTypes => Set<ServiceType>();
+    public DbSet<ServicePriceHistory> ServicePriceHistories => Set<ServicePriceHistory>();
+    public DbSet<Service> Services => Set<Service>();
+    public DbSet<ServiceHistory> ServiceHistories => Set<ServiceHistory>();
     public DbSet<UserAuthAccount> UserAuthAccounts => Set<UserAuthAccount>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

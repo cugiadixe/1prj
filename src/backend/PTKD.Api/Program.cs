@@ -115,6 +115,11 @@ builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutio
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.Customers.Handlers.CustomerMergeExecutionHandler>();
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandlerFactory, PTKD.Application.Workflows.Services.WorkflowExecutionHandlerFactory>();
 
+// Service Management Services (Phase 1B.6-B)
+builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceTypeService, PTKD.Application.ServiceManagement.Services.ServiceTypeService>();
+builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceService, PTKD.Application.ServiceManagement.Services.ServiceService>();
+builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.ServiceManagement.Handlers.ServicePriceOverrideExecutionHandler>();
+
 // Workflow Services (Phase 1B.3-B1)
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowConfigurationService, PTKD.Application.Workflows.Services.WorkflowConfigurationService>();
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowRuntimeService, PTKD.Application.Workflows.Services.WorkflowRuntimeService>();
