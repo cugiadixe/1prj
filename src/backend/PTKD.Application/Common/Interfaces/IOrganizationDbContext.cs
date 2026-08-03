@@ -38,6 +38,10 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<ServicePriceHistory> ServicePriceHistories { get; }
     DbSet<Service> Services { get; }
     DbSet<ServiceHistory> ServiceHistories { get; }
+    DbSet<PaymentTransaction> PaymentTransactions { get; }
+    DbSet<PaymentTransactionItem> PaymentTransactionItems { get; }
+    DbSet<PaymentCorrectionHistory> PaymentCorrectionHistories { get; }
+    DbSet<ReconciliationPeriod> ReconciliationPeriods { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
     System.Data.Common.DbConnection GetDbConnection();

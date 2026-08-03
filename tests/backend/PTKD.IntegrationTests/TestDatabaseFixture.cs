@@ -52,7 +52,11 @@ public sealed class TestDatabaseFixture : IDisposable
         "Service_Types",
         "Service_Price_History",
         "Services",
-        "Service_History"
+        "Service_History",
+        "Payment_Transactions",
+        "Payment_Transaction_Items",
+        "Payment_Correction_History",
+        "Reconciliation_Periods"
     };
 
     public TestDatabaseFixture()
@@ -327,6 +331,30 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0012()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0011();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0012__payment_foundation.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0012', 'V0012__payment_foundation.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
@@ -491,6 +519,10 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
 
+            DROP TABLE IF EXISTS dbo.Payment_Correction_History;
+            DROP TABLE IF EXISTS dbo.Payment_Transaction_Items;
+            DROP TABLE IF EXISTS dbo.Reconciliation_Periods;
+            DROP TABLE IF EXISTS dbo.Payment_Transactions;
             DROP TABLE IF EXISTS dbo.Service_History;
             DROP TABLE IF EXISTS dbo.Services;
             DROP TABLE IF EXISTS dbo.Service_Price_History;

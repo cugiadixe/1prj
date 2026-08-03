@@ -42,6 +42,10 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<ServicePriceHistory> ServicePriceHistories => Set<ServicePriceHistory>();
     public DbSet<Service> Services => Set<Service>();
     public DbSet<ServiceHistory> ServiceHistories => Set<ServiceHistory>();
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<PaymentTransactionItem> PaymentTransactionItems => Set<PaymentTransactionItem>();
+    public DbSet<PaymentCorrectionHistory> PaymentCorrectionHistories => Set<PaymentCorrectionHistory>();
+    public DbSet<ReconciliationPeriod> ReconciliationPeriods => Set<ReconciliationPeriod>();
     public DbSet<UserAuthAccount> UserAuthAccounts => Set<UserAuthAccount>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

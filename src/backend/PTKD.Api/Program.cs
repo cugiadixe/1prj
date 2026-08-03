@@ -120,6 +120,10 @@ builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceT
 builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceService, PTKD.Application.ServiceManagement.Services.ServiceService>();
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.ServiceManagement.Handlers.ServicePriceOverrideExecutionHandler>();
 
+// Payment Management Services (Phase 1B.7-B)
+builder.Services.AddScoped<PTKD.Application.PaymentManagement.Services.IPaymentTransactionService, PTKD.Application.PaymentManagement.Services.PaymentTransactionService>();
+builder.Services.AddScoped<PTKD.Application.PaymentManagement.Services.IReconciliationService, PTKD.Application.PaymentManagement.Services.ReconciliationService>();
+
 // Workflow Services (Phase 1B.3-B1)
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowConfigurationService, PTKD.Application.Workflows.Services.WorkflowConfigurationService>();
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowRuntimeService, PTKD.Application.Workflows.Services.WorkflowRuntimeService>();
