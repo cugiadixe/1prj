@@ -119,6 +119,18 @@ public class ReconciliationService : IReconciliationService
         };
     }
 
+    public async Task<ReconciliationPeriodDto?> GetPeriodByIdAsync(long periodId, CancellationToken ct = default)
+    {
+        await using var db = _dbContextFactory.CreateDbContext();
+
+        var period = await db.ReconciliationPeriods
+            .AsNoTracking()
+            .FirstOrDefaultAsync(rp => rp.Id == periodId, ct);
+
+        if (period == null) return null;
+        return MapPeriodToDto(period);
+    }
+
     public async Task<ReconciliationPeriodDto> PrepareAsync(long periodId, PrepareReconciliationRequest request, long actorUserId, CancellationToken ct = default)
     {
         await using var db = _dbContextFactory.CreateDbContext();

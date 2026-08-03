@@ -61,13 +61,16 @@ public class ReconciliationController : ControllerBase
     {
         var userId = GetUserId();
 
+        var period = await _reconciliationService.GetPeriodByIdAsync(id, ct);
+        if (period == null)
+            return NotFound(new { Title = "Not Found", Detail = "Reconciliation period not found." });
+
+        if (!await _permissionEvaluator.EvaluateAsync(userId, "RECONCILIATION_PREPARE", period.CompanyId, ct))
+            return Forbid();
+
         try
         {
             var result = await _reconciliationService.PrepareAsync(id, request, userId, ct);
-
-            if (!await _permissionEvaluator.EvaluateAsync(userId, "RECONCILIATION_PREPARE", result.CompanyId, ct))
-                return Forbid();
-
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -85,13 +88,16 @@ public class ReconciliationController : ControllerBase
     {
         var userId = GetUserId();
 
+        var period = await _reconciliationService.GetPeriodByIdAsync(id, ct);
+        if (period == null)
+            return NotFound(new { Title = "Not Found", Detail = "Reconciliation period not found." });
+
+        if (!await _permissionEvaluator.EvaluateAsync(userId, "RECONCILIATION_CONFIRM", period.CompanyId, ct))
+            return Forbid();
+
         try
         {
             var result = await _reconciliationService.ConfirmAsync(id, request, userId, ct);
-
-            if (!await _permissionEvaluator.EvaluateAsync(userId, "RECONCILIATION_CONFIRM", result.CompanyId, ct))
-                return Forbid();
-
             return Ok(result);
         }
         catch (InvalidOperationException ex)

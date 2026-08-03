@@ -77,6 +77,113 @@ public class ReconciliationApiTests : IClassFixture<SafeTestWebApplicationFactor
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Prepare_NoPermission_Returns403_AndDoesNotMutateState()
+    {
+        var periodId = await SeedReconciliationPeriodAsync(_companyId, "DAILY", DateTime.UtcNow.Date);
+        var rv = await GetPeriodRowVersionAsync(periodId);
+
+        var (_, token) = await SeedUserAndGetTokenAsync("recon_noprep");
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsJsonAsync($"/api/v2/reconciliation/periods/{periodId}/prepare", new { RowVersion = rv });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        var statusAfter = await GetPeriodStatusAsync(periodId);
+        Assert.Equal("OPEN", statusAfter);
+    }
+
+    [Fact]
+    public async Task Confirm_NoPermission_Returns403_AndDoesNotMutateState()
+    {
+        var periodId = await SeedReconciliationPeriodAsync(_companyId, "DAILY", DateTime.UtcNow.Date.AddDays(-1));
+        await PreparePeriodDirectlyAsync(periodId);
+        var rv = await GetPeriodRowVersionAsync(periodId);
+
+        var (_, token) = await SeedUserAndGetTokenAsync("recon_noconf");
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsJsonAsync($"/api/v2/reconciliation/periods/{periodId}/confirm", new { RowVersion = rv });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        var statusAfter = await GetPeriodStatusAsync(periodId);
+        Assert.Equal("PREPARED", statusAfter);
+    }
+
+    [Fact]
+    public async Task Prepare_Authorized_Returns200()
+    {
+        var periodId = await SeedReconciliationPeriodAsync(_companyId, "DAILY", DateTime.UtcNow.Date.AddDays(-2));
+        var rv = await GetPeriodRowVersionAsync(periodId);
+
+        var response = await _client.PostAsJsonAsync($"/api/v2/reconciliation/periods/{periodId}/prepare", new { RowVersion = rv });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal("PREPARED", doc.RootElement.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task Confirm_Authorized_Returns200()
+    {
+        var periodId = await SeedReconciliationPeriodAsync(_companyId, "DAILY", DateTime.UtcNow.Date.AddDays(-3));
+        await PreparePeriodDirectlyAsync(periodId);
+        var rv = await GetPeriodRowVersionAsync(periodId);
+
+        var response = await _client.PostAsJsonAsync($"/api/v2/reconciliation/periods/{periodId}/confirm", new { RowVersion = rv });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal("CONFIRMED", doc.RootElement.GetProperty("status").GetString());
+    }
+
+    private async Task<long> SeedReconciliationPeriodAsync(long companyId, string periodType, DateTime periodDate)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var period = PTKD.Domain.Entities.ReconciliationPeriod.Create(companyId, periodType, periodDate);
+        db.ReconciliationPeriods.Add(period);
+        await db.SaveChangesAsync();
+        return period.Id;
+    }
+
+    private async Task PreparePeriodDirectlyAsync(long periodId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var period = await db.ReconciliationPeriods.FindAsync(periodId);
+        period!.Prepare(_userId, 0, 0);
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<string> GetPeriodRowVersionAsync(long periodId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var period = await db.ReconciliationPeriods.FindAsync(periodId);
+        return Convert.ToBase64String(period!.RowVersion);
+    }
+
+    private async Task<string> GetPeriodStatusAsync(long periodId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var period = await db.ReconciliationPeriods.FindAsync(periodId);
+        return period!.Status;
+    }
+
     private async Task<(long CompanyId, long CustomerId)> SeedCompanyAndCustomerAsync()
     {
         using var scope = _factory.Services.CreateScope();
