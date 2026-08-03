@@ -113,7 +113,24 @@ const AuthenticatedShell: React.FC = () => {
               </Menu.Item>
             )}
 
-            {hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') && (
+            {/* Payments & Reconciliation */}
+            {hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') && (
+              <Menu.Item key="payments" data-testid="nav-payments">
+                <Link to="/payments">Payments</Link>
+              </Menu.Item>
+            )}
+            {hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') && (
+              <Menu.Item key="reconciliation-daily" data-testid="nav-reconciliation-daily">
+                <Link to="/reconciliation/daily">Daily Reconciliation</Link>
+              </Menu.Item>
+            )}
+            {hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') && (
+              <Menu.Item key="reconciliation-monthly" data-testid="nav-reconciliation-monthly">
+                <Link to="/reconciliation/monthly">Monthly Reconciliation</Link>
+              </Menu.Item>
+            )}
+
+            {hasPermission('WORKFLOW_DEFINITION_VIEW', 'GLOBAL') && (
               <Menu.Item key="service-types" data-testid="nav-service-types">
                 <Link to="/services/types">Service Types</Link>
               </Menu.Item>

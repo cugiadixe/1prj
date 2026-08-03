@@ -42,6 +42,11 @@ import CustomerMergeDuplicateSearchPage from './customers/CustomerMergeDuplicate
 import CustomerMergeRequestCreatePage from './customers/CustomerMergeRequestCreatePage';
 import CustomerMergeRequestsPage from './customers/CustomerMergeRequestsPage';
 import CustomerMergeRequestDetailPage from './customers/CustomerMergeRequestDetailPage';
+import PaymentListPage from './payments/pages/PaymentListPage';
+import PaymentDetailPage from './payments/pages/PaymentDetailPage';
+import PaymentCreatePage from './payments/pages/PaymentCreatePage';
+import ReconciliationDailyPage from './payments/pages/ReconciliationDailyPage';
+import ReconciliationMonthlyPage from './payments/pages/ReconciliationMonthlyPage';
 import ServiceTypeListPage from './services/ServiceTypeListPage';
 import ServiceTypeDetailPage from './services/ServiceTypeDetailPage';
 import ServiceTypeFormPage from './services/ServiceTypeFormPage';
@@ -120,6 +125,13 @@ const App: React.FC = () => {
               <Route path="customers/merge/new" element={<CustomerMergeRequestCreatePage />} />
               <Route path="customers/merge-requests" element={<CustomerMergeRequestsPage />} />
               <Route path="customers/merge-requests/:id" element={<CustomerMergeRequestDetailPage />} />
+
+              <Route path="payments" element={<PaymentListPage />} />
+              <Route path="payments/new" element={<PaymentCreatePage />} />
+              <Route path="payments/:id" element={<PaymentDetailPage />} />
+              <Route path="reconciliation/daily" element={<ReconciliationDailyPage />} />
+              <Route path="reconciliation/monthly" element={<ReconciliationMonthlyPage />} />
+
               {/* Phase 1B.3-B2 — Workflow Admin Configuration UI */}
               <Route path="workflow" element={<WorkflowDefinitionsPage />} />
               <Route path="workflow/definitions/new" element={<WorkflowDefinitionCreatePage />} />
