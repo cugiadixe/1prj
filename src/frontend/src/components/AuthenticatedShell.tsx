@@ -102,6 +102,17 @@ const AuthenticatedShell: React.FC = () => {
               </Menu.Item>
             )}
 
+            {hasPermission('CUSTOMER_MERGE_REQUEST_VIEW', 'GLOBAL') && (
+              <Menu.Item key="merge-requests" data-testid="nav-merge-requests">
+                <Link to="/customers/merge-requests">Merge Requests</Link>
+              </Menu.Item>
+            )}
+            {hasPermission('CUSTOMER_MERGE_REQUEST_CREATE', 'GLOBAL') && (
+              <Menu.Item key="find-duplicates" data-testid="nav-find-duplicates">
+                <Link to="/customers/merge/search">Find Duplicates</Link>
+              </Menu.Item>
+            )}
+
             <Menu.Item key="my-approvals" data-testid="nav-my-approvals">
               <Link to="/workflow/my-approvals">My Approvals</Link>
             </Menu.Item>

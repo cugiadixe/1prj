@@ -38,6 +38,10 @@ import CustomerProposalDetailPage from './customers/CustomerProposalDetailPage';
 import CustomerMyProposalsPage from './customers/CustomerMyProposalsPage';
 import CustomerMasterChangeRequestsPage from './customers/CustomerMasterChangeRequestsPage';
 import CustomerMasterChangeRequestDetailPage from './customers/CustomerMasterChangeRequestDetailPage';
+import CustomerMergeDuplicateSearchPage from './customers/CustomerMergeDuplicateSearchPage';
+import CustomerMergeRequestCreatePage from './customers/CustomerMergeRequestCreatePage';
+import CustomerMergeRequestsPage from './customers/CustomerMergeRequestsPage';
+import CustomerMergeRequestDetailPage from './customers/CustomerMergeRequestDetailPage';
 const queryClient = new QueryClient();
 
 /**
@@ -105,6 +109,11 @@ const App: React.FC = () => {
               <Route path="customers/proposals/:id" element={<CustomerProposalDetailPage />} />
               <Route path="customers/change-requests" element={<CustomerMasterChangeRequestsPage />} />
               <Route path="customers/change-requests/:id" element={<CustomerMasterChangeRequestDetailPage />} />
+              {/* Phase 1B.5-C — Customer Merge UI */}
+              <Route path="customers/merge/search" element={<CustomerMergeDuplicateSearchPage />} />
+              <Route path="customers/merge/new" element={<CustomerMergeRequestCreatePage />} />
+              <Route path="customers/merge-requests" element={<CustomerMergeRequestsPage />} />
+              <Route path="customers/merge-requests/:id" element={<CustomerMergeRequestDetailPage />} />
               {/* Phase 1B.3-B2 — Workflow Admin Configuration UI */}
               <Route path="workflow" element={<WorkflowDefinitionsPage />} />
               <Route path="workflow/definitions/new" element={<WorkflowDefinitionCreatePage />} />
