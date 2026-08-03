@@ -2,7 +2,7 @@
 
 ## Status
 
-PARTIAL / BLOCKED — ACCEPTANCE REVIEW NOT READY
+IMPLEMENTED — READY FOR ACCEPTANCE REVIEW
 
 ## Authorization Source
 
@@ -53,10 +53,10 @@ Reference:
 
 ## Validation Evidence
 
-- **dotnet build result**: Build succeeded. 0 Error(s), 0 Warning(s). Time Elapsed 00:00:04.99.
-- **UnitTests result**: Passed! - Failed: 0, Passed: 158, Skipped: 0, Total: 158, Duration: 890 ms.
-- **IntegrationTests result**: Passed! - Failed: 0, Passed: 56, Skipped: 0, Total: 56, Duration: 53 s.
-- **ApiTests result**: Failed! - Failed: 267, Passed: 0, Skipped: 0, Total: 267, Duration: 19 s. (Deadlocks in TestDatabaseFixture)
+- **dotnet build result**: Build succeeded. 0 Error(s), 0 Warning(s).
+- **UnitTests result**: Passed! - Failed: 0, Passed: 158, Skipped: 0, Total: 158.
+- **IntegrationTests result**: Passed! - Failed: 0, Passed: 196, Skipped: 0, Total: 196.
+- **ApiTests result**: Passed! - Failed: 0, Passed: 267, Skipped: 0, Total: 267.
 - **git diff --check result**: Clean (no trailing whitespace/conflict markers).
 
 ## Security and Boundaries
@@ -70,9 +70,21 @@ Reference:
 - No release tag created.
 - No push executed.
 
+## Remediation After Initial Blocked Commit
+
+- Previous commit dc6ebf6ea85b98d9ade2609c4e237fbb03d11916 was PARTIAL / BLOCKED.
+- ApiTests initially failed 267/267 due to SQL deadlock in TestDatabaseFixture.
+- Root cause: `SafeTestWebApplicationFactory` called `ResetToV0009()` but the application EF context now expects V0010 tables (Customer_Merge_*). The factory dropped all tables then only rebuilt to V0009, leaving the Customer_Merge_* tables missing. When the schema was already at V0010 from a prior integration test run, API tests passed by luck; when run independently or concurrently, the missing tables caused deadlocks and failures during EF model validation.
+- Fix applied:
+  - Added `ResetToV0010()` method to `TestDatabaseFixture.cs` following the established pattern.
+  - Updated `SafeTestWebApplicationFactory.cs` to call `ResetToV0010()` instead of `ResetToV0009()`.
+- Files changed in remediation:
+  - `tests/backend/PTKD.IntegrationTests/TestDatabaseFixture.cs` — added `ResetToV0010()`.
+  - `tests/backend/PTKD.ApiTests/SafeTestWebApplicationFactory.cs` — updated schema init to V0010.
+  - `docs/architecture/phase-1b5b-backend-data-foundation-implementation-report.md` — status updated.
+
 ## Risks / Follow-Ups
 
-- API Tests failed with deadlock during database fixture initialization.
 - Frontend remains future work and is not authorized in this commit.
 - Future service/payment/document linked-module handling remains deferred.
 - Untracked scratch/decompiled/FixStrategy files remain uncommitted.

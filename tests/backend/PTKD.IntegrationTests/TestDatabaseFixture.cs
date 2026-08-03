@@ -275,6 +275,30 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0010()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0009();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0010__customer_merge_backend_data_foundation.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0010', 'V0010__customer_merge_backend_data_foundation.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
