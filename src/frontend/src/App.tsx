@@ -42,6 +42,12 @@ import CustomerMergeDuplicateSearchPage from './customers/CustomerMergeDuplicate
 import CustomerMergeRequestCreatePage from './customers/CustomerMergeRequestCreatePage';
 import CustomerMergeRequestsPage from './customers/CustomerMergeRequestsPage';
 import CustomerMergeRequestDetailPage from './customers/CustomerMergeRequestDetailPage';
+import ServiceTypeListPage from './services/ServiceTypeListPage';
+import ServiceTypeDetailPage from './services/ServiceTypeDetailPage';
+import ServiceTypeFormPage from './services/ServiceTypeFormPage';
+import ServiceListPage from './services/ServiceListPage';
+import ServiceDetailPage from './services/ServiceDetailPage';
+import ServiceCreatePage from './services/ServiceCreatePage';
 const queryClient = new QueryClient();
 
 /**
@@ -126,6 +132,14 @@ const App: React.FC = () => {
               <Route path="workflow/my-approvals" element={<WorkflowMyApprovalsPage />} />
               <Route path="workflow/my-requests" element={<WorkflowMyRequestsPage />} />
               <Route path="workflow/instances/:instanceId" element={<WorkflowInstanceDetailPage />} />
+              {/* Phase 1B.6-C — Service Module UI */}
+              <Route path="services/types" element={<ServiceTypeListPage />} />
+              <Route path="services/types/new" element={<ServiceTypeFormPage />} />
+              <Route path="services/types/:id" element={<ServiceTypeDetailPage />} />
+              <Route path="services/types/:id/edit" element={<ServiceTypeFormPage />} />
+              <Route path="services" element={<ServiceListPage />} />
+              <Route path="services/new" element={<ServiceCreatePage />} />
+              <Route path="services/:id" element={<ServiceDetailPage />} />
             </Route>
 
             {/* Catch-all */}

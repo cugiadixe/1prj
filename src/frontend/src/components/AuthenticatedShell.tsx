@@ -113,6 +113,17 @@ const AuthenticatedShell: React.FC = () => {
               </Menu.Item>
             )}
 
+            {hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') && (
+              <Menu.Item key="service-types" data-testid="nav-service-types">
+                <Link to="/services/types">Service Types</Link>
+              </Menu.Item>
+            )}
+            {hasPermission('SERVICE_VIEW', 'COMPANY') && (
+              <Menu.Item key="services" data-testid="nav-services">
+                <Link to="/services">Services</Link>
+              </Menu.Item>
+            )}
+
             <Menu.Item key="my-approvals" data-testid="nav-my-approvals">
               <Link to="/workflow/my-approvals">My Approvals</Link>
             </Menu.Item>
