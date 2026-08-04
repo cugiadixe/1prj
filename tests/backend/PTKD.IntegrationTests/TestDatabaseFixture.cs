@@ -357,6 +357,30 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0013()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0012();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0013__card_reprint_foundation.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0013', 'V0013__card_reprint_foundation.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);

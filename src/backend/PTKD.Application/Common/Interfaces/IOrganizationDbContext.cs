@@ -42,6 +42,8 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<PaymentTransactionItem> PaymentTransactionItems { get; }
     DbSet<PaymentCorrectionHistory> PaymentCorrectionHistories { get; }
     DbSet<ReconciliationPeriod> ReconciliationPeriods { get; }
+    DbSet<Card> Cards { get; }
+    DbSet<CardReprintRequest> CardReprintRequests { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
     System.Data.Common.DbConnection GetDbConnection();

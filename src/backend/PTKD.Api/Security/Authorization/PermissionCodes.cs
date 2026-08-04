@@ -56,4 +56,7 @@ public static class PermissionCodes
     public const string WorkflowAuditView = "WORKFLOW_AUDIT_VIEW";
 
     public const string CustomerChangeRequestCreate = "CUSTOMER_CHANGE_REQUEST_CREATE";
+
+    public const string CardReprintRequestCreate = "CARD_REPRINT_REQUEST_CREATE";
+    public const string CardReprintRequestView = "CARD_REPRINT_REQUEST_VIEW";
 }

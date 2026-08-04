@@ -107,6 +107,9 @@ builder.Services.AddScoped<IUserAssignmentService, UserAssignmentService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerService, PTKD.Application.Customers.Services.CustomerService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMergeService, PTKD.Application.Customers.Services.CustomerMergeService>();
 
+// Card Reprint Services (Phase 1B.8-B1)
+builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardReprintRequestService, PTKD.Application.Cards.Services.CardReprintRequestService>();
+
 // Customer Proposal Services (Phase 1B.3-B4)
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerProposalService, PTKD.Application.Customers.Services.CustomerProposalService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMasterChangeService, PTKD.Application.Customers.Services.CustomerMasterChangeService>();
