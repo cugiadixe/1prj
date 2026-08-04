@@ -87,8 +87,14 @@ Added 17 tests across three test suites in `src/frontend/src/cards/`:
 
 - **Lint**: Passed (`npm run lint` -> 0 errors, 3 standard React warnings)
 - **TypeScript**: Passed (`npm run build` -> built successfully)
-- **Vitest**: Passed (`npx vitest run src/cards` -> 17 passed)
+- **Vitest**: Passed (`npm run test -- --run` -> 68 passed test files, 481 tests. `npx vitest run src/cards` -> 17 passed tests in 3 test files)
 - **git diff --check**: Passed (No trailing whitespace)
+
+## Remediation Note
+
+- **Original Implementation Commit**: `a0a921aff263177b52b46100bb0b27097dd6085c`
+- **Issue**: Post-commit verification failed due to TypeScript import/export mismatch and empty/invalid Card Reprint test files (a script erroneously truncated the files to 0 bytes).
+- **Remediation**: This remediation commit restores the content of the 10 frontend Card Reprint files and fixes those validation failures.
 
 ## Boundary Confirmation
 
