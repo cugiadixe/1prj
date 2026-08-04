@@ -31,6 +31,7 @@ public sealed class MigrationRollbackTests
         Assert.Contains("Applied V0011", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0012", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0013", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Applied V0014", firstOutput, StringComparison.Ordinal);
         Assert.Equal(1, GetSchemaVersionsCount("V0001"));
         Assert.Equal(1, GetSchemaVersionsCount("V0002"));
         Assert.Equal(1, GetSchemaVersionsCount("V0003"));
@@ -45,6 +46,7 @@ public sealed class MigrationRollbackTests
         Assert.Equal(1, GetSchemaVersionsCount("V0011"));
         Assert.Equal(1, GetSchemaVersionsCount("V0012"));
         Assert.Equal(1, GetSchemaVersionsCount("V0013"));
+        Assert.Equal(1, GetSchemaVersionsCount("V0014"));
 
         var secondOutput = ExecuteDbMigrator();
         Assert.Contains("Skipping V0001", secondOutput, StringComparison.Ordinal);
@@ -60,6 +62,11 @@ public sealed class MigrationRollbackTests
         Assert.Contains("Skipping V0011", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0012", secondOutput, StringComparison.Ordinal);
         Assert.Contains("Skipping V0013", secondOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0014", secondOutput, StringComparison.Ordinal);
+        Assert.Equal(1, GetSchemaVersionsCount("V0014"));
+
+        ExecuteRollback("U0014__care_package_sales_foundation.sql");
+        Assert.Equal(0, GetSchemaVersionsCount("V0014"));
         Assert.Equal(1, GetSchemaVersionsCount("V0013"));
 
         ExecuteRollback("U0013__card_reprint_foundation.sql");

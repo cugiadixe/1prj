@@ -63,4 +63,7 @@ public static class PermissionCodes
     public const string CardReprintApprove = "CARD_REPRINT_APPROVE";
     public const string CardReprintRequestReject = "CARD_REPRINT_REQUEST_REJECT";
     public const string CardReprintRequestMarkPrinted = "CARD_REPRINT_REQUEST_MARK_PRINTED";
+
+    public const string CarePackageView = "CARE_PACKAGE_VIEW";
+    public const string CarePackageCreate = "CARE_PACKAGE_CREATE";
 }

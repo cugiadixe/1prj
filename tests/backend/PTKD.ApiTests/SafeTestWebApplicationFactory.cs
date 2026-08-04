@@ -29,7 +29,7 @@ public class SafeTestWebApplicationFactory : WebApplicationFactory<Program>
     /// </summary>
     private static readonly Lazy<bool> SchemaInitialized = new(() =>
     {
-        new TestDatabaseFixture().ResetToV0013();
+        new TestDatabaseFixture().ResetToV0014();
         return true;
     });
 

@@ -27,6 +27,8 @@ public sealed class SecuritySchemaTests : IDisposable
 
     private static readonly string[] ExpectedPermissionCodes =
     [
+        "CARE_PACKAGE_CREATE",
+        "CARE_PACKAGE_VIEW",
         "CUSTOMER_CREATE_FINAL",
         "CUSTOMER_MASTER_UPDATE",
         "CUSTOMER_MERGE_EXECUTE",

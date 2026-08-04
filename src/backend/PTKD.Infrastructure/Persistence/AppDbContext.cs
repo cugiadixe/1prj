@@ -51,6 +51,8 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Card> Cards => Set<Card>();
     public DbSet<CardReprintRequest> CardReprintRequests => Set<CardReprintRequest>();
+    public DbSet<CarePackageRequest> CarePackageRequests => Set<CarePackageRequest>();
+    public DbSet<CarePackageRequestItem> CarePackageRequestItems => Set<CarePackageRequestItem>();
     public DbSet<PTKD.Domain.Security.Authorization.Permission> Permissions => Set<PTKD.Domain.Security.Authorization.Permission>();
     public DbSet<PTKD.Domain.Security.Authorization.Role> Roles => Set<PTKD.Domain.Security.Authorization.Role>();
     public DbSet<PTKD.Domain.Security.Authorization.AdminGroup> AdminGroups => Set<PTKD.Domain.Security.Authorization.AdminGroup>();

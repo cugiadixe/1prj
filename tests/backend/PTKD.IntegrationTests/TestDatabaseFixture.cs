@@ -58,7 +58,9 @@ public sealed class TestDatabaseFixture : IDisposable
         "Payment_Correction_History",
         "Reconciliation_Periods",
         "Cards",
-        "Card_Reprint_Requests"
+        "Card_Reprint_Requests",
+        "Care_Package_Requests",
+        "Care_Package_Request_Items"
     };
 
     public TestDatabaseFixture()
@@ -381,6 +383,30 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    public void ResetToV0014()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0013();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0014__care_package_sales_foundation.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0014', 'V0014__care_package_sales_foundation.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
@@ -527,6 +553,10 @@ public sealed class TestDatabaseFixture : IDisposable
                 ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_created_by;
             IF OBJECT_ID(N'dbo.FK_Users_updated_by', N'F') IS NOT NULL
                 ALTER TABLE dbo.Users DROP CONSTRAINT FK_Users_updated_by;
+            IF OBJECT_ID(N'dbo.FK_CPR_created_by_user_id', N'F') IS NOT NULL
+                ALTER TABLE dbo.Care_Package_Requests DROP CONSTRAINT FK_CPR_created_by_user_id;
+            IF OBJECT_ID(N'dbo.FK_CPR_updated_by_user_id', N'F') IS NOT NULL
+                ALTER TABLE dbo.Care_Package_Requests DROP CONSTRAINT FK_CPR_updated_by_user_id;
 
             DROP TABLE IF EXISTS dbo.Security_Audit_Events;
             DROP TABLE IF EXISTS dbo.Security_Bootstrap_State;
@@ -544,6 +574,8 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.Password_History;
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
+            DROP TABLE IF EXISTS dbo.Care_Package_Request_Items;
+            DROP TABLE IF EXISTS dbo.Care_Package_Requests;
             DROP TABLE IF EXISTS dbo.Card_Reprint_Requests;
             DROP TABLE IF EXISTS dbo.Cards;
             DROP TABLE IF EXISTS dbo.Payment_Correction_History;
