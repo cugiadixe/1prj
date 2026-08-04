@@ -66,4 +66,76 @@ public class CardReprintRequest
             CreatedAt = DateTime.UtcNow
         };
     }
+
+    public void SetSubmitted(long workflowInstanceId)
+    {
+        if (Status != StatusDraft)
+            throw new InvalidOperationException($"Cannot submit request from status {Status}");
+
+        Status = StatusPendingApproval;
+        WorkflowInstanceId = workflowInstanceId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetApproved()
+    {
+        if (Status != StatusPendingApproval)
+            throw new InvalidOperationException($"Cannot approve request from status {Status}");
+
+        Status = StatusApproved;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetRejected()
+    {
+        if (Status != StatusPendingApproval)
+            throw new InvalidOperationException($"Cannot reject request from status {Status}");
+
+        Status = StatusRejected;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPaymentDraft(long paymentTransactionId, long serviceItemId, decimal feeAmount, string feeCurrency)
+    {
+        if (Status != StatusApproved)
+            throw new InvalidOperationException($"Cannot set payment draft from status {Status}");
+
+        Status = StatusPendingPayment;
+        PaymentTransactionId = paymentTransactionId;
+        ServiceItemId = serviceItemId;
+        FeeAmount = feeAmount;
+        FeeCurrency = feeCurrency;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPaid()
+    {
+        if (Status != StatusPendingPayment)
+            throw new InvalidOperationException($"Cannot mark as paid from status {Status}");
+
+        Status = StatusPaid;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPrinted(long printedByUserId)
+    {
+        if (Status != StatusPaid)
+            throw new InvalidOperationException($"Cannot mark as printed from status {Status}");
+
+        Status = StatusPrinted;
+        PrintedAt = DateTime.UtcNow;
+        PrintedByUserId = printedByUserId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetReleased(long releasedByUserId)
+    {
+        if (Status != StatusPrinted)
+            throw new InvalidOperationException($"Cannot mark as released from status {Status}");
+
+        Status = StatusReleased;
+        ReleasedAt = DateTime.UtcNow;
+        ReleasedByUserId = releasedByUserId;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
