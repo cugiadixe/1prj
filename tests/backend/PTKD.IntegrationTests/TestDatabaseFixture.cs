@@ -56,7 +56,9 @@ public sealed class TestDatabaseFixture : IDisposable
         "Payment_Transactions",
         "Payment_Transaction_Items",
         "Payment_Correction_History",
-        "Reconciliation_Periods"
+        "Reconciliation_Periods",
+        "Cards",
+        "Card_Reprint_Requests"
     };
 
     public TestDatabaseFixture()
@@ -518,7 +520,8 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.Password_History;
             DROP TABLE IF EXISTS dbo.User_Auth_Sessions;
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
-
+            DROP TABLE IF EXISTS dbo.Card_Reprint_Requests;
+            DROP TABLE IF EXISTS dbo.Cards;
             DROP TABLE IF EXISTS dbo.Payment_Correction_History;
             DROP TABLE IF EXISTS dbo.Payment_Transaction_Items;
             DROP TABLE IF EXISTS dbo.Reconciliation_Periods;
