@@ -42,6 +42,9 @@ import CustomerMergeDuplicateSearchPage from './customers/CustomerMergeDuplicate
 import CustomerMergeRequestCreatePage from './customers/CustomerMergeRequestCreatePage';
 import CustomerMergeRequestsPage from './customers/CustomerMergeRequestsPage';
 import CustomerMergeRequestDetailPage from './customers/CustomerMergeRequestDetailPage';
+import CardReprintRequestsPage from './cards/CardReprintRequestsPage';
+import CardReprintRequestCreatePage from './cards/CardReprintRequestCreatePage';
+import CardReprintRequestDetailPage from './cards/CardReprintRequestDetailPage';
 import PaymentListPage from './payments/pages/PaymentListPage';
 import PaymentDetailPage from './payments/pages/PaymentDetailPage';
 import PaymentCreatePage from './payments/pages/PaymentCreatePage';
@@ -125,6 +128,10 @@ const App: React.FC = () => {
               <Route path="customers/merge/new" element={<CustomerMergeRequestCreatePage />} />
               <Route path="customers/merge-requests" element={<CustomerMergeRequestsPage />} />
               <Route path="customers/merge-requests/:id" element={<CustomerMergeRequestDetailPage />} />
+              {/* Phase 1B.8-C — Card Reprint UI */}
+              <Route path="cards/reprints" element={<CardReprintRequestsPage />} />
+              <Route path="cards/reprints/new" element={<CardReprintRequestCreatePage />} />
+              <Route path="cards/reprints/:id" element={<CardReprintRequestDetailPage />} />
 
               <Route path="payments" element={<PaymentListPage />} />
               <Route path="payments/new" element={<PaymentCreatePage />} />
