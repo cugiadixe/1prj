@@ -123,6 +123,7 @@ builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceT
 builder.Services.AddScoped<PTKD.Application.CarePackages.Services.ICarePackageRequestService, PTKD.Application.CarePackages.Services.CarePackageRequestService>();
 builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceService, PTKD.Application.ServiceManagement.Services.ServiceService>();
 builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.ServiceManagement.Handlers.ServicePriceOverrideExecutionHandler>();
+builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.CarePackages.Handlers.CarePackageExecutionHandler>();
 
 // Payment Management Services (Phase 1B.7-B)
 builder.Services.AddScoped<PTKD.Application.PaymentManagement.Services.IPaymentTransactionService, PTKD.Application.PaymentManagement.Services.PaymentTransactionService>();

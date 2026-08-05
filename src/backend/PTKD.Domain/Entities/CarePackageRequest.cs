@@ -115,10 +115,10 @@ public class CarePackageRequest
 
     public void SetPaymentEligible()
     {
-        if (Status != StatusDraft)
+        if (Status != StatusDraft && Status != StatusApproved)
             throw new InvalidOperationException($"Cannot set payment eligible from status {Status}");
         
-        if (RequiresApproval)
+        if (Status == StatusDraft && RequiresApproval)
             throw new InvalidOperationException("Approval required requests cannot bypass approval to become payment eligible.");
 
         Status = StatusPaymentEligible;
@@ -151,6 +151,34 @@ public class CarePackageRequest
             throw new InvalidOperationException($"Cannot reject request from status {Status}");
 
         Status = StatusRejected;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPaymentDraft(long paymentTransactionId)
+    {
+        if (Status != StatusPaymentEligible)
+            throw new InvalidOperationException($"Cannot set payment draft from status {Status}");
+
+        Status = StatusPendingPayment;
+        PaymentTransactionId = paymentTransactionId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPaid()
+    {
+        if (Status != StatusPendingPayment)
+            throw new InvalidOperationException($"Cannot mark as paid from status {Status}");
+
+        Status = StatusPaid;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetActive()
+    {
+        if (Status != StatusPaid)
+            throw new InvalidOperationException($"Cannot mark as active from status {Status}");
+
+        Status = StatusActive;
         UpdatedAt = DateTime.UtcNow;
     }
 }

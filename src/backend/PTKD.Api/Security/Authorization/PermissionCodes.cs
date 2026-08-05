@@ -66,4 +66,8 @@ public static class PermissionCodes
 
     public const string CarePackageView = "CARE_PACKAGE_VIEW";
     public const string CarePackageCreate = "CARE_PACKAGE_CREATE";
+
+    public const string CarePackageApprove = "CARE_PACKAGE_APPROVE";
+    public const string CarePackageReject = "CARE_PACKAGE_REJECT";
+    public const string CarePackageCreatePayment = "CARE_PACKAGE_CREATE_PAYMENT";
 }

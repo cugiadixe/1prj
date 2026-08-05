@@ -125,4 +125,33 @@ public class CarePackageRequestTests
 
         Assert.Equal(CarePackageRequest.StatusPaymentEligible, request.Status);
     }
+
+    [Fact]
+    public void B2Transitions_ApprovalRequired_Succeeds()
+    {
+        var request = CarePackageRequest.CreateDraft(1, 2, null, DateTime.UtcNow, 4);
+        var item = CarePackageRequestItem.Create(
+            "G1", 1, new DateTime(2025, 1, 1), new DateTime(2026, 1, 1).AddDays(-1), 100);
+        request.AddItem(item);
+        request.SetDiscount(10, "Reason");
+        request.EvaluateApprovalRequirement(); // RequiresApproval = true
+
+        request.SetSubmitted(1);
+        Assert.Equal(CarePackageRequest.StatusPendingApproval, request.Status);
+
+        request.SetApproved();
+        Assert.Equal(CarePackageRequest.StatusApproved, request.Status);
+
+        request.SetPaymentEligible();
+        Assert.Equal(CarePackageRequest.StatusPaymentEligible, request.Status);
+
+        request.SetPaymentDraft(123);
+        Assert.Equal(CarePackageRequest.StatusPendingPayment, request.Status);
+
+        request.SetPaid();
+        Assert.Equal(CarePackageRequest.StatusPaid, request.Status);
+
+        request.SetActive();
+        Assert.Equal(CarePackageRequest.StatusActive, request.Status);
+    }
 }

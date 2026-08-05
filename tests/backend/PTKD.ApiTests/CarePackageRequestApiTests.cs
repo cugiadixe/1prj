@@ -43,6 +43,9 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
 
         await GrantPermissionAsync(userId, "CARE_PACKAGE_CREATE", _companyId);
         await GrantPermissionAsync(userId, "CARE_PACKAGE_VIEW", _companyId);
+        await GrantPermissionAsync(userId, "CARE_PACKAGE_APPROVE", _companyId);
+        await GrantPermissionAsync(userId, "CARE_PACKAGE_REJECT", _companyId);
+        await GrantPermissionAsync(userId, "CARE_PACKAGE_CREATE_PAYMENT", _companyId);
 
         _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         _client.DefaultRequestHeaders.Add("X-Company-Id", _companyId.ToString());
