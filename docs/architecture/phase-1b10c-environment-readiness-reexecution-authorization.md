@@ -2,7 +2,7 @@
 
 ## Status
 
-BLOCKED — ENVIRONMENT READINESS EVIDENCE INCOMPLETE
+AUTHORIZED — PHASE 1B.10-C ENVIRONMENT READINESS RE-EXECUTION AUTHORIZED
 
 ## Authorization Source
 
@@ -26,6 +26,18 @@ Reference:
 - no production readiness claim.
 - no source/test/frontend/backend/migration/business-doc changes.
 
+## Project Owner Solo Environment Decision
+
+Reference:
+- Phase 1B.10-C Project Owner solo environment decision:
+  docs/architecture/phase-1b10c-project-owner-solo-environment-decision.md
+
+- solo non-production environment accepted.
+- Project Owner acts as Infrastructure Owner, DBA, QA Owner, Workflow Administrator, Evidence Owner, and Go/No-Go Owner.
+- clean local/non-production SQL Server rehearsal databases accepted.
+- synthetic/minimal data accepted because no production data exists yet.
+- limitation must be recorded in the re-execution report.
+
 ## Environment Evidence Reviewed
 
 No environment evidence has been provided. The dedicated non-production staging/pre-prod SQL Server, its isolation confirmation, and non-production DB name remain missing.
@@ -48,20 +60,48 @@ No live validation prerequisites have been provided. Test users, company context
 
 ## Go / No-Go Decision
 
-NO-GO — re-execution remains blocked.
+GO — re-execution authorized under solo non-production clean database boundary.
 
 ## Authorized Next Step
 
 Authorized next task:
-Environment owners complete missing evidence only.
+Phase 1B.10-C Environment Readiness Re-Execution only.
 
 Required next output:
-docs/architecture/phase-1b10c-environment-readiness-reexecution-authorization.md
-updated only after evidence exists.
+docs/architecture/phase-1b10c-environment-readiness-reexecution-report.md
+
+The next task may:
+- reset/drop/recreate only the accepted non-production databases:
+  PTKD_REHEARSAL_PHASE1B10C
+  PTKD_REHEARSAL_ROLLBACK_PHASE1B10C
+  PTKD_TEST_PHASE1A2
+- run accepted migration rehearsal V0001 through V0015.
+- run accepted U0015 rollback rehearsal.
+- verify V0015 permission rows and SELL_CARE_PACKAGE.
+- configure/verify workflow setup only in non-production.
+- create synthetic/minimal validation data only in non-production.
+- run accepted live API validation against non-production.
+- run accepted live UI validation against non-production.
+- run automated sanity validation.
+- capture evidence.
+- create the re-execution report.
+
+The next task must not:
+- connect to production.
+- run production migration.
+- modify source code.
+- modify tests.
+- modify frontend/backend files.
+- modify migrations/rollbacks.
+- modify business docs.
+- modify permission catalog.
+- create release tag.
+- push.
+- claim production readiness.
+- hide failures or convert failures into fixes.
 
 ## Non-Goals
 
-- does not authorize re-execution.
 - does not execute rehearsal.
 - does not execute live validation.
 - does not reset databases.
@@ -76,4 +116,4 @@ updated only after evidence exists.
 
 ## Recommended Next Gate
 
-Environment owner evidence completion.
+Phase 1B.10-C Environment Readiness Re-Execution.
