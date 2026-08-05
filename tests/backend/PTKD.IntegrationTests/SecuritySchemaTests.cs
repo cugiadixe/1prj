@@ -27,8 +27,17 @@ public sealed class SecuritySchemaTests : IDisposable
 
     private static readonly string[] ExpectedPermissionCodes =
     [
+        "CARD_REPRINT_APPROVE",
+        "CARD_REPRINT_REQUEST_CREATE",
+        "CARD_REPRINT_REQUEST_MARK_PRINTED",
+        "CARD_REPRINT_REQUEST_REJECT",
+        "CARD_REPRINT_REQUEST_VIEW",
+        "CARE_PACKAGE_APPROVE",
         "CARE_PACKAGE_CREATE",
+        "CARE_PACKAGE_CREATE_PAYMENT",
+        "CARE_PACKAGE_REJECT",
         "CARE_PACKAGE_VIEW",
+        "CUSTOMER_CHANGE_REQUEST_CREATE",
         "CUSTOMER_CREATE_FINAL",
         "CUSTOMER_MASTER_UPDATE",
         "CUSTOMER_MERGE_EXECUTE",
@@ -41,6 +50,7 @@ public sealed class SecuritySchemaTests : IDisposable
         "ORGANIZATION_COMPANY_VIEW",
         "ORGANIZATION_DEPARTMENT_MANAGE",
         "ORGANIZATION_DEPARTMENT_VIEW",
+        "ORGANIZATION_USER_MANAGE",
         "PAYMENT_CONFIRM",
         "PAYMENT_CORRECT_CONFIRMED",
         "PAYMENT_CREATE_DRAFT",
@@ -70,6 +80,8 @@ public sealed class SecuritySchemaTests : IDisposable
         "WORKFLOW_CONFIG_MANAGE",
         "WORKFLOW_PUBLISH",
         "WORKFLOW_REASSIGN_PENDING",
+        "WORKFLOW_REJECT",
+        "WORKFLOW_RETRY_EXECUTION",
         "WORKFLOW_VIEW"
     ];
 
