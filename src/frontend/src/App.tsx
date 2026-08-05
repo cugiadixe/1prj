@@ -56,6 +56,9 @@ import ServiceTypeFormPage from './services/ServiceTypeFormPage';
 import ServiceListPage from './services/ServiceListPage';
 import ServiceDetailPage from './services/ServiceDetailPage';
 import ServiceCreatePage from './services/ServiceCreatePage';
+import CarePackageRequestsPage from './care-packages/CarePackageRequestsPage';
+import CarePackageRequestCreatePage from './care-packages/CarePackageRequestCreatePage';
+import CarePackageRequestDetailPage from './care-packages/CarePackageRequestDetailPage';
 const queryClient = new QueryClient();
 
 /**
@@ -159,6 +162,10 @@ const App: React.FC = () => {
               <Route path="services" element={<ServiceListPage />} />
               <Route path="services/new" element={<ServiceCreatePage />} />
               <Route path="services/:id" element={<ServiceDetailPage />} />
+              {/* Phase 1B.9-C — Care Package Sales UI */}
+              <Route path="care-packages" element={<CarePackageRequestsPage />} />
+              <Route path="care-packages/new" element={<CarePackageRequestCreatePage />} />
+              <Route path="care-packages/:id" element={<CarePackageRequestDetailPage />} />
             </Route>
 
             {/* Catch-all */}
