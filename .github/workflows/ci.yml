@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore src/backend/PTKD-ERP.sln
+
+      - name: Build
+        run: dotnet build src/backend/PTKD-ERP.sln --no-restore -c Release
+
+      - name: Unit tests
+        run: dotnet test tests/backend/PTKD.UnitTests/PTKD.UnitTests.csproj --no-build -c Release --logger "trx;LogFileName=unit-results.trx"
+
+  frontend:
+    name: Frontend build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t ptkd-backend:${{ github.sha }} src/backend
+
+      - name: Build frontend image
+        run: docker build -t ptkd-frontend:${{ github.sha }} src/frontend

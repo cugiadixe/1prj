@@ -1,3 +1,6 @@
+# MCP / Docker MCP local config
+.mcp.json
+
 # User-specific files
 *.rsuser
 *.suo

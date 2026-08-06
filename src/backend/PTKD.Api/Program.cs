@@ -211,17 +211,6 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Environment Protection for Organization APIs
-// Handled by EnvironmentProtectionConvention
-
-if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
-{
-    // Do not map organization controllers in Production/Staging.
-    // Since this is Phase 1A.2, we just throw an exception to fail startup per requirements.
-    // Or, we can use a custom constraint/convention to remove them. But the easiest way to prevent them from starting is failing.
-    throw new InvalidOperationException("Unsafe organization API configuration enabled.");
-}
-
 app.MapControllers();
 
 // Endpoint GET /api/v2/health
