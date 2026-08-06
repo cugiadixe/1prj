@@ -67,3 +67,51 @@ DbMigrator hỗ trợ chế độ dry-run (chạy thử nhưng không commit tra
 cd src/backend/PTKD.DbMigrator
 dotnet run -- --dry-run
 ```
+
+## Deploy bằng Docker
+
+### Yêu cầu
+- Docker Engine 24+ và Docker Compose v2
+
+### Khởi động nhanh (development)
+```bash
+cp .env.example .env
+# Sửa .env: đặt DB_SA_PASSWORD an toàn
+docker compose up -d
+```
+Truy cập: `http://localhost` (frontend) · `http://localhost:8080/api/v2/health` (backend)
+
+### Chạy migration
+```bash
+docker compose --profile migrate run --rm migrator
+```
+Dry-run:
+```bash
+docker compose --profile migrate run --rm migrator -- --dry-run
+```
+
+### Production (HTTPS)
+1. Đặt cert vào `certs/fullchain.pem` và `certs/privkey.pem`
+2. Sửa `.env`:
+   ```
+   DB_SA_PASSWORD=<mật-khẩu-mạnh>
+   CORS_ORIGIN=https://ptkd.your-domain.com
+   ```
+3. Khởi động:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+   ```
+4. Chạy migration:
+   ```bash
+   docker compose --profile migrate run --rm migrator
+   ```
+
+### Biến môi trường
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `DB_SA_PASSWORD` | `YourStr0ngP@ssword!` | Mật khẩu SA cho SQL Server |
+| `DB_NAME` | `PTKD_PROD` | Tên database |
+| `CORS_ORIGIN` | `http://localhost` | Origin cho CORS |
+| `BACKEND_PORT` | `8080` | Port backend expose |
+| `FRONTEND_PORT` | `80` | Port frontend expose |
+| `ASPNETCORE_ENVIRONMENT` | `Production` | Môi trường .NET |

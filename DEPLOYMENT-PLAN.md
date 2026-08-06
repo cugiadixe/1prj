@@ -84,9 +84,9 @@
 - [x] Viết `docker-compose.yml` (backend + frontend + SQL Server) + `docker-compose.dev.yml` (DB only)
 - [x] Xác nhận Docker build + compose local — 3 container chạy thành công
 - [x] Gỡ production guard Phase 1A.2 (Program.cs dòng 217-223, được owner phê duyệt)
-- [ ] Xác nhận CI chạy xanh trên GitHub — CHỜ PUSH
+- [x] Xác nhận CI chạy xanh trên GitHub — CI #1, commit `7b653df`, 5m51s, ALL GREEN
 
-**Trạng thái:** HOÀN THÀNH (06/08/2026) — chờ push để CI xác nhận
+**Trạng thái:** HOÀN THÀNH (06/08/2026)
 **Kết quả:**
 
 | File | Mô tả |
@@ -115,18 +115,35 @@
 
 **Mục tiêu:** Cấu hình production, deploy staging, rồi production.
 
-- [ ] `appsettings.Production.json` — chỉ giữ cấu trúc, secret từ env
-- [ ] Health check endpoint
-- [ ] HTTPS / reverse proxy config
-- [ ] CORS config cho production domain
-- [ ] Migration strategy cho DB production (backup → dry-run → apply)
-- [ ] Deploy staging + smoke test
-- [ ] Người có thẩm quyền phê duyệt
-- [ ] Deploy production
+- [x] `appsettings.Production.json` — CORS placeholder, Warning log level, secret từ env
+- [x] Health check endpoint — đã có sẵn tại `/api/v2/health`
+- [x] HTTPS / reverse proxy — `nginx.ssl.conf` + `docker-compose.prod.yml` (mount cert)
+- [x] CORS config — chuyển từ hard-code sang `builder.Configuration`, override qua env `Cors__AllowedOrigins__0`
+- [x] Migration strategy — Dockerfile.migrator + docker compose `--profile migrate`, hỗ trợ `--dry-run`
+- [x] Hướng dẫn deploy — cập nhật README.md (Docker quick start + production HTTPS)
+- [ ] Deploy staging + smoke test — CHỜ SERVER
+- [ ] Người có thẩm quyền phê duyệt — CHỜ
+- [ ] Deploy production — CHỜ SERVER
 
-**Trạng thái:** CHƯA BẮT ĐẦU
+**Trạng thái:** CẤU HÌNH HOÀN THÀNH (06/08/2026) — chờ server để deploy
+
 **Kết quả:**
-_(sẽ điền sau khi thực hiện)_
+
+| Hạng mục | Chi tiết |
+|---|---|
+| CORS | Linh hoạt qua env var, mặc định `localhost:5173` khi Development |
+| HTTPS | `nginx.ssl.conf` redirect 80→443, mount cert vào `/etc/nginx/certs/` |
+| Migration Docker | `docker compose --profile migrate run --rm migrator` (có dry-run) |
+| Biến môi trường | `DB_SA_PASSWORD`, `DB_NAME`, `CORS_ORIGIN`, `BACKEND_PORT`, `FRONTEND_PORT` |
+| Build + test | 0 error, 236/236 unit test passed sau thay đổi CORS |
+
+**Khi có server, chạy:**
+```
+cp .env.example .env          # sửa mật khẩu + domain
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose --profile migrate run --rm migrator --dry-run
+docker compose --profile migrate run --rm migrator
+```
 
 ---
 
@@ -155,4 +172,13 @@ _(sẽ điền sau khi thực hiện)_
 | 06/08/2026 | GĐ 2 | Gỡ production guard Phase 1A.2 | Owner phê duyệt, build OK |
 | 06/08/2026 | GĐ 2 | Docker compose up (3 container) | Backend + Frontend + DB — tất cả chạy |
 | 06/08/2026 | GĐ 2 | Health check + nginx proxy | OK — `/api/v2/health` qua cả port 8080 và 80 |
-| 06/08/2026 | GĐ 2 | **Tổng kết GĐ 2** | **Docker hoạt động, chờ push + CI** |
+| 06/08/2026 | GĐ 2 | Commit CI/CD + Docker (13 file) | `7b653df` |
+| 06/08/2026 | GĐ 2 | Push main + tag v1.0.0-rc1 | OK — remote `origin` |
+| 06/08/2026 | GĐ 2 | CI #1 trên GitHub | ALL GREEN — 5m51s |
+| 06/08/2026 | GĐ 2 | **Tổng kết GĐ 2** | **HOÀN THÀNH. Docker + CI + push đều xanh.** |
+| 06/08/2026 | GĐ 3 | CORS linh hoạt qua env var | Build OK, 236/236 test passed |
+| 06/08/2026 | GĐ 3 | nginx.ssl.conf (HTTPS) | Tạo mới |
+| 06/08/2026 | GĐ 3 | docker-compose.prod.yml (HTTPS overlay) | Tạo mới |
+| 06/08/2026 | GĐ 3 | Dockerfile.migrator + compose migrate profile | Tạo mới |
+| 06/08/2026 | GĐ 3 | README.md — hướng dẫn Docker deploy | Cập nhật |
+| 06/08/2026 | GĐ 3 | **Tổng kết GĐ 3** | **Cấu hình xong. Chờ server để deploy thật.** |

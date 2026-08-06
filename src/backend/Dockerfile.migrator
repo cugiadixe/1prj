@@ -1,0 +1,14 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+WORKDIR /src
+
+COPY PTKD.DbMigrator/PTKD.DbMigrator.csproj PTKD.DbMigrator/
+RUN dotnet restore PTKD.DbMigrator/PTKD.DbMigrator.csproj
+
+COPY PTKD.DbMigrator/ PTKD.DbMigrator/
+RUN dotnet publish PTKD.DbMigrator/PTKD.DbMigrator.csproj -c Release -o /app --no-restore
+
+FROM mcr.microsoft.com/dotnet/runtime:10.0-preview AS runtime
+WORKDIR /app
+COPY --from=build /app .
+
+ENTRYPOINT ["dotnet", "PTKD.DbMigrator.dll"]

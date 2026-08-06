@@ -1,0 +1,17 @@
+services:
+  db:
+    ports: !reset []
+    restart: unless-stopped
+
+  backend:
+    ports: !reset []
+    restart: unless-stopped
+
+  frontend:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+      - ./src/frontend/nginx.ssl.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
