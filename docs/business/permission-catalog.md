@@ -46,12 +46,27 @@
 | IMPORT_ROLLBACK | IMPORT | ROLLBACK | COMPANY | Yes | No | Roll back import under policy/version checks. |
 | SENSITIVE_EXPORT | EXPORT | EXPORT_SENSITIVE | COMPANY | Yes | Policy | Export sensitive data with purpose/audit. |
 | AUDIT_VIEW | AUDIT | VIEW | GLOBAL/COMPANY | Yes | No | View audit records within granted scope. |
-| WORKFLOW_VIEW | WORKFLOW | VIEW | GLOBAL/COMPANY | No | No | View workflow definitions and runtime status. |
 | WORKFLOW_CONFIG_MANAGE | WORKFLOW | CONFIGURE | GLOBAL/COMPANY | Yes | No | Create/edit DRAFT workflow configuration. |
-| WORKFLOW_PUBLISH | WORKFLOW | PUBLISH | GLOBAL/COMPANY | Yes | No | Publish/activate a validated workflow version. |
-| WORKFLOW_BIND_PROCESS | WORKFLOW | BIND_PROCESS | GLOBAL/COMPANY | Yes | No | Bind a version to an existing process and scope. |
-| WORKFLOW_REASSIGN_PENDING | WORKFLOW | REASSIGN_PENDING | COMPANY | Yes | No | Reassign a pending step with reason and audit. |
+| WORKFLOW_PUBLISH | WORKFLOW | PUBLISH | GLOBAL | Yes | No | Publish and manage workflow versions. |
+| WORKFLOW_BIND_PROCESS | WORKFLOW | BIND_PROCESS | GLOBAL | Yes | No | Manage workflow bindings to processes. |
+| WORKFLOW_REASSIGN_PENDING | WORKFLOW | REASSIGN_PENDING | COMPANY | Yes | No | Reassign a pending approval step to another user. |
+| WORKFLOW_REJECT | WORKFLOW | REJECT | COMPANY | Yes | No | Reject a pending workflow request terminating it. |
+| WORKFLOW_RETRY_EXECUTION | WORKFLOW | RETRY_EXECUTION | GLOBAL | Yes | No | Retry a failed workflow execution. |
 | WORKFLOW_AUDIT_VIEW | WORKFLOW | VIEW_AUDIT | GLOBAL/COMPANY | Yes | No | View workflow configuration/runtime audit. |
+| ORGANIZATION_USER_MANAGE | Organization | Manage users | GLOBAL | No | No | Manage Organization Users API access in Phase 1B. |
+| ORGANIZATION_DEPARTMENT_MANAGE | Organization | Manage departments | GLOBAL | No | No | Manage Organization Departments API access in Phase 1B. |
+| ORGANIZATION_COMPANY_MANAGE | Organization | Manage companies | GLOBAL | No | No | Manage Organization Companies API access in Phase 1B. |
+| SECURITY_ADMIN_MANAGE | SECURITY | ADMIN_MANAGE | GLOBAL | Yes | No | Manage security administration configuration (Roles, AdminGroups, Permissions, UserAssignments, DepartmentPermissions, EffectivePermissions). |
+| SECURITY_AUDIT_VIEW | SECURITY | AUDIT_VIEW | GLOBAL | Yes | No | Reserved read-only audit view permission. Endpoint enforcement deferred. |
+| CARE_PACKAGE_VIEW | SALES | VIEW | COMPANY | No | No | View care packages within assigned company. |
+| CARE_PACKAGE_CREATE | SALES | CREATE | COMPANY | No | No | Create care package requests. |
+| CARE_PACKAGE_APPROVE | SALES | APPROVE | COMPANY | No | No | Approve a care package request requiring approval. |
+| CARE_PACKAGE_REJECT | SALES | REJECT | COMPANY | No | No | Reject a care package request requiring approval. |
+| CARE_PACKAGE_CREATE_PAYMENT | SALES | CREATE_PAYMENT | COMPANY | No | No | Create payment for a payment-eligible care package request. |
+| CARD_REPRINT_REQUEST_CREATE | CARD | REQUEST_CREATE | COMPANY | No | No | Create a card reprint request. |
+| CARD_REPRINT_REQUEST_VIEW | CARD | REQUEST_VIEW | COMPANY | No | No | View card reprint requests within assigned company. |
+| CARD_REPRINT_REQUEST_REJECT | CARD | REQUEST_REJECT | COMPANY | No | No | Reject a card reprint request. |
+| CARD_REPRINT_REQUEST_MARK_PRINTED | CARD | REQUEST_MARK_PRINTED | COMPANY | No | No | Mark a card reprint request as printed. |
 
 ## Baseline department permissions
 

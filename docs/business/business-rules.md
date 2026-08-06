@@ -118,6 +118,8 @@
 | APR-009 | Execution retry is idempotent and uses the approved payload, `payload_hash` and `correlation_id`; it must not apply twice. |
 | APR-010 | `before_data` and `after_data` are review/audit snapshots and do not replace source business tables. |
 | APR-011 | A pending-step reassignment requires `WORKFLOW_REASSIGN_PENDING`, reason, self-approval validation and immutable audit. |
+| APR-012 | REJECT permanently terminates the instance; it is distinct from RETURN and cannot be resubmitted or executed. |
+| APR-013 | RETRY execution is allowed only on FAILED execution instances and must preserve idempotency. |
 
 ## SLA and reminders
 

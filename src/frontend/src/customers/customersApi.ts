@@ -1,0 +1,99 @@
+import axiosClient from '../api/axiosClient';
+import type {
+  CreateCompanyContextRequest,
+  CreateCustomerRequest,
+  CustomerCompanyContext,
+  CustomerDetail,
+  CustomerListItem,
+  CustomerSearchParams,
+  DuplicateCheckRequest,
+  DuplicateCheckResult,
+  PagedResult,
+  UpdateCompanyContextRequest,
+  UpdateCustomerRequest,
+} from './types';
+
+const BASE = '/customers';
+
+export async function searchCustomers(
+  params: CustomerSearchParams = {},
+): Promise<PagedResult<CustomerListItem>> {
+  const { data } = await axiosClient.get<PagedResult<CustomerListItem>>(BASE, {
+    params: {
+      search: params.search || undefined,
+      customerStatus: params.customerStatus || undefined,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+    },
+  });
+  return data;
+}
+
+export async function getCustomerById(
+  id: number,
+): Promise<CustomerDetail> {
+  const { data } = await axiosClient.get<CustomerDetail>(`${BASE}/${id}`);
+  return data;
+}
+
+export async function createCustomer(
+  request: CreateCustomerRequest,
+): Promise<CustomerDetail> {
+  const { data } = await axiosClient.post<CustomerDetail>(BASE, request);
+  return data;
+}
+
+export async function updateCustomer(
+  id: number,
+  request: UpdateCustomerRequest,
+): Promise<CustomerDetail> {
+  const { data } = await axiosClient.put<CustomerDetail>(`${BASE}/${id}`, request);
+  return data;
+}
+
+export async function getCompanyContexts(
+  customerId: number,
+): Promise<CustomerCompanyContext[]> {
+  const { data } = await axiosClient.get<CustomerCompanyContext[]>(
+    `${BASE}/${customerId}/company-contexts`,
+  );
+  return data;
+}
+
+export async function createCompanyContext(
+  customerId: number,
+  request: CreateCompanyContextRequest,
+): Promise<CustomerCompanyContext> {
+  const { data } = await axiosClient.post<CustomerCompanyContext>(
+    `${BASE}/${customerId}/company-contexts`,
+    request,
+  );
+  return data;
+}
+
+export async function updateCompanyContext(
+  customerId: number,
+  contextId: number,
+  request: UpdateCompanyContextRequest,
+): Promise<CustomerCompanyContext> {
+  const { data } = await axiosClient.put<CustomerCompanyContext>(
+    `${BASE}/${customerId}/company-contexts/${contextId}`,
+    request,
+  );
+  return data;
+}
+
+export async function checkDuplicates(
+  params: DuplicateCheckRequest,
+): Promise<DuplicateCheckResult> {
+  const { data } = await axiosClient.get<DuplicateCheckResult>(
+    `${BASE}/duplicate-check`,
+    {
+      params: {
+        cccd: params.cccd || undefined,
+        phone: params.phone || undefined,
+      },
+    },
+  );
+  return data;
+}

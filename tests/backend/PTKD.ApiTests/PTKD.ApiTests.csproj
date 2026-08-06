@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\backend\PTKD.Api\PTKD.Api.csproj" />
+    <ProjectReference Include="..\PTKD.IntegrationTests\PTKD.IntegrationTests.csproj" />
   </ItemGroup>
 
 </Project>
