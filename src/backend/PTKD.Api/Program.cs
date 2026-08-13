@@ -118,6 +118,7 @@ builder.Services.AddScoped<PTKD.Application.Common.Interfaces.IGraveFileStorage,
 
 // Customer Care Package Assignment Services
 builder.Services.AddScoped<PTKD.Application.CustomerCarePackages.Services.ICustomerCarePackageService, PTKD.Application.CustomerCarePackages.Services.CustomerCarePackageService>();
+builder.Services.AddScoped<PTKD.Application.ApprovalAuthorities.Services.IApprovalAuthorityService, PTKD.Application.ApprovalAuthorities.Services.ApprovalAuthorityService>();
 builder.Services.AddScoped<PTKD.Application.Tags.Services.ITagService, PTKD.Application.Tags.Services.TagService>();
 
 // Card Reprint Services (Phase 1B.8-B1)

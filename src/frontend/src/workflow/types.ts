@@ -164,6 +164,8 @@ export interface MyApprovalItem {
   stepName: string;
   instanceStatus: string;
   assignedAt: string | null;
+  requesterId: number;
+  requesterName: string | null;
 }
 
 export interface WorkflowInstance {
@@ -172,6 +174,7 @@ export interface WorkflowInstance {
   processCode: string;
   companyId: number | null;
   requesterId: number;
+  requesterName: string | null;
   businessEntityType: string;
   businessEntityId: number;
   instanceStatus: string;
@@ -191,12 +194,14 @@ export interface WorkflowInstanceStep {
   assignedAt: string | null;
   completedAt: string | null;
   completedBy: number | null;
+  completedByName: string | null;
   rowVersion: string;
   assignees: WorkflowInstanceStepAssignee[];
 }
 
 export interface WorkflowInstanceStepAssignee {
   userId: number;
+  userName: string | null;
   approverSourceType: string;
 }
 
@@ -206,7 +211,9 @@ export interface WorkflowActionDto {
   workflowInstanceId: number;
   actionType: string;
   actedBy: number;
+  actedByName: string | null;
   onBehalfOf: number | null;
+  onBehalfOfName: string | null;
   reason: string | null;
   comment: string | null;
   createdAt: string;

@@ -29,19 +29,24 @@ const WorkflowMyApprovalsPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view approvals."
+        message="Bạn không có quyền xem các phê duyệt."
         data-testid="permission-denied"
       />
     );
   }
 
   const columns = [
-    { title: 'Process', dataIndex: 'processCode', key: 'processCode' },
-    { title: 'Entity Type', dataIndex: 'businessEntityType', key: 'businessEntityType' },
-    { title: 'Entity ID', dataIndex: 'businessEntityId', key: 'businessEntityId' },
-    { title: 'Step', dataIndex: 'stepName', key: 'stepName' },
+    { title: 'Quy trình', dataIndex: 'processCode', key: 'processCode' },
+    { title: 'Loại đối tượng', dataIndex: 'businessEntityType', key: 'businessEntityType' },
+    { title: 'ID đối tượng', dataIndex: 'businessEntityId', key: 'businessEntityId' },
+    { title: 'Bước', dataIndex: 'stepName', key: 'stepName' },
     {
-      title: 'Status',
+      title: 'Người đề xuất',
+      key: 'requester',
+      render: (_: unknown, r: MyApprovalItem) => r.requesterName ?? `Người dùng ${r.requesterId}`,
+    },
+    {
+      title: 'Trạng thái',
       dataIndex: 'instanceStatus',
       key: 'instanceStatus',
       render: (val: string) => (
@@ -49,16 +54,16 @@ const WorkflowMyApprovalsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Assigned',
+      title: 'Đã phân công',
       dataIndex: 'assignedAt',
       key: 'assignedAt',
-      render: (val: string | null) => val ? new Date(val).toLocaleString() : '—',
+      render: (val: string | null) => val ? new Date(val).toLocaleString('vi-VN') : '—',
     },
   ];
 
   return (
     <div data-testid="my-approvals-page">
-      <Title level={4} style={{ marginBottom: 16 }}>My Approvals</Title>
+      <Title level={4} style={{ marginBottom: 16 }}>Phê duyệt của tôi</Title>
 
       {error && !isPermissionDenied(error) && (
         <Alert
@@ -72,7 +77,7 @@ const WorkflowMyApprovalsPage: React.FC = () => {
       {isLoading && <Spin data-testid="my-approvals-loading" />}
 
       {!isLoading && !error && approvals && approvals.length === 0 && (
-        <Alert type="info" message="No pending approvals." data-testid="my-approvals-empty" />
+        <Alert type="info" message="Không có phê duyệt đang chờ." data-testid="my-approvals-empty" />
       )}
 
       {approvals && approvals.length > 0 && (

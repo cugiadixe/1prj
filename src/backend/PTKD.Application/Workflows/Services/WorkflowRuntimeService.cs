@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -122,7 +123,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
     public async Task<MyApprovalItemDto[]> GetMyPendingApprovalsAsync(long userId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        return await context.WorkflowInstanceStepAssignees
+        var items = await context.WorkflowInstanceStepAssignees
             .AsNoTracking()
             .Where(a => a.UserId == userId)
             .Join(
@@ -140,10 +141,17 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                     BusinessEntityId = i.BusinessEntityId,
                     StepName = s.StepName,
                     InstanceStatus = i.InstanceStatus,
-                    AssignedAt = s.AssignedAt
+                    AssignedAt = s.AssignedAt,
+                    RequesterId = i.RequesterId
                 })
             .OrderByDescending(a => a.AssignedAt)
             .ToArrayAsync(ct);
+
+        // D1 — hiện tên người đề xuất để người duyệt biết ai gửi.
+        var names = await ResolveUserNamesAsync(context, items.Select(i => i.RequesterId), ct);
+        foreach (var i in items)
+            if (names.TryGetValue(i.RequesterId, out var rn)) i.RequesterName = rn;
+        return items;
     }
 
     public async Task<WorkflowInstanceDto> ApproveStepAsync(long instanceId, long stepId, ApprovalActionRequest request, long actorUserId, CancellationToken ct = default)
@@ -504,7 +512,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             .Where(s => instanceIds.Contains(s.WorkflowInstanceId))
             .ToArrayAsync(ct);
 
-        return instances.Select(instance => new WorkflowInstanceDto
+        var dtos = instances.Select(instance => new WorkflowInstanceDto
         {
             Id = instance.Id,
             WorkflowVersionId = instance.WorkflowVersionId,
@@ -539,6 +547,9 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                     }).ToArray()
                 }).ToArray()
         }).ToArray();
+
+        await EnrichInstanceNamesAsync(context, dtos, ct);
+        return dtos;
     }
 
     public async Task<WorkflowActionDto[]> GetInstanceActionsAsync(long instanceId, long userId, CancellationToken ct = default)
@@ -566,7 +577,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             }
         }
 
-        return await context.WorkflowActions
+        var actions = await context.WorkflowActions
             .AsNoTracking()
             .Where(a => a.WorkflowInstanceId == instanceId)
             .OrderByDescending(a => a.CreatedAt)
@@ -583,6 +594,17 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 CreatedAt = a.CreatedAt
             })
             .ToArrayAsync(ct);
+
+        var names = await ResolveUserNamesAsync(
+            context,
+            actions.Select(a => a.ActedBy).Concat(actions.Where(a => a.OnBehalfOf.HasValue).Select(a => a.OnBehalfOf!.Value)),
+            ct);
+        foreach (var a in actions)
+        {
+            if (names.TryGetValue(a.ActedBy, out var an)) a.ActedByName = an;
+            if (a.OnBehalfOf.HasValue && names.TryGetValue(a.OnBehalfOf.Value, out var on)) a.OnBehalfOfName = on;
+        }
+        return actions;
     }
 
     public async Task<WorkflowInstanceDto> RejectStepAsync(long instanceId, long stepId, ApprovalActionRequest request, long actorUserId, CancellationToken ct = default)
@@ -777,7 +799,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             .OrderBy(s => s.RoundNo).ThenBy(s => s.StepOrder)
             .ToArrayAsync(ct);
 
-        return new WorkflowInstanceDto
+        var dto = new WorkflowInstanceDto
         {
             Id = instance.Id,
             WorkflowVersionId = instance.WorkflowVersionId,
@@ -809,6 +831,47 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 }).ToArray()
             }).ToArray()
         };
+
+        await EnrichInstanceNamesAsync(context, new[] { dto }, ct);
+        return dto;
+    }
+
+    /// <summary>
+    /// D1/D2 — bơm tên người (đề xuất / duyệt / được giao) vào DTO để giao diện hiện tên
+    /// thay vì "Người dùng 123". Dữ liệu đã có sẵn (RequesterId, CompletedBy, assignee UserId);
+    /// đây chỉ là một truy vấn tra tên duy nhất cho cả tập.
+    /// </summary>
+    private static async Task EnrichInstanceNamesAsync(IOrganizationDbContext context, IReadOnlyCollection<WorkflowInstanceDto> instances, CancellationToken ct)
+    {
+        if (instances.Count == 0) return;
+
+        var ids = instances.Select(i => i.RequesterId)
+            .Concat(instances.SelectMany(i => i.Steps).Where(s => s.CompletedBy.HasValue).Select(s => s.CompletedBy!.Value))
+            .Concat(instances.SelectMany(i => i.Steps).SelectMany(s => s.Assignees).Select(a => a.UserId));
+
+        var names = await ResolveUserNamesAsync(context, ids, ct);
+
+        foreach (var i in instances)
+        {
+            if (names.TryGetValue(i.RequesterId, out var rn)) i.RequesterName = rn;
+            foreach (var s in i.Steps)
+            {
+                if (s.CompletedBy.HasValue && names.TryGetValue(s.CompletedBy.Value, out var cn)) s.CompletedByName = cn;
+                foreach (var a in s.Assignees)
+                    if (names.TryGetValue(a.UserId, out var an)) a.UserName = an;
+            }
+        }
+    }
+
+    private static async Task<Dictionary<long, string>> ResolveUserNamesAsync(IOrganizationDbContext context, IEnumerable<long> userIds, CancellationToken ct)
+    {
+        var ids = userIds.Where(id => id > 0).Distinct().ToArray();
+        if (ids.Length == 0) return new Dictionary<long, string>();
+        return await context.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.FullName })
+            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
     }
 
     private static string ComputeHash(string input)

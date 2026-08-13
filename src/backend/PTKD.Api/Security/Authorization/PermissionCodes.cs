@@ -81,4 +81,10 @@ public static class PermissionCodes
     public const string CustomerCarePackageManage = "CUSTOMER_CARE_PACKAGE_MANAGE";
 
     public const string TagManage = "TAG_MANAGE";
+
+    /// <summary>
+    /// Khai báo thẩm quyền phê duyệt (ai được duyệt ở phòng ban/cấp nào). Tách riêng khỏi
+    /// quyền sửa phòng ban vì ô này quyết định ai được duyệt tiền. Seed trong V0029. is_sensitive.
+    /// </summary>
+    public const string ApprovalAuthorityManage = "APPROVAL_AUTHORITY_MANAGE";
 }

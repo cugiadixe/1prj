@@ -3,20 +3,25 @@ import { Alert, Spin, Table, Tag, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { getInstanceActions } from './workflowRuntimeApi';
 import { getErrorMessage } from './errorMessages';
+import type { WorkflowActionDto } from './types';
 
 const { Title } = Typography;
 
+// Khóa phải khớp giá trị ActionType backend thực sự ghi (thì hiện tại), không phải thì quá khứ.
 const ACTION_TYPE_COLORS: Record<string, string> = {
-  APPROVED: 'green',
-  RETURNED: 'orange',
-  REJECTED: 'volcano',
-  RESUBMITTED: 'blue',
-  WITHDRAWN: 'red',
-  REASSIGNED: 'purple',
-  EXECUTION_STARTED: 'cyan',
-  EXECUTION_COMPLETED: 'green',
-  EXECUTION_FAILED: 'magenta',
-  EXECUTION_RETRIED: 'geekblue',
+  APPROVE: 'green',
+  RETURN: 'orange',
+  REJECT: 'volcano',
+  REASSIGN: 'purple',
+  RETRY: 'geekblue',
+};
+
+const ACTION_TYPE_LABELS: Record<string, string> = {
+  APPROVE: 'Duyệt',
+  RETURN: 'Trả lại',
+  REJECT: 'Từ chối',
+  REASSIGN: 'Chuyển duyệt',
+  RETRY: 'Chạy lại',
 };
 
 interface WorkflowActionHistoryPanelProps {
@@ -32,40 +37,46 @@ const WorkflowActionHistoryPanel: React.FC<WorkflowActionHistoryPanelProps> = ({
 
   const columns = [
     {
-      title: 'Action',
+      title: 'Hành động',
       dataIndex: 'actionType',
       key: 'actionType',
-      render: (val: string) => <Tag color={ACTION_TYPE_COLORS[val] ?? 'default'}>{val}</Tag>,
+      render: (val: string) => <Tag color={ACTION_TYPE_COLORS[val] ?? 'default'}>{ACTION_TYPE_LABELS[val] ?? val}</Tag>,
     },
     {
-      title: 'Actor',
-      dataIndex: 'actedBy',
+      title: 'Người thực hiện',
       key: 'actedBy',
-      render: (val: number) => `User ${val}`,
+      render: (_: unknown, r: WorkflowActionDto) => (
+        <span>
+          {r.actedByName ?? `Người dùng ${r.actedBy}`}
+          {r.onBehalfOf != null && (
+            <span> (thay mặt {r.onBehalfOfName ?? `Người dùng ${r.onBehalfOf}`})</span>
+          )}
+        </span>
+      ),
     },
     {
-      title: 'Reason',
+      title: 'Lý do',
       dataIndex: 'reason',
       key: 'reason',
       render: (val: string | null) => val ?? '—',
     },
     {
-      title: 'Comment',
+      title: 'Ghi chú',
       dataIndex: 'comment',
       key: 'comment',
       render: (val: string | null) => val ?? '—',
     },
     {
-      title: 'Time',
+      title: 'Thời gian',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (val: string) => new Date(val).toLocaleString(),
+      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
     },
   ];
 
   return (
     <div data-testid="action-history">
-      <Title level={5} style={{ marginBottom: 8, marginTop: 24 }}>Action History</Title>
+      <Title level={5} style={{ marginBottom: 8, marginTop: 24 }}>Lịch sử hành động</Title>
 
       {isLoading && <Spin data-testid="action-history-loading" />}
 
@@ -78,7 +89,7 @@ const WorkflowActionHistoryPanel: React.FC<WorkflowActionHistoryPanelProps> = ({
       )}
 
       {!isLoading && !error && actions && actions.length === 0 && (
-        <Alert type="info" message="No actions recorded." data-testid="action-history-empty" />
+        <Alert type="info" message="Chưa có hành động nào được ghi nhận." data-testid="action-history-empty" />
       )}
 
       {actions && actions.length > 0 && (

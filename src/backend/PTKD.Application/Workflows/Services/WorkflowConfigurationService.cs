@@ -370,7 +370,10 @@ public class WorkflowConfigurationService : IWorkflowConfigurationService
 
     public async Task<ApproverRuleDto> CreateApproverRuleAsync(long stepId, CreateApproverRuleRequest request, long actorUserId, CancellationToken ct = default)
     {
-        var validSourceTypes = new[] { "SPECIFIC_USER", "ROLE", "DEPARTMENT", "DEPARTMENT_MANAGER", "REQUESTER_MANAGER", "PERMISSION", "ADMIN_GROUP" };
+        // A5 — chặn bẫy: chỉ chấp nhận đúng các loại nguồn mà ApproverResolver thực sự xử lý.
+        // Bỏ DEPARTMENT_MANAGER/REQUESTER_MANAGER (resolver chưa hiện thực → tạo được nhưng ra 0
+        // người duyệt, hồ sơ kẹt). Thêm APPROVAL_AUTHORITY (tra bảng Thẩm quyền phê duyệt).
+        var validSourceTypes = new[] { "SPECIFIC_USER", "ROLE", "DEPARTMENT", "PERMISSION", "ADMIN_GROUP", "APPROVAL_AUTHORITY" };
         if (!validSourceTypes.Contains(request.ApproverSourceType))
             throw new BusinessRuleValidationException("WF_INVALID_APPROVER_SOURCE_TYPE", $"Invalid approver source type: {request.ApproverSourceType}");
 

@@ -30,6 +30,7 @@ import WorkflowDefinitionEditPage from './workflow/WorkflowDefinitionEditPage';
 import WorkflowVersionCreatePage from './workflow/WorkflowVersionCreatePage';
 import WorkflowVersionDetailPage from './workflow/WorkflowVersionDetailPage';
 import WorkflowBindingsPage from './workflow/WorkflowBindingsPage';
+import ApprovalAuthorityPage from './approvalAuthority/ApprovalAuthorityPage';
 import WorkflowMyApprovalsPage from './workflow/WorkflowMyApprovalsPage';
 import WorkflowMyRequestsPage from './workflow/WorkflowMyRequestsPage';
 import WorkflowInstanceDetailPage from './workflow/WorkflowInstanceDetailPage';
@@ -160,6 +161,7 @@ const App: React.FC = () => {
               <Route path="workflow/definitions/:definitionId/versions/new" element={<WorkflowVersionCreatePage />} />
               <Route path="workflow/definitions/:definitionId/versions/:versionId" element={<WorkflowVersionDetailPage />} />
               <Route path="workflow/bindings" element={<WorkflowBindingsPage />} />
+              <Route path="workflow/authorities" element={<ApprovalAuthorityPage />} />
               {/* Phase 1B.3-B3 — Workflow Runtime / My Approvals UI */}
               <Route path="workflow/my-approvals" element={<WorkflowMyApprovalsPage />} />
               <Route path="workflow/my-requests" element={<WorkflowMyRequestsPage />} />

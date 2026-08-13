@@ -174,7 +174,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this workflow instance."
+        message="Bạn không có quyền xem phiên xử lý quy trình này."
         data-testid="permission-denied"
       />
     );
@@ -230,38 +230,44 @@ const WorkflowInstanceDetailPage: React.FC = () => {
 
   const handleResubmit = () => {
     Modal.confirm({
-      title: 'Resubmit Request',
-      content: 'Are you sure you want to resubmit this request for approval?',
+      title: 'Gửi lại yêu cầu',
+      content: 'Bạn có chắc chắn muốn gửi lại yêu cầu này để phê duyệt?',
       onOk: () => resubmitMutation.mutate(),
     });
   };
 
   const handleWithdraw = () => {
     Modal.confirm({
-      title: 'Withdraw Request',
-      content: 'Are you sure you want to withdraw this request? This will cancel all pending steps.',
+      title: 'Rút yêu cầu',
+      content: 'Bạn có chắc chắn muốn rút yêu cầu này? Thao tác này sẽ hủy tất cả các bước đang chờ.',
       onOk: () => withdrawMutation.mutate(),
     });
   };
 
   const stepColumns = [
-    { title: 'Order', dataIndex: 'stepOrder', key: 'stepOrder' },
-    { title: 'Step', dataIndex: 'stepName', key: 'stepName' },
-    { title: 'Round', dataIndex: 'roundNo', key: 'roundNo' },
+    { title: 'Thứ tự', dataIndex: 'stepOrder', key: 'stepOrder' },
+    { title: 'Bước', dataIndex: 'stepName', key: 'stepName' },
+    { title: 'Vòng', dataIndex: 'roundNo', key: 'roundNo' },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'stepStatus',
       key: 'stepStatus',
       render: (val: string) => <Tag color={STEP_STATUS_COLORS[val] ?? 'default'}>{val}</Tag>,
     },
     {
-      title: 'Assignees',
+      title: 'Người được phân công',
       key: 'assignees',
       render: (_: unknown, record: WorkflowInstanceStep) =>
-        record.assignees.map(a => `User ${a.userId} (${a.approverSourceType})`).join(', ') || '—',
+        record.assignees.map(a => `${a.userName ?? `Người dùng ${a.userId}`} (${a.approverSourceType})`).join(', ') || '—',
     },
     {
-      title: 'Actions',
+      title: 'Người duyệt',
+      key: 'completedBy',
+      render: (_: unknown, record: WorkflowInstanceStep) =>
+        record.completedBy != null ? (record.completedByName ?? `Người dùng ${record.completedBy}`) : '—',
+    },
+    {
+      title: 'Thao tác',
       key: 'actions',
       render: (_: unknown, record: WorkflowInstanceStep) => {
         if (record.stepStatus !== 'PENDING') return null;
@@ -274,22 +280,22 @@ const WorkflowInstanceDetailPage: React.FC = () => {
           <Space>
             {canApprove && (
               <Button size="small" type="primary" onClick={() => openApproveModal(record)} data-testid={`approve-btn-${record.id}`}>
-                Approve
+                Phê duyệt
               </Button>
             )}
             {canReturn && (
               <Button size="small" onClick={() => openReturnModal(record)} data-testid={`return-btn-${record.id}`}>
-                Return
+                Trả lại
               </Button>
             )}
             {canReject && isAssignee && !isRequester && (
               <Button size="small" danger onClick={() => openRejectModal(record)} data-testid={`reject-btn-${record.id}`}>
-                Reject
+                Từ chối
               </Button>
             )}
             {canReassign && (
               <Button size="small" onClick={() => openReassignModal(record)} data-testid={`reassign-btn-${record.id}`}>
-                Reassign
+                Phân công lại
               </Button>
             )}
           </Space>
@@ -302,7 +308,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
     <div data-testid="instance-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Space>
-          <Title level={4} style={{ margin: 0 }}>Workflow Instance #{instance.id}</Title>
+          <Title level={4} style={{ margin: 0 }}>Phiên xử lý quy trình #{instance.id}</Title>
           <Tag color={INSTANCE_STATUS_COLORS[instance.instanceStatus] ?? 'default'} data-testid="instance-status-tag">
             {instance.instanceStatus}
           </Tag>
@@ -310,12 +316,12 @@ const WorkflowInstanceDetailPage: React.FC = () => {
         <Space>
           {canResubmit && (
             <Button onClick={handleResubmit} loading={resubmitMutation.isPending} data-testid="resubmit-btn">
-              Resubmit
+              Gửi lại
             </Button>
           )}
           {canWithdraw && (
             <Button danger onClick={handleWithdraw} loading={withdrawMutation.isPending} data-testid="withdraw-btn">
-              Withdraw
+              Rút yêu cầu
             </Button>
           )}
           {canRetry && (
@@ -329,7 +335,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
 
       <Alert
         type="info"
-        message="This instance uses a frozen snapshot of the workflow version captured at creation. Changes to the workflow definition do not affect this instance."
+        message="Phiên xử lý này sử dụng bản chụp cố định của phiên bản quy trình tại thời điểm tạo. Các thay đổi đối với định nghĩa quy trình sẽ không ảnh hưởng đến phiên xử lý này."
         style={{ marginBottom: 16 }}
         data-testid="version-snapshot-notice"
       />
@@ -345,7 +351,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
           action={
             showConcurrencyRefresh ? (
               <Button size="small" type="primary" onClick={handleRefresh} data-testid="refresh-btn">
-                Refresh
+                Tải lại
               </Button>
             ) : undefined
           }
@@ -353,20 +359,20 @@ const WorkflowInstanceDetailPage: React.FC = () => {
       )}
 
       <Descriptions bordered column={2} style={{ marginBottom: 16 }} data-testid="instance-metadata">
-        <Descriptions.Item label="Process Code">{instance.processCode}</Descriptions.Item>
-        <Descriptions.Item label="Entity Type">{instance.businessEntityType}</Descriptions.Item>
-        <Descriptions.Item label="Entity ID">{instance.businessEntityId}</Descriptions.Item>
-        <Descriptions.Item label="Company ID">{instance.companyId ?? '—'}</Descriptions.Item>
-        <Descriptions.Item label="Requester ID">{instance.requesterId}</Descriptions.Item>
-        <Descriptions.Item label="Round">{instance.roundNo}</Descriptions.Item>
-        <Descriptions.Item label="Version ID">{instance.workflowVersionId}</Descriptions.Item>
-        <Descriptions.Item label="Created">{new Date(instance.createdAt).toLocaleString()}</Descriptions.Item>
+        <Descriptions.Item label="Mã quy trình">{instance.processCode}</Descriptions.Item>
+        <Descriptions.Item label="Loại đối tượng">{instance.businessEntityType}</Descriptions.Item>
+        <Descriptions.Item label="ID đối tượng">{instance.businessEntityId}</Descriptions.Item>
+        <Descriptions.Item label="ID công ty">{instance.companyId ?? '—'}</Descriptions.Item>
+        <Descriptions.Item label="Người yêu cầu">{instance.requesterName ?? `Người dùng ${instance.requesterId}`}</Descriptions.Item>
+        <Descriptions.Item label="Vòng">{instance.roundNo}</Descriptions.Item>
+        <Descriptions.Item label="ID phiên bản">{instance.workflowVersionId}</Descriptions.Item>
+        <Descriptions.Item label="Đã tạo">{new Date(instance.createdAt).toLocaleString('vi-VN')}</Descriptions.Item>
       </Descriptions>
 
-      <Title level={5} style={{ marginBottom: 8 }}>Steps</Title>
+      <Title level={5} style={{ marginBottom: 8 }}>Các bước</Title>
 
       {instance.steps.length === 0 ? (
-        <Alert type="info" message="No steps." data-testid="steps-empty" />
+        <Alert type="info" message="Không có bước nào." data-testid="steps-empty" />
       ) : (
         <Table
           dataSource={instance.steps}
@@ -379,19 +385,19 @@ const WorkflowInstanceDetailPage: React.FC = () => {
 
       {/* Approve Modal */}
       <Modal
-        title="Approve Step"
+        title="Phê duyệt bước"
         open={approveModalOpen}
         onCancel={() => setApproveModalOpen(false)}
         onOk={() => approveForm.submit()}
         confirmLoading={approveMutation.isPending}
         data-testid="approve-modal"
       >
-        <p>Are you sure you want to approve this step?</p>
+        <p>Bạn có chắc chắn muốn phê duyệt bước này?</p>
         <Form form={approveForm} layout="vertical" onFinish={(vals) => approveMutation.mutate(vals)}>
-          <Form.Item name="reason" label="Reason (optional)">
+          <Form.Item name="reason" label="Lý do (tùy chọn)">
             <Input.TextArea rows={2} data-testid="approve-reason" />
           </Form.Item>
-          <Form.Item name="comment" label="Comment (optional)">
+          <Form.Item name="comment" label="Ghi chú (tùy chọn)">
             <Input.TextArea rows={2} data-testid="approve-comment" />
           </Form.Item>
         </Form>
@@ -399,19 +405,19 @@ const WorkflowInstanceDetailPage: React.FC = () => {
 
       {/* Return Modal */}
       <Modal
-        title="Return Step"
+        title="Trả lại bước"
         open={returnModalOpen}
         onCancel={() => setReturnModalOpen(false)}
         onOk={() => returnForm.submit()}
         confirmLoading={returnMutation.isPending}
         data-testid="return-modal"
       >
-        <p>Are you sure you want to return this request? A reason is required.</p>
+        <p>Bạn có chắc chắn muốn trả lại yêu cầu này? Cần nhập lý do.</p>
         <Form form={returnForm} layout="vertical" onFinish={(vals) => returnMutation.mutate(vals)}>
-          <Form.Item name="reason" label="Reason" rules={[{ required: true, message: 'Reason is required' }]}>
+          <Form.Item name="reason" label="Lý do" rules={[{ required: true, message: 'Lý do là bắt buộc' }]}>
             <Input.TextArea rows={2} data-testid="return-reason" />
           </Form.Item>
-          <Form.Item name="comment" label="Comment (optional)">
+          <Form.Item name="comment" label="Ghi chú (tùy chọn)">
             <Input.TextArea rows={2} data-testid="return-comment" />
           </Form.Item>
         </Form>
@@ -429,7 +435,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
 
       {/* Reassign Modal */}
       <Modal
-        title="Reassign Step"
+        title="Phân công lại bước"
         open={reassignModalOpen}
         onCancel={() => setReassignModalOpen(false)}
         onOk={() => reassignForm.submit()}
@@ -437,10 +443,10 @@ const WorkflowInstanceDetailPage: React.FC = () => {
         data-testid="reassign-modal"
       >
         <Form form={reassignForm} layout="vertical" onFinish={(vals) => reassignMutation.mutate(vals)}>
-          <Form.Item name="newAssigneeUserId" label="New Assignee User ID" rules={[{ required: true, message: 'User ID is required' }]}>
+          <Form.Item name="newAssigneeUserId" label="ID người được phân công mới" rules={[{ required: true, message: 'ID người dùng là bắt buộc' }]}>
             <InputNumber min={1} style={{ width: '100%' }} data-testid="reassign-user-id" />
           </Form.Item>
-          <Form.Item name="reason" label="Reason" rules={[{ required: true, message: 'Reason is required' }]}>
+          <Form.Item name="reason" label="Lý do" rules={[{ required: true, message: 'Lý do là bắt buộc' }]}>
             <Input.TextArea rows={2} data-testid="reassign-reason" />
           </Form.Item>
         </Form>

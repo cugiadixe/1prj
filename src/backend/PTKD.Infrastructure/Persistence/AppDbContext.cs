@@ -65,6 +65,7 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<CustomerTag> CustomerTags => Set<CustomerTag>();
     public DbSet<GraveTag> GraveTags => Set<GraveTag>();
+    public DbSet<ApprovalAuthority> ApprovalAuthorities => Set<ApprovalAuthority>();
     public DbSet<PTKD.Domain.Security.Authorization.Permission> Permissions => Set<PTKD.Domain.Security.Authorization.Permission>();
     public DbSet<PTKD.Domain.Security.Authorization.Role> Roles => Set<PTKD.Domain.Security.Authorization.Role>();
     public DbSet<PTKD.Domain.Security.Authorization.AdminGroup> AdminGroups => Set<PTKD.Domain.Security.Authorization.AdminGroup>();

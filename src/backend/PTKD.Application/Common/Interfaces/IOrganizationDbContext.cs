@@ -58,6 +58,7 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<Tag> Tags { get; }
     DbSet<CustomerTag> CustomerTags { get; }
     DbSet<GraveTag> GraveTags { get; }
+    DbSet<ApprovalAuthority> ApprovalAuthorities { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
     System.Data.Common.DbConnection GetDbConnection();

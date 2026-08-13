@@ -179,6 +179,7 @@ public class WorkflowInstanceDto
     public string ProcessCode { get; set; } = null!;
     public long? CompanyId { get; set; }
     public long RequesterId { get; set; }
+    public string? RequesterName { get; set; }
     public string BusinessEntityType { get; set; } = null!;
     public long BusinessEntityId { get; set; }
     public string InstanceStatus { get; set; } = null!;
@@ -209,6 +210,7 @@ public class WorkflowInstanceStepDto
     public DateTime? AssignedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public long? CompletedBy { get; set; }
+    public string? CompletedByName { get; set; }
     public string RowVersion { get; set; } = null!;
     public WorkflowInstanceStepAssigneeDto[] Assignees { get; set; } = [];
 }
@@ -216,6 +218,7 @@ public class WorkflowInstanceStepDto
 public class WorkflowInstanceStepAssigneeDto
 {
     public long UserId { get; set; }
+    public string? UserName { get; set; }
     public string ApproverSourceType { get; set; } = null!;
 }
 
@@ -243,6 +246,8 @@ public class MyApprovalItemDto
     public string StepName { get; set; } = null!;
     public string InstanceStatus { get; set; } = null!;
     public DateTime? AssignedAt { get; set; }
+    public long RequesterId { get; set; }
+    public string? RequesterName { get; set; }
 }
 
 public class WorkflowSearchRequest
@@ -260,7 +265,9 @@ public class WorkflowActionDto
     public long WorkflowInstanceId { get; set; }
     public string ActionType { get; set; } = null!;
     public long ActedBy { get; set; }
+    public string? ActedByName { get; set; }
     public long? OnBehalfOf { get; set; }
+    public string? OnBehalfOfName { get; set; }
     public string? Reason { get; set; }
     public string? Comment { get; set; }
     public DateTime CreatedAt { get; set; }
