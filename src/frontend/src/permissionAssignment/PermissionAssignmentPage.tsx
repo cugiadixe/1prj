@@ -1,29 +1,37 @@
 /**
- * PermissionAssignmentPage — Phase 1B.1-N.
+ * PermissionAssignmentPage — Phase 1B.1-N (giao diện làm lại).
  *
- * Security admin UI for managing individual user permission assignments.
- * Gate: SECURITY_ADMIN_MANAGE GLOBAL.
- * Supports GLOBAL and COMPANY scopes only (ENTITY deferred).
- * COMPANY assignment requires selected current company from Phase M CompanyProvider.
- * Backend remains authoritative — this is a frontend-only phase.
+ * Giao diện quản trị bảo mật để cấp/thu hồi quyền cá nhân cho từng người dùng.
+ * Cổng: SECURITY_ADMIN_MANAGE GLOBAL.
+ * Chỉ hỗ trợ phạm vi GLOBAL và COMPANY (ENTITY để sau).
+ * Phân quyền theo COMPANY cần chọn công ty hiện hành ở thanh tiêu đề (CompanyProvider).
+ * Backend vẫn là nơi quyết định cuối cùng — đây là phần frontend.
+ *
+ * Nguyên tắc hiển thị (làm lại theo phản hồi người dùng):
+ *  - Không phô mã số thô: hiển thị họ tên người dùng, tên công ty, tên quyền.
+ *  - Việt hóa toàn bộ nhãn kỹ thuật (GLOBAL/COMPANY, ALLOW/DENY...).
+ *  - Chia luồng thành 3 bước rõ ràng: chọn người → cấp/thu hồi quyền → xem quyền tổng hợp.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
   Card,
   Descriptions,
+  Empty,
   Form,
   Input,
-  List,
   Modal,
+  Radio,
   Select,
   Space,
   Spin,
+  Table,
   Tag,
   Typography,
 } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCompany } from '../auth/CompanyProvider';
@@ -45,18 +53,47 @@ import {
   PERMISSION_DENIED_MSG,
   GENERIC_ERROR,
 } from './errorMessages';
-import { searchAccounts } from '../accountManagement/accountManagementApi';
+import { searchAccounts, getAccountsByUserId } from '../accountManagement/accountManagementApi';
+import type { AccountSummaryDto } from '../accountManagement/types';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { Search } = Input;
+const { Title, Text, Paragraph } = Typography;
 
-// ── Grant Permission Modal ────────────────────────────────────────────────────
+// ── Nhãn Việt hóa cho mã kỹ thuật ─────────────────────────────────────────────
+const SCOPE_LABELS: Record<string, string> = {
+  GLOBAL: 'Toàn hệ thống',
+  COMPANY: 'Theo công ty',
+};
+const GRANT_LABELS: Record<string, string> = {
+  ALLOW: 'Cho phép',
+  DENY: 'Từ chối',
+};
+const scopeLabel = (s: string): string => SCOPE_LABELS[s] ?? s;
+const grantLabel = (g: string): string => GRANT_LABELS[g] ?? g;
+
+// Nhãn hiển thị cho một tài khoản: "Họ tên — tên đăng nhập · mã NV"
+const accountLabel = (a: AccountSummaryDto): string => {
+  const name = a.fullName?.trim() || a.username;
+  const emp = a.employeeCode ? ` · ${a.employeeCode}` : '';
+  return `${name} — ${a.username}${emp}`;
+};
+
+// Hook debounce nhỏ gọn cho ô tìm kiếm người dùng.
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+// ── Modal cấp quyền ───────────────────────────────────────────────────────────
 
 interface GrantModalProps {
   open: boolean;
   permissions: PermissionDto[];
   currentCompanyId: number | null;
+  currentCompanyName: string | null;
   isLoading: boolean;
   errorMessage: string | null;
   onGrant: (request: CreateUserIndividualPermissionRequest) => void;
@@ -67,24 +104,44 @@ const GrantPermissionModal: React.FC<GrantModalProps> = ({
   open,
   permissions,
   currentCompanyId,
+  currentCompanyName,
   isLoading,
   errorMessage,
   onGrant,
   onCancel,
 }) => {
   const [permissionCode, setPermissionCode] = useState<string | undefined>(undefined);
-  const [scopeType, setScopeType] = useState<string>('GLOBAL');
-  const [grantType, setGrantType] = useState<string>('ALLOW');
+  const [scopeType, setScopeType] = useState<'GLOBAL' | 'COMPANY'>('GLOBAL');
+  const [grantType, setGrantType] = useState<'ALLOW' | 'DENY'>('ALLOW');
   const [reason, setReason] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  const activePermissions = useMemo(
+    () => permissions.filter((p) => p.isActive),
+    [permissions],
+  );
+  const selectedPerm = activePermissions.find((p) => p.permissionCode === permissionCode) ?? null;
+  const reasonRequired = selectedPerm?.requiresReason ?? false;
+
+  const reset = () => {
+    setPermissionCode(undefined);
+    setScopeType('GLOBAL');
+    setGrantType('ALLOW');
+    setReason('');
+    setValidationError(null);
+  };
+
   const handleOk = () => {
     if (!permissionCode) {
-      setValidationError('Please select a permission.');
+      setValidationError('Vui lòng chọn một quyền.');
       return;
     }
     if (scopeType === 'COMPANY' && currentCompanyId === null) {
-      setValidationError('A company must be selected for company-scoped assignments. Please select a company from the header.');
+      setValidationError('Cần chọn một công ty ở thanh tiêu đề trước khi phân quyền theo công ty.');
+      return;
+    }
+    if (reasonRequired && !reason.trim()) {
+      setValidationError('Quyền này yêu cầu nhập lý do.');
       return;
     }
     setValidationError(null);
@@ -101,94 +158,109 @@ const GrantPermissionModal: React.FC<GrantModalProps> = ({
   };
 
   const handleCancel = () => {
-    setPermissionCode(undefined);
-    setScopeType('GLOBAL');
-    setGrantType('ALLOW');
-    setReason('');
-    setValidationError(null);
+    reset();
     onCancel();
   };
-
-  const activePermissions = permissions.filter(p => p.isActive);
 
   return (
     <Modal
       open={open}
-      title="Grant Permission"
+      title="Cấp quyền cá nhân"
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={isLoading}
-      okText="Grant"
-      cancelText="Cancel"
+      okText="Cấp quyền"
+      cancelText="Hủy"
       data-testid="grant-permission-modal"
       destroyOnHidden
     >
       <Form layout="vertical">
-        <Form.Item label="Permission" required>
+        <Form.Item label="Quyền cần cấp" required>
           <Select
             showSearch
-            placeholder="Select a permission"
+            placeholder="Tìm và chọn quyền"
             value={permissionCode}
-            onChange={setPermissionCode}
+            onChange={(v) => {
+              setPermissionCode(v);
+              setValidationError(null);
+            }}
             filterOption={(input, option) =>
               (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
             }
-            options={activePermissions.map(p => ({
-              label: `${p.permissionCode} — ${p.description ?? p.actionCode}`,
+            options={activePermissions.map((p) => ({
+              label: p.description ? `${p.description} (${p.permissionCode})` : p.permissionCode,
               value: p.permissionCode,
             }))}
             data-testid="permission-select"
-            aria-label="Select permission"
+            aria-label="Chọn quyền"
+            style={{ width: '100%' }}
           />
         </Form.Item>
 
-        <Form.Item label="Scope">
-          <Select
+        {selectedPerm && (
+          <div style={{ marginTop: -8, marginBottom: 12 }}>
+            <Space size={4} wrap>
+              <Tag>{selectedPerm.permissionCode}</Tag>
+              {selectedPerm.isSensitive && <Tag color="volcano">Quyền nhạy cảm</Tag>}
+              {selectedPerm.requiresReason && <Tag color="gold">Bắt buộc lý do</Tag>}
+            </Space>
+          </div>
+        )}
+
+        <Form.Item label="Phạm vi áp dụng">
+          <Radio.Group
             value={scopeType}
-            onChange={setScopeType}
+            onChange={(e) => setScopeType(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
             data-testid="scope-select"
-            aria-label="Select scope"
           >
-            <Option value="GLOBAL">GLOBAL</Option>
-            <Option
-              value="COMPANY"
-              disabled={currentCompanyId === null}
-            >
-              COMPANY{currentCompanyId === null ? ' (select a company first)' : ''}
-            </Option>
-          </Select>
+            <Radio.Button value="GLOBAL">Toàn hệ thống</Radio.Button>
+            <Radio.Button value="COMPANY" disabled={currentCompanyId === null}>
+              {currentCompanyName ? `Theo công ty: ${currentCompanyName}` : 'Theo công ty'}
+            </Radio.Button>
+          </Radio.Group>
         </Form.Item>
 
         {scopeType === 'COMPANY' && currentCompanyId === null && (
           <Alert
             type="warning"
-            message="Please select a company from the header to assign company-scoped permissions."
+            message="Vui lòng chọn công ty ở thanh tiêu đề để phân quyền theo công ty."
             data-testid="company-required-warning"
             style={{ marginBottom: 12 }}
           />
         )}
 
-        <Form.Item label="Grant Type">
-          <Select
+        <Form.Item label="Kiểu cấp">
+          <Radio.Group
             value={grantType}
-            onChange={setGrantType}
+            onChange={(e) => setGrantType(e.target.value)}
+            optionType="button"
             data-testid="grant-type-select"
-            aria-label="Select grant type"
           >
-            <Option value="ALLOW">ALLOW</Option>
-            <Option value="DENY">DENY</Option>
-          </Select>
+            <Radio.Button value="ALLOW">Cho phép</Radio.Button>
+            <Radio.Button value="DENY">Từ chối</Radio.Button>
+          </Radio.Group>
         </Form.Item>
 
-        <Form.Item label="Reason (optional)">
+        {grantType === 'DENY' && (
+          <Alert
+            type="info"
+            message='Quy tắc: "Từ chối" luôn thắng "Cho phép". Quyền bị từ chối sẽ bị chặn kể cả khi được cấp qua vai trò khác.'
+            style={{ marginBottom: 12 }}
+          />
+        )}
+
+        <Form.Item label={reasonRequired ? 'Lý do (bắt buộc)' : 'Lý do (tùy chọn)'} required={reasonRequired}>
           <Input.TextArea
             rows={2}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             maxLength={500}
-            placeholder="Enter reason (optional)"
+            showCount
+            placeholder="Nhập lý do cấp quyền"
             data-testid="grant-reason-input"
-            aria-label="Reason"
+            aria-label="Lý do"
           />
         </Form.Item>
       </Form>
@@ -213,38 +285,61 @@ const GrantPermissionModal: React.FC<GrantModalProps> = ({
   );
 };
 
-// ── Main Permission Assignment Page ───────────────────────────────────────────
+// ── Trang chính ───────────────────────────────────────────────────────────────
 
 const PermissionAssignmentPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { currentCompanyId } = useCompany();
+  const { currentCompanyId, companies } = useCompany();
 
-  // User selection state
+  // Trạng thái chọn người dùng
   const initialUserId = searchParams.get('userId');
   const [selectedUserId, setSelectedUserId] = useState<number | null>(
     initialUserId ? parseInt(initialUserId, 10) : null,
   );
-  const [userSearch, setUserSearch] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState<AccountSummaryDto | null>(null);
+  const [rawUserSearch, setRawUserSearch] = useState('');
+  const userSearch = useDebouncedValue(rawUserSearch, 250);
+
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [grantError, setGrantError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // ── Account search query ────────────────────────────────────────────────────
+  // Tra tên công ty từ danh sách công ty của quản trị viên hiện hành.
+  const companyName = (id: number | null): string => {
+    if (id === null) return '';
+    const c = companies.find((x) => x.companyId === id);
+    return c ? c.companyName : `Công ty #${id}`;
+  };
+  const currentCompanyName = currentCompanyId !== null ? companyName(currentCompanyId) : null;
+
+  // ── Tìm kiếm tài khoản (luôn bật để danh sách không trống khi mới vào) ────────
   const {
     data: accountsData,
-    isLoading: isLoadingAccounts,
+    isFetching: isFetchingAccounts,
     isError: isAccountsError,
     error: accountsError,
   } = useQuery({
     queryKey: ['permission-assignment-accounts', userSearch],
     queryFn: () => searchAccounts({ search: userSearch || undefined, page: 1, pageSize: 20 }),
-    enabled: userSearch.length > 0,
     retry: false,
   });
 
-  // ── Permission catalog query ────────────────────────────────────────────────
+  // ── Hydrate tên người dùng khi mở bằng liên kết ?userId= ─────────────────────
+  const { data: hydratedAccounts } = useQuery({
+    queryKey: ['permission-assignment-hydrate', selectedUserId],
+    queryFn: () => getAccountsByUserId(selectedUserId!),
+    enabled: selectedUserId !== null && selectedAccount === null,
+    retry: false,
+  });
+  useEffect(() => {
+    if (selectedAccount === null && hydratedAccounts && hydratedAccounts.length > 0) {
+      setSelectedAccount(hydratedAccounts[0]);
+    }
+  }, [hydratedAccounts, selectedAccount]);
+
+  // ── Danh mục quyền ───────────────────────────────────────────────────────────
   const {
     data: catalog,
     isLoading: isLoadingCatalog,
@@ -255,8 +350,14 @@ const PermissionAssignmentPage: React.FC = () => {
     queryFn: fetchPermissionCatalog,
     retry: false,
   });
+  const catalogMap = useMemo(() => {
+    const m = new Map<string, PermissionDto>();
+    (catalog ?? []).forEach((p) => m.set(p.permissionCode, p));
+    return m;
+  }, [catalog]);
+  const permissionName = (code: string): string => catalogMap.get(code)?.description || code;
 
-  // ── Individual permissions for selected user ────────────────────────────────
+  // ── Quyền cá nhân của người dùng đã chọn ─────────────────────────────────────
   const {
     data: assignments,
     isLoading: isLoadingAssignments,
@@ -269,7 +370,7 @@ const PermissionAssignmentPage: React.FC = () => {
     retry: false,
   });
 
-  // ── Effective permissions for selected user ─────────────────────────────────
+  // ── Quyền hiệu lực (tổng hợp) ────────────────────────────────────────────────
   const {
     data: effectivePermissions,
     isLoading: isLoadingEffective,
@@ -281,14 +382,14 @@ const PermissionAssignmentPage: React.FC = () => {
     retry: false,
   });
 
-  // ── Grant mutation ──────────────────────────────────────────────────────────
+  // ── Mutation cấp quyền ───────────────────────────────────────────────────────
   const grantMutation = useMutation({
     mutationFn: (request: CreateUserIndividualPermissionRequest) =>
       grantIndividualPermission(selectedUserId!, request),
     onSuccess: () => {
       setShowGrantModal(false);
       setGrantError(null);
-      setSuccessMessage('Permission granted successfully.');
+      setSuccessMessage('Cấp quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['user-individual-permissions', selectedUserId] });
       void queryClient.invalidateQueries({ queryKey: ['user-effective-permissions', selectedUserId] });
     },
@@ -297,33 +398,36 @@ const PermissionAssignmentPage: React.FC = () => {
     },
   });
 
-  // ── Deactivate mutation ─────────────────────────────────────────────────────
+  // ── Mutation thu hồi ─────────────────────────────────────────────────────────
   const deactivateMutation = useMutation({
     mutationFn: (assignment: UserIndividualPermissionDto) =>
       deactivateIndividualPermission(selectedUserId!, assignment.id, {
         rowVersion: assignment.rowVersion,
       }),
     onSuccess: () => {
-      setSuccessMessage('Permission assignment revoked successfully.');
+      setSuccessMessage('Thu hồi phân quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['user-individual-permissions', selectedUserId] });
       void queryClient.invalidateQueries({ queryKey: ['user-effective-permissions', selectedUserId] });
     },
     onError: (err: unknown) => {
       setSuccessMessage(null);
       Modal.error({
-        title: 'Revoke Failed',
+        title: 'Thu hồi thất bại',
         content: getAssignmentErrorMessage(err),
       });
     },
   });
 
-  const handleUserSearch = (value: string) => {
-    setUserSearch(value);
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+  const handleSelectUser = (userId: number, account: AccountSummaryDto | null) => {
+    setSelectedUserId(userId);
+    setSelectedAccount(account);
     setSuccessMessage(null);
   };
 
-  const handleSelectUser = (userId: number) => {
-    setSelectedUserId(userId);
+  const handleClearUser = () => {
+    setSelectedUserId(null);
+    setSelectedAccount(null);
     setSuccessMessage(null);
   };
 
@@ -345,34 +449,45 @@ const PermissionAssignmentPage: React.FC = () => {
   const handleDeactivate = (assignment: UserIndividualPermissionDto) => {
     setSuccessMessage(null);
     Modal.confirm({
-      title: 'Revoke Permission Assignment',
-      content: `Are you sure you want to revoke the ${assignment.grantType} assignment for ${assignment.permissionCode}?`,
-      okText: 'Revoke',
-      cancelText: 'Cancel',
+      title: 'Thu hồi phân quyền',
+      content: `Bạn có chắc chắn muốn thu hồi quyền "${permissionName(assignment.permissionCode)}" (${grantLabel(assignment.grantType)}) khỏi người dùng này?`,
+      okText: 'Thu hồi',
+      okButtonProps: { danger: true },
+      cancelText: 'Hủy',
       onOk: () => deactivateMutation.mutate(assignment),
     });
   };
 
-  // ── Catalog error ───────────────────────────────────────────────────────────
+  // Danh sách người dùng cho ô chọn (khử trùng theo userId, ghim người đang chọn).
+  const userOptions = useMemo(() => {
+    const seen = new Map<number, { value: number; label: string; account: AccountSummaryDto }>();
+    if (selectedAccount) {
+      seen.set(selectedAccount.userId, {
+        value: selectedAccount.userId,
+        label: accountLabel(selectedAccount),
+        account: selectedAccount,
+      });
+    }
+    (accountsData?.items ?? []).forEach((a) => {
+      if (!seen.has(a.userId)) {
+        seen.set(a.userId, { value: a.userId, label: accountLabel(a), account: a });
+      }
+    });
+    return Array.from(seen.values());
+  }, [accountsData, selectedAccount]);
+
+  // ── Lỗi danh mục quyền ───────────────────────────────────────────────────────
   if (isCatalogError) {
     if (isPermissionDenied(catalogError)) {
       return (
         <div data-testid="permission-assignment-page">
-          <Alert
-            type="warning"
-            message={PERMISSION_DENIED_MSG}
-            data-testid="permission-denied-error"
-          />
+          <Alert type="warning" message={PERMISSION_DENIED_MSG} data-testid="permission-denied-error" />
         </div>
       );
     }
     return (
       <div data-testid="permission-assignment-page">
-        <Alert
-          type="error"
-          message={GENERIC_ERROR}
-          data-testid="catalog-error"
-        />
+        <Alert type="error" message={GENERIC_ERROR} data-testid="catalog-error" />
       </div>
     );
   }
@@ -385,19 +500,106 @@ const PermissionAssignmentPage: React.FC = () => {
     );
   }
 
-  const activeAssignments = (assignments ?? []).filter(
-    a => a.assignmentStatus === 'ACTIVE',
-  );
+  const activeAssignments = (assignments ?? []).filter((a) => a.assignmentStatus === 'ACTIVE');
+
+  const assignmentColumns: ColumnsType<UserIndividualPermissionDto> = [
+    {
+      title: 'Quyền',
+      key: 'permission',
+      render: (_, a) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{permissionName(a.permissionCode)}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{a.permissionCode}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Kiểu',
+      dataIndex: 'grantType',
+      key: 'grantType',
+      width: 110,
+      render: (g: string) => <Tag color={g === 'ALLOW' ? 'green' : 'red'}>{grantLabel(g)}</Tag>,
+    },
+    {
+      title: 'Phạm vi',
+      key: 'scope',
+      render: (_, a) => (
+        <Space size={4} wrap>
+          <Tag>{scopeLabel(a.scopeType)}</Tag>
+          {a.scopeType === 'COMPANY' && a.companyId != null && (
+            <Tag color="blue">{companyName(a.companyId)}</Tag>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Lý do',
+      dataIndex: 'reason',
+      key: 'reason',
+      render: (r: string | null) => (r ? <Text>{r}</Text> : <Text type="secondary">—</Text>),
+    },
+    {
+      title: 'Hành động',
+      key: 'action',
+      width: 120,
+      render: (_, a) => (
+        <Button
+          danger
+          size="small"
+          onClick={() => handleDeactivate(a)}
+          loading={deactivateMutation.isPending}
+          data-testid={`revoke-${a.id}`}
+        >
+          Thu hồi
+        </Button>
+      ),
+    },
+  ];
+
+  const enrichedEffective = (effectivePermissions?.permissionCodes ?? []).map((code) => {
+    const d = catalogMap.get(code);
+    return {
+      code,
+      name: d?.description || code,
+      moduleCode: d?.moduleCode ?? null,
+    };
+  });
+
+  const effectiveColumns: ColumnsType<{ code: string; name: string; moduleCode: string | null }> = [
+    {
+      title: 'Tên quyền',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string) => <Text strong>{name}</Text>,
+    },
+    {
+      title: 'Mã quyền',
+      dataIndex: 'code',
+      key: 'code',
+      render: (code: string) => <Text type="secondary">{code}</Text>,
+    },
+    {
+      title: 'Phân hệ',
+      dataIndex: 'moduleCode',
+      key: 'moduleCode',
+      width: 160,
+      render: (mod: string | null) => (mod ? <Tag>{mod}</Tag> : <Text type="secondary">—</Text>),
+    },
+  ];
 
   return (
     <div data-testid="permission-assignment-page">
       <Space style={{ marginBottom: 16 }}>
         <Button onClick={() => navigate(-1)} data-testid="back-button">
-          ← Back
+          ← Quay lại
         </Button>
       </Space>
 
-      <Title level={3}>Permission Assignment</Title>
+      <Title level={3} style={{ marginBottom: 4 }}>Phân quyền cá nhân</Title>
+      <Paragraph type="secondary" style={{ marginBottom: 16, maxWidth: 720 }}>
+        Cấp hoặc thu hồi quyền riêng cho từng người dùng. Quyền cá nhân được cộng thêm vào quyền
+        có sẵn từ vai trò; quyền "Từ chối" luôn được ưu tiên. Chọn người dùng để bắt đầu.
+      </Paragraph>
 
       {successMessage && (
         <Alert
@@ -410,156 +612,120 @@ const PermissionAssignmentPage: React.FC = () => {
         />
       )}
 
-      {/* ── User/Account Selection ───────────────────────────────────────── */}
-      <Card
-        title="Select User"
-        style={{ marginBottom: 16 }}
-        data-testid="user-selection-card"
-      >
-        <Search
-          placeholder="Search by username, employee code, or name"
+      {/* ── Bước 1: Chọn người dùng ─────────────────────────────────────────── */}
+      <Card title="1. Chọn người dùng" style={{ marginBottom: 16 }} data-testid="user-selection-card">
+        <Select
+          showSearch
           allowClear
-          onSearch={handleUserSearch}
-          style={{ width: 400, marginBottom: 12 }}
+          value={selectedUserId ?? undefined}
+          placeholder="Tìm theo họ tên, tên đăng nhập hoặc mã nhân viên"
+          style={{ width: '100%', maxWidth: 480 }}
+          filterOption={false}
+          onSearch={setRawUserSearch}
+          onChange={(val, option) => {
+            if (val === undefined || val === null) {
+              handleClearUser();
+              return;
+            }
+            const acc =
+              (option as { account?: AccountSummaryDto } | undefined)?.account ??
+              accountsData?.items.find((a) => a.userId === val) ??
+              null;
+            handleSelectUser(val as number, acc);
+          }}
+          notFoundContent={
+            isFetchingAccounts ? (
+              <div style={{ textAlign: 'center', padding: 8 }}>
+                <Spin size="small" />
+              </div>
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không tìm thấy người dùng" />
+            )
+          }
+          options={userOptions}
           data-testid="user-search-input"
-          aria-label="Search users"
+          aria-label="Chọn người dùng"
         />
-
-        {isLoadingAccounts && <Spin data-testid="user-search-loading" />}
 
         {isAccountsError && (
           <Alert
             type="error"
             message={isPermissionDenied(accountsError) ? PERMISSION_DENIED_MSG : GENERIC_ERROR}
             data-testid="user-search-error"
+            style={{ marginTop: 12 }}
           />
         )}
 
-        {accountsData && accountsData.items.length > 0 && (
-          <List
+        {selectedAccount && (
+          <Descriptions
+            bordered
             size="small"
-            dataSource={accountsData.items}
-            data-testid="user-search-results"
-            renderItem={(account) => (
-              <List.Item
-                key={account.accountId}
-                actions={[
-                  <Button
-                    key="select"
-                    type="link"
-                    size="small"
-                    onClick={() => handleSelectUser(account.userId)}
-                    data-testid={`select-user-${account.userId}`}
-                  >
-                    Select
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={`${account.username} — ${account.fullName ?? ''}`}
-                  description={`User ID: ${account.userId} | Employee: ${account.employeeCode ?? '—'}`}
-                />
-              </List.Item>
-            )}
-          />
-        )}
-
-        {accountsData && accountsData.items.length === 0 && (
-          <Text type="secondary" data-testid="user-search-empty">No users found.</Text>
-        )}
-
-        {selectedUserId !== null && (
-          <Alert
-            type="info"
-            message={`Selected User ID: ${selectedUserId}`}
+            column={{ xs: 1, sm: 2, md: 3 }}
+            style={{ marginTop: 16 }}
             data-testid="selected-user-info"
-            style={{ marginTop: 8 }}
-          />
+          >
+            <Descriptions.Item label="Họ tên">{selectedAccount.fullName?.trim() || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Tên đăng nhập">{selectedAccount.username}</Descriptions.Item>
+            <Descriptions.Item label="Mã nhân viên">{selectedAccount.employeeCode || '—'}</Descriptions.Item>
+          </Descriptions>
+        )}
+
+        {!selectedAccount && selectedUserId !== null && (
+          <div style={{ marginTop: 12 }}>
+            <Space>
+              <Spin size="small" />
+              <Text type="secondary" data-testid="selected-user-loading">
+                Đang tải thông tin người dùng…
+              </Text>
+            </Space>
+          </div>
         )}
       </Card>
 
-      {/* ── Individual Assignments ────────────────────────────────────────── */}
+      {/* ── Bước 2: Quyền cá nhân ───────────────────────────────────────────── */}
       {selectedUserId !== null && (
         <Card
-          title="Individual Permission Assignments"
+          title="2. Quyền cá nhân đã cấp"
           style={{ marginBottom: 16 }}
           extra={
-            <Button
-              type="primary"
-              onClick={handleOpenGrant}
-              data-testid="grant-permission-button"
-            >
-              Grant Permission
+            <Button type="primary" onClick={handleOpenGrant} data-testid="grant-permission-button">
+              Cấp quyền mới
             </Button>
           }
           data-testid="assignments-card"
         >
-          {isLoadingAssignments && (
-            <div style={{ textAlign: 'center', padding: 24 }} data-testid="assignments-loading">
-              <Spin />
-            </div>
-          )}
-
-          {isAssignmentsError && (
+          {isAssignmentsError ? (
             <Alert
               type="error"
               message={isPermissionDenied(assignmentsError) ? PERMISSION_DENIED_MSG : GENERIC_ERROR}
               data-testid="assignments-error"
             />
-          )}
-
-          {!isLoadingAssignments && !isAssignmentsError && activeAssignments.length === 0 && (
-            <Text type="secondary" data-testid="no-assignments">
-              No active individual permission assignments.
-            </Text>
-          )}
-
-          {!isLoadingAssignments && !isAssignmentsError && activeAssignments.length > 0 && (
-            <Descriptions
-              bordered
+          ) : (
+            <Table
+              rowKey="id"
               size="small"
-              column={1}
+              columns={assignmentColumns}
+              dataSource={activeAssignments}
+              loading={isLoadingAssignments}
+              pagination={false}
               data-testid="assignments-list"
-            >
-              {activeAssignments.map((a) => (
-                <Descriptions.Item
-                  key={a.id}
-                  label={
-                    <Space>
-                      <Text strong>{a.permissionCode}</Text>
-                      <Tag color={a.grantType === 'ALLOW' ? 'green' : 'red'}>
-                        {a.grantType}
-                      </Tag>
-                      <Tag>{a.scopeType}</Tag>
-                      {a.scopeType === 'COMPANY' && a.companyId && (
-                        <Tag color="blue">Company: {a.companyId}</Tag>
-                      )}
-                    </Space>
-                  }
-                >
-                  <Space>
-                    {a.reason && <Text type="secondary">Reason: {a.reason}</Text>}
-                    <Button
-                      danger
-                      size="small"
-                      onClick={() => handleDeactivate(a)}
-                      loading={deactivateMutation.isPending}
-                      data-testid={`revoke-${a.id}`}
-                    >
-                      Revoke
-                    </Button>
-                  </Space>
-                </Descriptions.Item>
-              ))}
-            </Descriptions>
+              locale={{
+                emptyText: (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={'Chưa có quyền cá nhân nào. Bấm "Cấp quyền mới" để thêm.'}
+                  />
+                ),
+              }}
+            />
           )}
         </Card>
       )}
 
-      {/* ── Effective Permissions (read-only) ─────────────────────────────── */}
+      {/* ── Bước 3: Quyền hiệu lực (chỉ xem) ────────────────────────────────── */}
       {selectedUserId !== null && (
         <Card
-          title="Effective Permissions (Read-Only)"
+          title="3. Quyền hiệu lực (tổng hợp, chỉ xem)"
           style={{ marginBottom: 16 }}
           data-testid="effective-permissions-card"
         >
@@ -570,55 +736,48 @@ const PermissionAssignmentPage: React.FC = () => {
           )}
 
           {isEffectiveError && (
-            <Alert
-              type="warning"
-              message="Unable to load effective permissions."
-              data-testid="effective-error"
-            />
+            <Alert type="warning" message="Không thể tải quyền hiệu lực." data-testid="effective-error" />
           )}
 
           {!isLoadingEffective && !isEffectiveError && effectivePermissions && (
             <>
-              {effectivePermissions.companyId !== null && (
-                <Alert
-                  type="info"
-                  message={`Showing effective permissions for company ${effectivePermissions.companyId}. DENY-wins behavior is enforced by the backend.`}
-                  data-testid="effective-company-info"
-                  style={{ marginBottom: 8 }}
-                />
-              )}
-              {effectivePermissions.companyId === null && (
-                <Alert
-                  type="info"
-                  message="Showing global effective permissions. DENY-wins behavior is enforced by the backend."
-                  data-testid="effective-global-info"
-                  style={{ marginBottom: 8 }}
-                />
-              )}
-              {effectivePermissions.permissionCodes.length === 0 && (
-                <Text type="secondary" data-testid="no-effective-permissions">
-                  No effective permissions.
-                </Text>
-              )}
-              {effectivePermissions.permissionCodes.length > 0 && (
-                <Space wrap data-testid="effective-permissions-list">
-                  {effectivePermissions.permissionCodes.map((code) => (
-                    <Tag key={code} color="blue">
-                      {code}
-                    </Tag>
-                  ))}
-                </Space>
-              )}
+              <Alert
+                type="info"
+                message={
+                  effectivePermissions.companyId !== null
+                    ? `Quyền hiệu lực trong phạm vi công ty "${companyName(effectivePermissions.companyId)}". Quy tắc "Từ chối thắng" do hệ thống áp dụng.`
+                    : 'Quyền hiệu lực toàn hệ thống. Quy tắc "Từ chối thắng" do hệ thống áp dụng.'
+                }
+                style={{ marginBottom: 12 }}
+                data-testid="effective-scope-info"
+              />
+              <Table
+                rowKey="code"
+                size="small"
+                columns={effectiveColumns}
+                dataSource={enrichedEffective}
+                pagination={false}
+                data-testid="effective-permissions-list"
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="Người dùng chưa có quyền hiệu lực nào."
+                    />
+                  ),
+                }}
+              />
             </>
           )}
         </Card>
       )}
 
-      {/* ── Grant Modal ───────────────────────────────────────────────────── */}
+      {/* ── Modal cấp quyền ─────────────────────────────────────────────────── */}
       <GrantPermissionModal
         open={showGrantModal}
         permissions={catalog ?? []}
         currentCompanyId={currentCompanyId}
+        currentCompanyName={currentCompanyName}
         isLoading={grantMutation.isPending}
         errorMessage={grantError}
         onGrant={handleGrantSubmit}

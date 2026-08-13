@@ -3,6 +3,8 @@ using PTKD.Application.Security.AccountManagement.DTOs;
 
 namespace PTKD.Application.Security.AccountManagement;
 
+public sealed record UserWithoutAccountDto(long UserId, string FullName, string? EmployeeCode, string? Email);
+
 public interface IAccountManagementService
 {
     // K0 discovery: list/search accounts. Page and PageSize validated by service (max 100).
@@ -58,5 +60,14 @@ public interface IAccountManagementService
         long accountId,
         string reason,
         long actingUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<AccountManagementResult> CreateInternalAccountAsync(
+        long userId,
+        string providerSubject,
+        long actingUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<UserWithoutAccountDto>> GetUsersWithoutAccountAsync(
         CancellationToken cancellationToken = default);
 }

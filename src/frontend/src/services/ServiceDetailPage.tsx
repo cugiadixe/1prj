@@ -3,7 +3,6 @@ import { Alert, Button, Descriptions, Space, Spin, Tag, Typography } from 'antd'
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
-import { useCompany } from '../auth/CompanyProvider';
 import { getServiceById } from './servicesApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
 import ServiceRenewDialog from './ServiceRenewDialog';
@@ -16,7 +15,6 @@ const ServiceDetailPage: React.FC = () => {
   const serviceId = parseInt(id || '0', 10);
 
   const { hasPermission } = usePermissions();
-  const { currentCompanyId } = useCompany();
   const navigate = useNavigate();
 
   const [renewVisible, setRenewVisible] = useState(false);
@@ -34,7 +32,7 @@ const ServiceDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this service."
+        message="Bạn không có quyền xem dịch vụ này."
         data-testid="permission-denied"
       />
     );
@@ -54,82 +52,72 @@ const ServiceDetailPage: React.FC = () => {
     return <Spin data-testid="service-detail-loading" />;
   }
 
-  // Cross-company check: If the service doesn't belong to the current company context, 
-  // warn the user but the backend might have already blocked it if it doesn't match the token/auth.
-  if (currentCompanyId && data.companyId !== currentCompanyId) {
-    return (
-      <Alert
-        type="warning"
-        message="This service belongs to a different company than your currently selected context."
-        data-testid="service-company-mismatch"
-      />
-    );
-  }
-
+  // Dịch vụ xem chéo công ty: backend đã kiểm quyền SERVICE_VIEW theo công ty của dịch vụ.
   const isRenewable = data.status === 'ACTIVE' && hasPermission('SERVICE_RENEW_STANDARD', 'COMPANY');
   const isOverridable = data.status === 'ACTIVE' && hasPermission('SERVICE_PRICE_OVERRIDE_REQUEST', 'COMPANY');
 
   return (
     <div data-testid="service-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Service Details</Title>
+        <Title level={4} style={{ margin: 0 }}>Chi tiết dịch vụ</Title>
         <Space>
-          <Button onClick={() => navigate('/services')}>Back to List</Button>
+          <Button onClick={() => navigate('/services')}>Quay lại danh sách</Button>
           {isRenewable && (
             <Button onClick={() => setRenewVisible(true)} data-testid="renew-btn">
-              Renew
+              Gia hạn
             </Button>
           )}
           {isOverridable && (
             <Button onClick={() => setOverrideVisible(true)} data-testid="request-override-btn">
-              Request Price Override
+              Yêu cầu ghi đè giá
             </Button>
           )}
         </Space>
       </Space>
 
       <Descriptions bordered column={1}>
-        <Descriptions.Item label="Service ID">{data.id}</Descriptions.Item>
-        <Descriptions.Item label="Service Type">
+        <Descriptions.Item label="Mã dịch vụ">{data.id}</Descriptions.Item>
+        <Descriptions.Item label="Loại dịch vụ">
           {data.serviceTypeName || data.serviceTypeCode || data.serviceTypeId}
           {' '}
-          <Link to={`/services/types/${data.serviceTypeId}`}>(View Type)</Link>
+          <Link to={`/services/types/${data.serviceTypeId}`}>(Xem loại)</Link>
         </Descriptions.Item>
-        <Descriptions.Item label="Customer">
-          <Link to={`/customers/${data.customerId}`}>{data.customerId}</Link>
+        <Descriptions.Item label="Khách hàng">
+          <Link to={`/customers/${data.customerId}`}>{data.customerName ?? data.customerId}</Link>
         </Descriptions.Item>
-        <Descriptions.Item label="Company ID">{data.companyId}</Descriptions.Item>
-        <Descriptions.Item label="Status">
+        <Descriptions.Item label="Mã khách hàng">{data.customerCode ?? '—'}</Descriptions.Item>
+        <Descriptions.Item label="Công ty">{data.companyName ?? `Mã ${data.companyId}`}</Descriptions.Item>
+        <Descriptions.Item label="Trạng thái">
           <Tag color={data.status === 'ACTIVE' ? 'green' : data.status === 'EXPIRED' ? 'orange' : 'red'}>
             {data.status}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Applied Price">
+        <Descriptions.Item label="Giá áp dụng">
           <Space>
             {data.appliedPrice.toLocaleString()}
-            {data.isOverridePrice && <Tag color="blue">OVERRIDE</Tag>}
+            {data.isOverridePrice && <Tag color="blue">GHI ĐÈ</Tag>}
           </Space>
         </Descriptions.Item>
-        <Descriptions.Item label="Standard Price Snapshot">
+        <Descriptions.Item label="Giá gốc (snapshot)">
           {data.standardPriceSnapshot.toLocaleString()}
         </Descriptions.Item>
         {data.overrideApprovalRequestId && (
-          <Descriptions.Item label="Override Request ID">
+          <Descriptions.Item label="Mã yêu cầu ghi đè">
             {data.overrideApprovalRequestId}
           </Descriptions.Item>
         )}
-        <Descriptions.Item label="Valid From">
-          {new Date(data.validFrom).toLocaleDateString()}
+        <Descriptions.Item label="Hiệu lực từ">
+          {new Date(data.validFrom).toLocaleDateString('vi-VN')}
         </Descriptions.Item>
-        <Descriptions.Item label="Valid To">
-          {data.validTo ? new Date(data.validTo).toLocaleDateString() : '—'}
+        <Descriptions.Item label="Hiệu lực đến">
+          {data.validTo ? new Date(data.validTo).toLocaleDateString('vi-VN') : '—'}
         </Descriptions.Item>
-        <Descriptions.Item label="Cycle Number">{data.cycleNumber}</Descriptions.Item>
-        <Descriptions.Item label="Created At">
-          {new Date(data.createdAt).toLocaleString()}
+        <Descriptions.Item label="Số chu kỳ">{data.cycleNumber}</Descriptions.Item>
+        <Descriptions.Item label="Ngày tạo">
+          {new Date(data.createdAt).toLocaleString('vi-VN')}
         </Descriptions.Item>
-        <Descriptions.Item label="Updated At">
-          {data.updatedAt ? new Date(data.updatedAt).toLocaleString() : '—'}
+        <Descriptions.Item label="Ngày cập nhật">
+          {data.updatedAt ? new Date(data.updatedAt).toLocaleString('vi-VN') : '—'}
         </Descriptions.Item>
       </Descriptions>
 

@@ -21,29 +21,29 @@ const CustomerMasterChangeRequestsPage: React.FC = () => {
       key: 'id',
     },
     {
-      title: 'Target Customer ID',
+      title: 'Mã KH đích',
       dataIndex: 'targetCustomerId',
       key: 'targetCustomerId',
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'requestStatus',
       key: 'requestStatus',
     },
     {
-      title: 'Submitted At',
+      title: 'Ngày gửi',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => new Date(text).toLocaleString(),
+      render: (text: string) => new Date(text).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Action',
+      title: 'Thao tác',
       key: 'action',
       render: (_: unknown, record: CustomerMasterChangeDto) => (
         <Space size="middle">
-          <Link to={`/customers/change-requests/${record.id}`}>View Status</Link>
+          <Link to={`/customers/change-requests/${record.id}`}>Xem trạng thái</Link>
           {record.workflowInstanceId && (
-            <Link to={`/workflow/instances/${record.workflowInstanceId}`}>View Workflow</Link>
+            <Link to={`/workflow/instances/${record.workflowInstanceId}`}>Xem quy trình</Link>
           )}
         </Space>
       ),
@@ -53,10 +53,10 @@ const CustomerMasterChangeRequestsPage: React.FC = () => {
   return (
     <div data-testid="customer-master-change-requests-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>My Customer Change Requests</Title>
+        <Title level={4} style={{ margin: 0 }}>Yêu cầu thay đổi khách hàng của tôi</Title>
         <Space>
           <Button>
-            <Link to="/customers">Back to Customers</Link>
+            <Link to="/customers">Quay lại khách hàng</Link>
           </Button>
         </Space>
       </Space>
@@ -64,7 +64,7 @@ const CustomerMasterChangeRequestsPage: React.FC = () => {
       {error && (
         <Alert
           type="error"
-          message={getErrorMessage(error) || 'Failed to load change requests'}
+          message={getErrorMessage(error) || 'Không thể tải danh sách yêu cầu thay đổi'}
           style={{ marginBottom: 16 }}
         />
       )}

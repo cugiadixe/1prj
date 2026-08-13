@@ -20,7 +20,7 @@ const CarePackageRequestCreatePage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to create care package requests."
+        message="Bạn không có quyền tạo yêu cầu gói chăm sóc."
         data-testid="permission-denied"
       />
     );
@@ -44,7 +44,7 @@ const CarePackageRequestCreatePage: React.FC = () => {
     };
     try {
       const result = await createMutation.mutateAsync(payload);
-      notification.success({ message: 'Care package request created' });
+      notification.success({ message: 'Đã tạo yêu cầu gói chăm sóc' });
       navigate(`/care-packages/${result.id}`);
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
@@ -53,7 +53,7 @@ const CarePackageRequestCreatePage: React.FC = () => {
 
   return (
     <div data-testid="care-package-create-page">
-      <Title level={4}>Create Care Package Request</Title>
+      <Title level={4}>Tạo yêu cầu gói chăm sóc</Title>
 
       {errorMsg && (
         <Alert
@@ -74,57 +74,57 @@ const CarePackageRequestCreatePage: React.FC = () => {
       >
         <Form.Item
           name="customerId"
-          label="Customer ID"
-          rules={[{ required: true, message: 'Please input the Customer ID' }]}
+          label="Mã khách hàng"
+          rules={[{ required: true, message: 'Vui lòng nhập mã khách hàng' }]}
         >
           <InputNumber style={{ width: '100%' }} min={1} data-testid="input-customerId" />
         </Form.Item>
 
-        <Form.Item name="serviceId" label="Service ID">
+        <Form.Item name="serviceId" label="Mã dịch vụ">
           <InputNumber style={{ width: '100%' }} min={1} data-testid="input-serviceId" />
         </Form.Item>
 
         <Form.Item
           name="saleDate"
-          label="Sale Date"
-          rules={[{ required: true, message: 'Please select a sale date' }]}
+          label="Ngày bán"
+          rules={[{ required: true, message: 'Vui lòng chọn ngày bán' }]}
         >
           <DatePicker style={{ width: '100%' }} data-testid="input-saleDate" />
         </Form.Item>
 
-        <Form.Item name="graveId" label="Grave / Care Target ID">
+        <Form.Item name="graveId" label="Mã mộ / Đối tượng chăm sóc">
           <Input data-testid="input-graveId" />
         </Form.Item>
 
         <Form.Item
           name="cotCount"
-          label="Number of Cots"
-          rules={[{ required: true, message: 'Please input the number of cots' }]}
+          label="Số lượng cốt"
+          rules={[{ required: true, message: 'Vui lòng nhập số lượng cốt' }]}
         >
           <InputNumber style={{ width: '100%' }} min={1} data-testid="input-cotCount" />
         </Form.Item>
 
         <Form.Item
           name="servicePeriodStartDate"
-          label="Service Period Start Date"
-          rules={[{ required: true, message: 'Please select service period start date' }]}
+          label="Ngày bắt đầu kỳ dịch vụ"
+          rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu kỳ dịch vụ' }]}
         >
           <DatePicker style={{ width: '100%' }} data-testid="input-servicePeriodStartDate" />
         </Form.Item>
 
-        <Form.Item name="discountAmount" label="Discount Amount (VND)">
+        <Form.Item name="discountAmount" label="Số tiền giảm giá (VND)">
           <InputNumber style={{ width: '100%' }} min={0} data-testid="input-discountAmount" />
         </Form.Item>
 
         <Form.Item
           name="discountReason"
-          label="Discount Reason"
+          label="Lý do giảm giá"
           dependencies={['discountAmount']}
           rules={[
             ({ getFieldValue }) => ({
               validator(_, value) {
                 if (getFieldValue('discountAmount') > 0 && !value) {
-                  return Promise.reject(new Error('Discount reason is required when discount amount is greater than 0'));
+                  return Promise.reject(new Error('Lý do giảm giá là bắt buộc khi số tiền giảm giá lớn hơn 0'));
                 }
                 return Promise.resolve();
               },
@@ -142,10 +142,10 @@ const CarePackageRequestCreatePage: React.FC = () => {
               loading={createMutation.isPending}
               data-testid="submit-btn"
             >
-              Create
+              Tạo
             </Button>
             <Button onClick={() => navigate('/care-packages')} data-testid="cancel-btn">
-              Cancel
+              Hủy
             </Button>
           </Space>
         </Form.Item>

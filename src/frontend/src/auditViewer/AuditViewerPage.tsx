@@ -65,28 +65,28 @@ const AuditViewerPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Time',
+      title: 'Thời gian',
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
-      title: 'Event',
+      title: 'Sự kiện',
       dataIndex: 'eventCode',
       key: 'eventCode',
     },
     {
-      title: 'Actor ID',
+      title: 'Người thực hiện',
       dataIndex: 'actorUserId',
       key: 'actorUserId',
     },
     {
-      title: 'Target ID',
+      title: 'Đối tượng',
       dataIndex: 'targetUserId',
       key: 'targetUserId',
     },
     {
-      title: 'Entity',
+      title: 'Thực thể',
       key: 'entity',
       render: (_: unknown, record: SecurityAuditEventDto) => (
         <span>
@@ -95,12 +95,12 @@ const AuditViewerPage: React.FC = () => {
       ),
     },
     {
-      title: 'Outcome',
+      title: 'Kết quả',
       dataIndex: 'outcome',
       key: 'outcome',
     },
     {
-      title: 'Actions',
+      title: 'Thao tác',
       key: 'actions',
       render: (_: unknown, record: SecurityAuditEventDto) => (
         <Button
@@ -109,7 +109,7 @@ const AuditViewerPage: React.FC = () => {
           onClick={() => setSelectedEvent(record)}
           data-testid={`view-audit-detail-${record.id}`}
         >
-          View
+          Xem
         </Button>
       ),
     },
@@ -125,7 +125,7 @@ const AuditViewerPage: React.FC = () => {
 
   return (
     <div data-testid="audit-viewer-page">
-      <Title level={3}>Security Audit Viewer</Title>
+      <Title level={3}>Nhật ký kiểm toán</Title>
 
       <Space style={{ marginBottom: 16 }} wrap>
         <RangePicker
@@ -137,7 +137,7 @@ const AuditViewerPage: React.FC = () => {
           data-testid="audit-filter-dates"
         />
         <Input
-          placeholder="Actor ID"
+          placeholder="Mã người thực hiện"
           type="number"
           allowClear
           onChange={(e) => {
@@ -147,7 +147,7 @@ const AuditViewerPage: React.FC = () => {
           data-testid="audit-filter-actor"
         />
         <Input
-          placeholder="Target ID"
+          placeholder="Mã đối tượng"
           type="number"
           allowClear
           onChange={(e) => {
@@ -157,7 +157,7 @@ const AuditViewerPage: React.FC = () => {
           data-testid="audit-filter-target"
         />
         <Input
-          placeholder="Event Type"
+          placeholder="Loại sự kiện"
           allowClear
           onChange={(e) => {
             setEventType(e.target.value || undefined);
@@ -166,7 +166,7 @@ const AuditViewerPage: React.FC = () => {
           data-testid="audit-filter-eventtype"
         />
         <Input
-          placeholder="Entity Type"
+          placeholder="Loại thực thể"
           allowClear
           onChange={(e) => {
             setEntityType(e.target.value || undefined);
@@ -175,7 +175,7 @@ const AuditViewerPage: React.FC = () => {
           data-testid="audit-filter-entitytype"
         />
         <Input
-          placeholder="Entity ID"
+          placeholder="Mã thực thể"
           allowClear
           onChange={(e) => {
             setEntityId(e.target.value || undefined);
@@ -184,7 +184,7 @@ const AuditViewerPage: React.FC = () => {
           data-testid="audit-filter-entityid"
         />
         <Input
-          placeholder="Correlation ID"
+          placeholder="Mã tương quan"
           allowClear
           onChange={(e) => {
             setCorrelationId(e.target.value || undefined);
@@ -206,19 +206,19 @@ const AuditViewerPage: React.FC = () => {
           columns={columns}
           rowKey="id"
           data-testid="audit-list-table"
-          locale={{ emptyText: 'No audit events found.' }}
+          locale={{ emptyText: 'Không có sự kiện kiểm toán.' }}
           pagination={{
             current: page,
             pageSize: PAGE_SIZE,
             total: data.totalCount,
             onChange: (p) => setPage(p),
-            showTotal: (total) => `Total ${total} events`,
+            showTotal: (total) => `Tổng ${total} sự kiện`,
           }}
         />
       )}
 
       <Drawer
-        title="Audit Event Detail"
+        title="Chi tiết sự kiện kiểm toán"
         placement="right"
         width={500}
         onClose={() => setSelectedEvent(null)}
@@ -228,18 +228,18 @@ const AuditViewerPage: React.FC = () => {
         {selectedEvent && (
           <Descriptions column={1} bordered size="small">
             <Descriptions.Item label="ID">{selectedEvent.id}</Descriptions.Item>
-            <Descriptions.Item label="Time">{dayjs(selectedEvent.createdAt).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
-            <Descriptions.Item label="Event Code">{selectedEvent.eventCode}</Descriptions.Item>
-            <Descriptions.Item label="Actor User ID">{selectedEvent.actorUserId ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Acting As User ID">{selectedEvent.actingAsUserId ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Target User ID">{selectedEvent.targetUserId ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Company ID">{selectedEvent.companyId ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Entity Type">{selectedEvent.entityType}</Descriptions.Item>
-            <Descriptions.Item label="Entity ID">{selectedEvent.entityId ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Outcome">{selectedEvent.outcome}</Descriptions.Item>
-            <Descriptions.Item label="Reason">{selectedEvent.reason ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Correlation ID">{selectedEvent.correlationId}</Descriptions.Item>
-            <Descriptions.Item label="Policy Version">{selectedEvent.policyVersion ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Thời gian">{dayjs(selectedEvent.createdAt).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
+            <Descriptions.Item label="Mã sự kiện">{selectedEvent.eventCode}</Descriptions.Item>
+            <Descriptions.Item label="Người thực hiện">{selectedEvent.actorUserId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Thay mặt">{selectedEvent.actingAsUserId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Đối tượng">{selectedEvent.targetUserId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Công ty">{selectedEvent.companyId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Loại thực thể">{selectedEvent.entityType}</Descriptions.Item>
+            <Descriptions.Item label="Mã thực thể">{selectedEvent.entityId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Kết quả">{selectedEvent.outcome}</Descriptions.Item>
+            <Descriptions.Item label="Lý do">{selectedEvent.reason ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Mã tương quan">{selectedEvent.correlationId}</Descriptions.Item>
+            <Descriptions.Item label="Phiên bản chính sách">{selectedEvent.policyVersion ?? 'N/A'}</Descriptions.Item>
           </Descriptions>
         )}
       </Drawer>

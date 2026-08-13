@@ -18,6 +18,7 @@ public class ServiceTypeConfiguration : IEntityTypeConfiguration<ServiceType>
         builder.Property(e => e.StandardPrice).HasColumnName("standard_price").HasColumnType("decimal(18,2)").IsRequired();
         builder.Property(e => e.StandardPriceCurrency).HasColumnName("standard_price_currency").HasMaxLength(3).IsRequired();
         builder.Property(e => e.CycleDurationMonths).HasColumnName("cycle_duration_months");
+        builder.Property(e => e.IsCarePackage).HasColumnName("is_care_package").IsRequired();
         builder.Property(e => e.IsActive).HasColumnName("is_active").IsRequired();
         builder.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");

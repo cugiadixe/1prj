@@ -30,6 +30,28 @@ describe('CustomerMasterChangeRequestForm', () => {
     });
   });
 
+  const mockProfile = {
+    id: 1,
+    fullName: 'John Doe',
+    cccd: null,
+    dob: null,
+    dobPartial: null,
+    dobPrecision: null,
+    gender: null,
+    permanentAddress: null,
+    cccdIssueDate: null,
+    cccdIssuePlace: null,
+    taxCode: null,
+    phone: null,
+    contactAddress: null,
+    deathDateSolar: null,
+    deathDateLunar: null,
+    deathPlace: null,
+    hometown: null,
+    isActive: true,
+    rowVersion: 'v1',
+  };
+
   const renderComponent = () => {
     render(
       <QueryClientProvider client={queryClient}>
@@ -38,6 +60,7 @@ describe('CustomerMasterChangeRequestForm', () => {
             customerId={123}
             customerName="John Doe"
             targetRowVersion="v1"
+            profile={mockProfile}
             onCancel={vi.fn()}
           />
         </MemoryRouter>
@@ -82,6 +105,8 @@ describe('CustomerMasterChangeRequestForm', () => {
     renderComponent();
 
     await userEvent.type(screen.getByTestId('input-reason'), 'Change name');
+    // Form đã đổ sẵn 'John Doe' — xóa rồi nhập tên mới để phần delta ghi nhận thay đổi.
+    await userEvent.clear(screen.getByTestId('input-fullName'));
     await userEvent.type(screen.getByTestId('input-fullName'), 'New Name');
 
     const submitBtn = screen.getByTestId('submit-change-request');

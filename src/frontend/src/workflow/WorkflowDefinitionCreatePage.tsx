@@ -46,9 +46,9 @@ const WorkflowDefinitionCreatePage: React.FC = () => {
   return (
     <div data-testid="workflow-definition-create-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Create Workflow Definition</Title>
+        <Title level={4} style={{ margin: 0 }}>Tạo định nghĩa quy trình</Title>
         <Button>
-          <Link to="/workflow">Back to List</Link>
+          <Link to="/workflow">Quay lại danh sách</Link>
         </Button>
       </Space>
 
@@ -72,32 +72,32 @@ const WorkflowDefinitionCreatePage: React.FC = () => {
         >
           <Form.Item
             name="definitionCode"
-            label="Definition Code"
-            rules={[{ required: true, message: 'Definition code is required' }]}
+            label="Mã định nghĩa"
+            rules={[{ required: true, message: 'Mã định nghĩa là bắt buộc' }]}
           >
             <Input data-testid="input-definitionCode" />
           </Form.Item>
 
           <Form.Item
             name="definitionName"
-            label="Definition Name"
-            rules={[{ required: true, message: 'Definition name is required' }]}
+            label="Tên định nghĩa"
+            rules={[{ required: true, message: 'Tên định nghĩa là bắt buộc' }]}
           >
             <Input data-testid="input-definitionName" />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Mô tả">
             <Input.TextArea rows={3} data-testid="input-description" />
           </Form.Item>
 
           <Form.Item
             name="processCode"
-            label="Business Process"
-            rules={[{ required: true, message: 'Business process is required' }]}
+            label="Quy trình nghiệp vụ"
+            rules={[{ required: true, message: 'Quy trình nghiệp vụ là bắt buộc' }]}
           >
             <Select
               data-testid="input-processCode"
-              placeholder="Select a business process"
+              placeholder="Chọn một quy trình nghiệp vụ"
               options={(processes ?? []).map((p) => ({
                 label: `${p.processCode} — ${p.processName}`,
                 value: p.processCode,
@@ -113,10 +113,10 @@ const WorkflowDefinitionCreatePage: React.FC = () => {
                 loading={createMutation.isPending}
                 data-testid="submit-create"
               >
-                Create Definition
+                Tạo định nghĩa
               </Button>
               <Button>
-                <Link to="/workflow">Cancel</Link>
+                <Link to="/workflow">Hủy</Link>
               </Button>
             </Space>
           </Form.Item>

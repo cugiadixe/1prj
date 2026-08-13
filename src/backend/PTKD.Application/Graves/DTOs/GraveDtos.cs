@@ -1,0 +1,178 @@
+using System;
+using PTKD.Application.Tags.DTOs;
+
+namespace PTKD.Application.Graves.DTOs;
+
+public class GraveListItemDto
+{
+    public long Id { get; set; }
+    public string GraveCode { get; set; } = null!;
+    public string Zone { get; set; } = null!;
+    public string PlotNumber { get; set; } = null!;
+    public string GraveType { get; set; } = null!;
+    public decimal? AreaM2 { get; set; }
+    public int CotCount { get; set; }
+    public string Status { get; set; } = null!;
+    public long? OwnerCustomerId { get; set; }
+    public string? OwnerName { get; set; }
+    public int OccupantCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
+}
+
+public class GraveDetailDto
+{
+    public long Id { get; set; }
+    public string GraveCode { get; set; } = null!;
+    public string Zone { get; set; } = null!;
+    public string PlotNumber { get; set; } = null!;
+    public string? RowLabel { get; set; }
+    public string? ColLabel { get; set; }
+    public string GraveType { get; set; } = null!;
+    public decimal? AreaM2 { get; set; }
+    public int CotCount { get; set; }
+    public string Status { get; set; } = null!;
+    public long? OwnerCustomerId { get; set; }
+    public string? OwnerName { get; set; }
+    public string? OwnerCode { get; set; }
+    public string? EmergencyContactName { get; set; }
+    public string? EmergencyContactPhone { get; set; }
+    public string? EmergencyContactRelationship { get; set; }
+    public string? Notes { get; set; }
+    public string RowVersion { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public GraveOccupantDto[] Occupants { get; set; } = Array.Empty<GraveOccupantDto>();
+    public GraveEmergencyContactDto[] EmergencyContacts { get; set; } = Array.Empty<GraveEmergencyContactDto>();
+    public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
+}
+
+public class GraveEmergencyContactDto
+{
+    public long Id { get; set; }
+    public long GraveId { get; set; }
+    public int Priority { get; set; }
+    public long? ContactCustomerId { get; set; }
+    public string? ContactCode { get; set; }        // mã KH (nếu liên kết khách hàng)
+    public string ContactName { get; set; } = null!; // tên KH hoặc tên nhập tay
+    public string? ContactPhone { get; set; }        // SĐT theo hồ sơ KH (hoặc nhập tay)
+    public string? RelationshipNote { get; set; }
+    public string RowVersion { get; set; } = null!;
+}
+
+public class CreateGraveEmergencyContactRequest
+{
+    public long ContactCustomerId { get; set; }
+    public string? RelationshipNote { get; set; }
+}
+
+public class UpdateGraveEmergencyContactRequest
+{
+    public long ContactCustomerId { get; set; }
+    public string? RelationshipNote { get; set; }
+    public string TargetVersion { get; set; } = null!;
+}
+
+public class GraveOccupantDto
+{
+    public long Id { get; set; }
+    public long GraveId { get; set; }
+    public long? DeceasedCustomerId { get; set; }
+    public string FullName { get; set; } = null!;
+    public string? Gender { get; set; }
+    public DateTime? Dob { get; set; }
+    public DateTime? DeathDateSolar { get; set; }
+    public string? DeathDateLunar { get; set; }
+    public DateTime? BurialDate { get; set; }
+    public string? Hometown { get; set; }
+    public string? OwnerRelationship { get; set; }
+    public string? DeceasedRelationship { get; set; }
+    public string? Notes { get; set; }
+    public string RowVersion { get; set; } = null!;
+}
+
+public class CreateGraveRequest
+{
+    public string GraveCode { get; set; } = null!;
+    public string Zone { get; set; } = null!;
+    public string PlotNumber { get; set; } = null!;
+    public string? RowLabel { get; set; }
+    public string? ColLabel { get; set; }
+    public string GraveType { get; set; } = null!;
+    public decimal? AreaM2 { get; set; }
+    public int CotCount { get; set; } = 1;
+    public string Status { get; set; } = null!;
+    public long? OwnerCustomerId { get; set; }
+    public string? EmergencyContactName { get; set; }
+    public string? EmergencyContactPhone { get; set; }
+    public string? EmergencyContactRelationship { get; set; }
+    public string? Notes { get; set; }
+    public CreateGraveOccupantRequest[] Occupants { get; set; } = Array.Empty<CreateGraveOccupantRequest>();
+}
+
+public class UpdateGraveRequest
+{
+    public string Zone { get; set; } = null!;
+    public string PlotNumber { get; set; } = null!;
+    public string? RowLabel { get; set; }
+    public string? ColLabel { get; set; }
+    public string GraveType { get; set; } = null!;
+    public decimal? AreaM2 { get; set; }
+    public int CotCount { get; set; } = 1;
+    public string Status { get; set; } = null!;
+    public long? OwnerCustomerId { get; set; }
+    public string? EmergencyContactName { get; set; }
+    public string? EmergencyContactPhone { get; set; }
+    public string? EmergencyContactRelationship { get; set; }
+    public string? Notes { get; set; }
+    public string TargetVersion { get; set; } = null!;
+}
+
+public class CreateGraveOccupantRequest
+{
+    public string FullName { get; set; } = null!;
+    public string? Gender { get; set; }
+    public DateTime? Dob { get; set; }
+    public DateTime? DeathDateSolar { get; set; }
+    public string? DeathDateLunar { get; set; }
+    public DateTime? BurialDate { get; set; }
+    public string? Hometown { get; set; }
+    public string? OwnerRelationship { get; set; }
+    public string? DeceasedRelationship { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class UpdateGraveOccupantRequest
+{
+    public string FullName { get; set; } = null!;
+    public string? Gender { get; set; }
+    public DateTime? Dob { get; set; }
+    public DateTime? DeathDateSolar { get; set; }
+    public string? DeathDateLunar { get; set; }
+    public DateTime? BurialDate { get; set; }
+    public string? Hometown { get; set; }
+    public string? OwnerRelationship { get; set; }
+    public string? DeceasedRelationship { get; set; }
+    public string? Notes { get; set; }
+    public string TargetVersion { get; set; } = null!;
+}
+
+public class GraveSearchRequest
+{
+    public string? Search { get; set; }
+    public string? Zone { get; set; }
+    public string? Status { get; set; }
+    public string? GraveType { get; set; }
+    public long? OwnerCustomerId { get; set; }
+    public long[]? TagIds { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}
+
+public class PagedResult<T>
+{
+    public T[] Items { get; set; } = Array.Empty<T>();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}

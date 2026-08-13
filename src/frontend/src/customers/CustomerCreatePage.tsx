@@ -77,9 +77,9 @@ const CustomerCreatePage: React.FC = () => {
   return (
     <div data-testid="customer-create-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Create Customer</Title>
+        <Title level={4} style={{ margin: 0 }}>Tạo khách hàng</Title>
         <Button>
-          <Link to="/customers">Back to List</Link>
+          <Link to="/customers">Quay lại danh sách</Link>
         </Button>
       </Space>
 
@@ -97,7 +97,7 @@ const CustomerCreatePage: React.FC = () => {
       {duplicateWarning && duplicateWarning.hasDuplicates && (
         <Alert
           type="warning"
-          message="Possible duplicate customers found"
+          message="Phát hiện khách hàng có thể trùng lặp"
           description={
             <ul data-testid="duplicate-warning-list">
               {duplicateWarning.matches.map((m) => (
@@ -123,10 +123,10 @@ const CustomerCreatePage: React.FC = () => {
         >
           <Form.Item
             name="customerCode"
-            label="Customer Code"
+            label="Mã khách hàng"
             rules={[
-              { required: true, message: 'Customer code is required' },
-              { max: 50, message: 'Max 50 characters' },
+              { required: true, message: 'Mã khách hàng là bắt buộc' },
+              { max: 50, message: 'Tối đa 50 ký tự' },
             ]}
           >
             <Input data-testid="input-customerCode" />
@@ -134,95 +134,95 @@ const CustomerCreatePage: React.FC = () => {
 
           <Form.Item
             name="fullName"
-            label="Full Name"
+            label="Họ tên"
             rules={[
-              { required: true, message: 'Full name is required' },
-              { max: 200, message: 'Max 200 characters' },
+              { required: true, message: 'Họ tên là bắt buộc' },
+              { max: 200, message: 'Tối đa 200 ký tự' },
             ]}
           >
             <Input data-testid="input-fullName" />
           </Form.Item>
 
-          <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Max 20 characters' }]}>
+          <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
             <Input
               data-testid="input-cccd"
               onBlur={() => handleDuplicateCheck('cccd')}
             />
           </Form.Item>
 
-          <Form.Item name="phone" label="Phone" rules={[{ max: 20, message: 'Max 20 characters' }]}>
+          <Form.Item name="phone" label="Điện thoại" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
             <Input
               data-testid="input-phone"
               onBlur={() => handleDuplicateCheck('phone')}
             />
           </Form.Item>
 
-          <Form.Item name="gender" label="Gender">
+          <Form.Item name="gender" label="Giới tính">
             <Select
               allowClear
               data-testid="input-gender"
               options={[
-                { label: 'Male', value: 'MALE' },
-                { label: 'Female', value: 'FEMALE' },
-                { label: 'Other', value: 'OTHER' },
+                { label: 'Nam', value: 'MALE' },
+                { label: 'Nữ', value: 'FEMALE' },
+                { label: 'Khác', value: 'OTHER' },
               ]}
             />
           </Form.Item>
 
-          <Form.Item name="dob" label="Date of Birth">
+          <Form.Item name="dob" label="Ngày sinh">
             <DatePicker style={{ width: '100%' }} data-testid="input-dob" />
           </Form.Item>
 
-          <Form.Item name="dobPartial" label="DOB Partial" rules={[{ max: 10, message: 'Max 10 characters' }]}>
+          <Form.Item name="dobPartial" label="Ngày sinh (một phần)" rules={[{ max: 10, message: 'Tối đa 10 ký tự' }]}>
             <Input data-testid="input-dobPartial" />
           </Form.Item>
 
-          <Form.Item name="dobPrecision" label="DOB Precision">
+          <Form.Item name="dobPrecision" label="Độ chính xác ngày sinh">
             <Select
               allowClear
               data-testid="input-dobPrecision"
               options={[
-                { label: 'Full', value: 'FULL' },
-                { label: 'Year & Month', value: 'YEAR_MONTH' },
-                { label: 'Year', value: 'YEAR' },
-                { label: 'Unknown', value: 'UNKNOWN' },
+                { label: 'Đầy đủ', value: 'FULL' },
+                { label: 'Năm & Tháng', value: 'YEAR_MONTH' },
+                { label: 'Năm', value: 'YEAR' },
+                { label: 'Không rõ', value: 'UNKNOWN' },
               ]}
             />
           </Form.Item>
 
-          <Form.Item name="permanentAddress" label="Permanent Address" rules={[{ max: 500, message: 'Max 500 characters' }]}>
+          <Form.Item name="permanentAddress" label="Địa chỉ thường trú" rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}>
             <TextArea rows={2} data-testid="input-permanentAddress" />
           </Form.Item>
 
-          <Form.Item name="cccdIssueDate" label="CCCD Issue Date">
+          <Form.Item name="cccdIssueDate" label="Ngày cấp CCCD">
             <DatePicker style={{ width: '100%' }} data-testid="input-cccdIssueDate" />
           </Form.Item>
 
-          <Form.Item name="cccdIssuePlace" label="CCCD Issue Place" rules={[{ max: 200, message: 'Max 200 characters' }]}>
+          <Form.Item name="cccdIssuePlace" label="Nơi cấp CCCD" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
             <Input data-testid="input-cccdIssuePlace" />
           </Form.Item>
 
-          <Form.Item name="taxCode" label="Tax Code" rules={[{ max: 20, message: 'Max 20 characters' }]}>
+          <Form.Item name="taxCode" label="Mã số thuế" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
             <Input data-testid="input-taxCode" />
           </Form.Item>
 
-          <Form.Item name="contactAddress" label="Contact Address" rules={[{ max: 500, message: 'Max 500 characters' }]}>
+          <Form.Item name="contactAddress" label="Địa chỉ liên hệ" rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}>
             <TextArea rows={2} data-testid="input-contactAddress" />
           </Form.Item>
 
-          <Form.Item name="deathDateSolar" label="Death Date (Solar)">
+          <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)">
             <DatePicker style={{ width: '100%' }} data-testid="input-deathDateSolar" />
           </Form.Item>
 
-          <Form.Item name="deathDateLunar" label="Death Date (Lunar)" rules={[{ max: 20, message: 'Max 20 characters' }]}>
+          <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
             <Input data-testid="input-deathDateLunar" />
           </Form.Item>
 
-          <Form.Item name="deathPlace" label="Death Place" rules={[{ max: 200, message: 'Max 200 characters' }]}>
+          <Form.Item name="deathPlace" label="Nơi mất" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
             <Input data-testid="input-deathPlace" />
           </Form.Item>
 
-          <Form.Item name="hometown" label="Hometown" rules={[{ max: 200, message: 'Max 200 characters' }]}>
+          <Form.Item name="hometown" label="Quê quán" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
             <Input data-testid="input-hometown" />
           </Form.Item>
 
@@ -234,10 +234,10 @@ const CustomerCreatePage: React.FC = () => {
                 loading={createMutation.isPending}
                 data-testid="submit-create"
               >
-                Create Customer
+                Tạo khách hàng
               </Button>
               <Button>
-                <Link to="/customers">Cancel</Link>
+                <Link to="/customers">Hủy</Link>
               </Button>
             </Space>
           </Form.Item>

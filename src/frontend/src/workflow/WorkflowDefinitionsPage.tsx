@@ -26,7 +26,7 @@ const WorkflowDefinitionsPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view workflow definitions."
+        message="Bạn không có quyền xem các định nghĩa quy trình."
         data-testid="permission-denied"
       />
     );
@@ -34,26 +34,26 @@ const WorkflowDefinitionsPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Code',
+      title: 'Mã',
       dataIndex: 'definitionCode',
       key: 'definitionCode',
     },
     {
-      title: 'Name',
+      title: 'Tên',
       dataIndex: 'definitionName',
       key: 'definitionName',
     },
     {
-      title: 'Process',
+      title: 'Quy trình',
       dataIndex: 'processCode',
       key: 'processCode',
     },
     {
-      title: 'Active',
+      title: 'Hoạt động',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (val: boolean) => (
-        <Tag color={val ? 'green' : 'red'}>{val ? 'Active' : 'Inactive'}</Tag>
+        <Tag color={val ? 'green' : 'red'}>{val ? 'Hoạt động' : 'Ngừng hoạt động'}</Tag>
       ),
     },
   ];
@@ -61,17 +61,17 @@ const WorkflowDefinitionsPage: React.FC = () => {
   return (
     <div data-testid="workflow-definitions-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Workflow Definitions</Title>
+        <Title level={4} style={{ margin: 0 }}>Định nghĩa quy trình</Title>
         {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
           <Button type="primary" data-testid="create-definition-btn">
-            <Link to="/workflow/definitions/new">Create Definition</Link>
+            <Link to="/workflow/definitions/new">Tạo định nghĩa</Link>
           </Button>
         )}
       </Space>
 
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder="Filter by process code..."
+          placeholder="Lọc theo mã quy trình..."
           allowClear
           onSearch={(val) => { setProcessCodeFilter(val || undefined); setPage(1); }}
           style={{ width: 300 }}
@@ -93,7 +93,7 @@ const WorkflowDefinitionsPage: React.FC = () => {
       {!isLoading && !error && data && data.items.length === 0 && (
         <Alert
           type="info"
-          message="No workflow definitions found."
+          message="Không tìm thấy định nghĩa quy trình nào."
           data-testid="workflow-list-empty"
         />
       )}

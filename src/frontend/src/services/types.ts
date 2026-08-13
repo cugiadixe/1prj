@@ -10,6 +10,7 @@ export interface ServiceTypeListItem {
   standardPrice: number;
   standardPriceCurrency: string;
   cycleDurationMonths: number | null;
+  isCarePackage?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string | null;
@@ -24,6 +25,7 @@ export interface ServiceTypeDetail {
   standardPrice: number;
   standardPriceCurrency: string;
   cycleDurationMonths: number | null;
+  isCarePackage?: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string | null;
@@ -36,12 +38,14 @@ export interface CreateServiceTypeRequest {
   description?: string | null;
   standardPrice: number;
   cycleDurationMonths?: number | null;
+  isCarePackage?: boolean;
 }
 
 export interface UpdateServiceTypeRequest {
   name: string;
   description?: string | null;
   cycleDurationMonths?: number | null;
+  isCarePackage?: boolean;
   rowVersion: string;
 }
 
@@ -51,7 +55,10 @@ export interface ServiceListItem {
   serviceTypeCode: string | null;
   serviceTypeName: string | null;
   customerId: number;
+  customerCode: string | null;
+  customerName: string | null;
   companyId: number;
+  companyName: string | null;
   status: string;
   appliedPrice: number;
   standardPriceSnapshot: number;
@@ -72,7 +79,10 @@ export interface ServiceDetail {
   serviceTypeCode: string | null;
   serviceTypeName: string | null;
   customerId: number;
+  customerCode: string | null;
+  customerName: string | null;
   companyId: number;
+  companyName: string | null;
   status: string;
   appliedPrice: number;
   standardPriceSnapshot: number;
@@ -113,7 +123,7 @@ export interface ServiceTypeSearchParams {
 }
 
 export interface ServiceSearchParams {
-  companyId: number;
+  companyId?: number;
   customerId?: number;
   status?: string;
   page?: number;

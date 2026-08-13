@@ -14,6 +14,9 @@ export interface CarePackageRequestDto {
   id: number;
   companyId: number;
   customerId: number;
+  customerName: string | null;
+  customerCode: string | null;
+  serviceName: string | null;
   status: string;
   requiresApproval: boolean;
   workflowInstanceId: number | null;

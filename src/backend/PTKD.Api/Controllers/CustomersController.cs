@@ -35,6 +35,22 @@ public class CustomersController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("lookups/companies")]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    public async Task<IActionResult> GetCompanyLookups(CancellationToken ct)
+    {
+        var companies = await _customerService.GetAssignedCompanyLookupsAsync(ct);
+        return Ok(companies);
+    }
+
+    [HttpGet("lookups/staff")]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    public async Task<IActionResult> GetStaffLookups(CancellationToken ct)
+    {
+        var staff = await _customerService.GetAssignedStaffLookupsAsync(ct);
+        return Ok(staff);
+    }
+
     [HttpGet("{id}")]
     [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)

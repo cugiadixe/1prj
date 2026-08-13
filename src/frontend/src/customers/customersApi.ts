@@ -1,5 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import type {
+  CompanyLookup,
   CreateCompanyContextRequest,
   CreateCustomerRequest,
   CustomerCompanyContext,
@@ -9,6 +10,7 @@ import type {
   DuplicateCheckRequest,
   DuplicateCheckResult,
   PagedResult,
+  StaffLookup,
   UpdateCompanyContextRequest,
   UpdateCustomerRequest,
 } from './types';
@@ -22,10 +24,25 @@ export async function searchCustomers(
     params: {
       search: params.search || undefined,
       customerStatus: params.customerStatus || undefined,
+      companyId: params.companyId ?? undefined,
+      assignedStaffId: params.assignedStaffId ?? undefined,
+      unassignedStaff: params.unassignedStaff ? true : undefined,
+      tagIds: params.tagIds && params.tagIds.length > 0 ? params.tagIds : undefined,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 20,
     },
+    paramsSerializer: { indexes: null },
   });
+  return data;
+}
+
+export async function getCompanyLookups(): Promise<CompanyLookup[]> {
+  const { data } = await axiosClient.get<CompanyLookup[]>(`${BASE}/lookups/companies`);
+  return data;
+}
+
+export async function getStaffLookups(): Promise<StaffLookup[]> {
+  const { data } = await axiosClient.get<StaffLookup[]>(`${BASE}/lookups/staff`);
   return data;
 }
 

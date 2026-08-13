@@ -55,7 +55,7 @@ const CarePackageRequestDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this request."
+        message="Bạn không có quyền xem yêu cầu này."
         data-testid="permission-denied"
       />
     );
@@ -83,7 +83,7 @@ const CarePackageRequestDetailPage: React.FC = () => {
 
   const onSubmit = () => handleAction(
     () => submitMutation.mutateAsync(requestId),
-    'Request submitted for approval'
+    'Đã gửi yêu cầu phê duyệt'
   );
 
   const onApprove = () => {
@@ -92,7 +92,7 @@ const CarePackageRequestDetailPage: React.FC = () => {
         id: requestId,
         data: { stepId: data.workflowInstanceId || 0, targetVersion: 0, comment: approveComment },
       }),
-      'Request approved'
+      'Đã phê duyệt yêu cầu'
     );
     setIsApproveModalOpen(false);
   };
@@ -103,7 +103,7 @@ const CarePackageRequestDetailPage: React.FC = () => {
         id: requestId,
         data: { stepId: data.workflowInstanceId || 0, targetVersion: 0, reason: rejectReason },
       }),
-      'Request rejected'
+      'Đã từ chối yêu cầu'
     );
     setIsRejectModalOpen(false);
   };
@@ -111,14 +111,14 @@ const CarePackageRequestDetailPage: React.FC = () => {
   const onCreatePayment = () => {
     handleAction(
       () => createPaymentMutation.mutateAsync({ id: requestId, data: { paymentMethod } }),
-      'Payment draft created'
+      'Đã tạo thanh toán nháp'
     );
     setIsPaymentModalOpen(false);
   };
 
   const onActivate = () => handleAction(
     () => activateMutation.mutateAsync(requestId),
-    'Care package activated'
+    'Đã kích hoạt gói chăm sóc'
   );
 
   const canSubmit = data.status === 'Draft' && data.requiresApproval && hasPermission('CARE_PACKAGE_CREATE', 'COMPANY');
@@ -128,34 +128,34 @@ const CarePackageRequestDetailPage: React.FC = () => {
   const canActivate = data.status === 'Paid' && hasPermission('CARE_PACKAGE_CREATE', 'COMPANY');
 
   const itemColumns = [
-    { title: 'Grave ID', dataIndex: 'graveId', key: 'graveId', render: (v: string | null) => v || '—' },
-    { title: 'Cot Count', dataIndex: 'cotCountSnapshot', key: 'cotCountSnapshot' },
+    { title: 'Mã mộ', dataIndex: 'graveId', key: 'graveId', render: (v: string | null) => v || '—' },
+    { title: 'Số lượng cốt', dataIndex: 'cotCountSnapshot', key: 'cotCountSnapshot' },
     {
-      title: 'Service Period',
+      title: 'Kỳ dịch vụ',
       key: 'period',
       render: (_: any, record: CarePackageRequestItemDto) =>
-        `${new Date(record.servicePeriodStartDate).toLocaleDateString()} — ${new Date(record.servicePeriodEndDate).toLocaleDateString()}`,
+        `${new Date(record.servicePeriodStartDate).toLocaleDateString('vi-VN')} — ${new Date(record.servicePeriodEndDate).toLocaleDateString('vi-VN')}`,
     },
     {
-      title: 'Unit Price',
+      title: 'Đơn giá',
       dataIndex: 'unitPriceSnapshot',
       key: 'unitPriceSnapshot',
       render: (v: number) => v.toLocaleString('vi-VN') + ' VND',
     },
     {
-      title: 'Line Subtotal',
+      title: 'Thành tiền',
       dataIndex: 'lineSubtotal',
       key: 'lineSubtotal',
       render: (v: number) => v.toLocaleString('vi-VN') + ' VND',
     },
-    { title: 'Notes', dataIndex: 'notes', key: 'notes', render: (v: string | null) => v || '—' },
+    { title: 'Ghi chú', dataIndex: 'notes', key: 'notes', render: (v: string | null) => v || '—' },
   ];
 
   return (
     <div data-testid="care-package-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Care Package Request #{data.id}</Title>
-        <Button onClick={() => navigate('/care-packages')}>Back to List</Button>
+        <Title level={4} style={{ margin: 0 }}>Yêu cầu gói chăm sóc #{data.id}</Title>
+        <Button onClick={() => navigate('/care-packages')}>Quay lại danh sách</Button>
       </Space>
 
       {actionError && (
@@ -165,60 +165,61 @@ const CarePackageRequestDetailPage: React.FC = () => {
       <Space style={{ marginBottom: 16 }}>
         {canSubmit && (
           <Button type="primary" onClick={onSubmit} loading={submitMutation.isPending} data-testid="btn-submit">
-            Submit for Approval
+            Gửi phê duyệt
           </Button>
         )}
         {canApprove && (
           <Button type="primary" onClick={() => setIsApproveModalOpen(true)} data-testid="btn-approve">
-            Approve
+            Phê duyệt
           </Button>
         )}
         {canReject && (
           <Button danger onClick={() => setIsRejectModalOpen(true)} data-testid="btn-reject">
-            Reject
+            Từ chối
           </Button>
         )}
         {canCreatePayment && (
           <Button type="primary" onClick={() => setIsPaymentModalOpen(true)} loading={createPaymentMutation.isPending} data-testid="btn-create-payment">
-            Create Payment
+            Tạo thanh toán
           </Button>
         )}
         {canActivate && (
           <Button type="primary" onClick={onActivate} loading={activateMutation.isPending} data-testid="btn-activate">
-            Activate
+            Kích hoạt
           </Button>
         )}
         {data.paymentTransactionId && (
           <Button type="link" onClick={() => navigate(`/payments/${data.paymentTransactionId}`)} data-testid="btn-view-payment">
-            View Payment
+            Xem thanh toán
           </Button>
         )}
       </Space>
 
       <Descriptions bordered column={2} style={{ marginBottom: 24 }}>
-        <Descriptions.Item label="Status">
+        <Descriptions.Item label="Trạng thái">
           <Tag color={statusColors[data.status] || 'default'} data-testid="status-badge">{data.status}</Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Customer ID">{data.customerId}</Descriptions.Item>
-        <Descriptions.Item label="Company ID">{data.companyId}</Descriptions.Item>
-        <Descriptions.Item label="Service ID">{data.serviceId ?? '—'}</Descriptions.Item>
-        <Descriptions.Item label="Sale Date">{new Date(data.saleDate).toLocaleDateString()}</Descriptions.Item>
-        <Descriptions.Item label="Requires Approval">{data.requiresApproval ? 'Yes' : 'No'}</Descriptions.Item>
-        <Descriptions.Item label="Previous Request ID">{data.previousRequestId ?? '—'}</Descriptions.Item>
-        <Descriptions.Item label="Workflow Instance">
+        <Descriptions.Item label="Khách hàng">
+          {data.customerName ? `${data.customerName}${data.customerCode ? ` (${data.customerCode})` : ''}` : `#${data.customerId}`}
+        </Descriptions.Item>
+        <Descriptions.Item label="Gói chăm sóc">{data.serviceName ?? (data.serviceId ? `#${data.serviceId}` : '—')}</Descriptions.Item>
+        <Descriptions.Item label="Ngày bán">{new Date(data.saleDate).toLocaleDateString('vi-VN')}</Descriptions.Item>
+        <Descriptions.Item label="Cần phê duyệt">{data.requiresApproval ? 'Có' : 'Không'}</Descriptions.Item>
+        <Descriptions.Item label="Mã yêu cầu trước">{data.previousRequestId ?? '—'}</Descriptions.Item>
+        <Descriptions.Item label="Phiên quy trình">
           {data.workflowInstanceId ? (
             <Button type="link" size="small" onClick={() => navigate(`/workflow/instances/${data.workflowInstanceId}`)}>
               #{data.workflowInstanceId}
             </Button>
           ) : '—'}
         </Descriptions.Item>
-        <Descriptions.Item label="Created By">{data.createdByUserId}</Descriptions.Item>
-        <Descriptions.Item label="Created At">{new Date(data.createdAt).toLocaleString()}</Descriptions.Item>
-        <Descriptions.Item label="Updated By">{data.updatedByUserId ?? '—'}</Descriptions.Item>
-        <Descriptions.Item label="Updated At">{data.updatedAt ? new Date(data.updatedAt).toLocaleString() : '—'}</Descriptions.Item>
+        <Descriptions.Item label="Người tạo">{data.createdByUserId}</Descriptions.Item>
+        <Descriptions.Item label="Ngày tạo">{new Date(data.createdAt).toLocaleString('vi-VN')}</Descriptions.Item>
+        <Descriptions.Item label="Người cập nhật">{data.updatedByUserId ?? '—'}</Descriptions.Item>
+        <Descriptions.Item label="Ngày cập nhật">{data.updatedAt ? new Date(data.updatedAt).toLocaleString('vi-VN') : '—'}</Descriptions.Item>
       </Descriptions>
 
-      <Title level={5}>Line Items</Title>
+      <Title level={5}>Chi tiết mục</Title>
       <Table
         dataSource={data.items}
         columns={itemColumns}
@@ -229,34 +230,34 @@ const CarePackageRequestDetailPage: React.FC = () => {
       />
 
       <Descriptions bordered column={1} style={{ maxWidth: 400, marginBottom: 24 }}>
-        <Descriptions.Item label="Subtotal">{data.subtotalAmount.toLocaleString('vi-VN')} VND</Descriptions.Item>
-        <Descriptions.Item label="Discount">
+        <Descriptions.Item label="Tạm tính">{data.subtotalAmount.toLocaleString('vi-VN')} VND</Descriptions.Item>
+        <Descriptions.Item label="Giảm giá">
           {data.discountAmount > 0
             ? `${data.discountAmount.toLocaleString('vi-VN')} VND${data.discountReason ? ` (${data.discountReason})` : ''}`
             : '—'}
         </Descriptions.Item>
-        <Descriptions.Item label="Total">
+        <Descriptions.Item label="Tổng">
           <strong data-testid="total-amount">{data.totalAmount.toLocaleString('vi-VN')} VND</strong>
         </Descriptions.Item>
       </Descriptions>
 
       {showPaymentStatus && paymentStatus && (
         <Descriptions bordered column={1} style={{ maxWidth: 400, marginBottom: 24 }}>
-          <Descriptions.Item label="Payment Status">
+          <Descriptions.Item label="Trạng thái thanh toán">
             <Tag data-testid="payment-status-badge">{paymentStatus.status}</Tag>
           </Descriptions.Item>
         </Descriptions>
       )}
 
       <Modal
-        title="Approve Request"
+        title="Phê duyệt yêu cầu"
         open={isApproveModalOpen}
         onOk={onApprove}
         onCancel={() => setIsApproveModalOpen(false)}
         confirmLoading={approveMutation.isPending}
       >
         <Input.TextArea
-          placeholder="Optional comment"
+          placeholder="Nhận xét (tùy chọn)"
           value={approveComment}
           onChange={(e) => setApproveComment(e.target.value)}
           data-testid="input-approve-comment"
@@ -264,14 +265,14 @@ const CarePackageRequestDetailPage: React.FC = () => {
       </Modal>
 
       <Modal
-        title="Reject Request"
+        title="Từ chối yêu cầu"
         open={isRejectModalOpen}
         onOk={onReject}
         onCancel={() => setIsRejectModalOpen(false)}
         confirmLoading={rejectMutation.isPending}
       >
         <Input.TextArea
-          placeholder="Reason for rejection"
+          placeholder="Lý do từ chối"
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
           data-testid="input-reject-reason"
@@ -279,7 +280,7 @@ const CarePackageRequestDetailPage: React.FC = () => {
       </Modal>
 
       <Modal
-        title="Create Payment"
+        title="Tạo thanh toán"
         open={isPaymentModalOpen}
         onOk={onCreatePayment}
         onCancel={() => setIsPaymentModalOpen(false)}
@@ -291,8 +292,8 @@ const CarePackageRequestDetailPage: React.FC = () => {
           style={{ width: '100%' }}
           data-testid="select-payment-method"
           options={[
-            { label: 'Cash', value: 'CASH' },
-            { label: 'Transfer', value: 'TRANSFER' },
+            { label: 'Tiền mặt', value: 'CASH' },
+            { label: 'Chuyển khoản', value: 'TRANSFER' },
           ]}
         />
       </Modal>

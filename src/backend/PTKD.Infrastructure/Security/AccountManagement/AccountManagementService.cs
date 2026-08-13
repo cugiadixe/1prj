@@ -362,6 +362,67 @@ public sealed class AccountManagementService : IAccountManagementService
         return new string(buf);
     }
 
+    public async Task<IReadOnlyList<UserWithoutAccountDto>> GetUsersWithoutAccountAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var usersWithoutAccount = await context.Users
+            .Where(u => !context.UserAuthAccounts.Any(a => a.UserId == u.Id))
+            .OrderBy(u => u.FullName)
+            .Select(u => new UserWithoutAccountDto(u.Id, u.FullName, u.EmployeeCode, u.Email))
+            .ToListAsync(cancellationToken);
+        return usersWithoutAccount;
+    }
+
+    public async Task<AccountManagementResult> CreateInternalAccountAsync(
+        long userId,
+        string providerSubject,
+        long actingUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var temporaryPassword = GenerateTemporaryPassword();
+
+        return await ExecuteInTransactionAsync(async (context, utcNow, token) =>
+        {
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId, token);
+            if (user is null)
+                return (AccountManagementResult.Failure("USER_NOT_FOUND"), null);
+
+            var existingAccount = await context.UserAuthAccounts
+                .FirstOrDefaultAsync(a => a.UserId == userId, token);
+            if (existingAccount is not null)
+                return (AccountManagementResult.Failure("AUTH_ACCOUNT_ALREADY_EXISTS"), null);
+
+            var duplicateSubject = await context.FindAccountByProviderForUpdateAsync(
+                "INTERNAL", providerSubject, token);
+            if (duplicateSubject is not null)
+                return (AccountManagementResult.Failure("AUTH_PROVIDER_SUBJECT_DUPLICATE"), null);
+
+            var account = UserAuthAccount.CreateInternal(userId, providerSubject, "dummy", utcNow, actingUserId);
+            var passwordHash = _passwordHashService.HashPassword(account, temporaryPassword);
+            account.ReplacePassword(passwordHash, true, utcNow.Add(_policy.TemporaryPasswordLifetime), utcNow, actingUserId);
+
+            context.UserAuthAccounts.Add(account);
+            await context.SaveChangesAsync(token);
+
+            context.PasswordHistories.Add(new PasswordHistory(account.Id, passwordHash, utcNow));
+            await context.SaveChangesAsync(token);
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "ACCOUNT_CREATED",
+                EntityType = EntityType,
+                EntityId = account.Id.ToString(),
+                Outcome = OutcomeSuccess,
+                CorrelationId = Guid.NewGuid(),
+                ActorUserId = actingUserId,
+                TargetUserId = userId,
+                Reason = $"Internal account created for user {userId} with subject {providerSubject}"
+            };
+            return (AccountManagementResult.SuccessWithPassword(temporaryPassword), audit);
+        }, cancellationToken);
+    }
+
     private bool IsPasswordReused(UserAuthAccount account, string candidate, IReadOnlyList<PasswordHistory> histories)
     {
         if (_passwordHashService.VerifyPassword(account, account.PasswordHash, candidate) != PasswordHashVerificationResult.Failed)

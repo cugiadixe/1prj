@@ -110,6 +110,16 @@ builder.Services.AddScoped<IUserAssignmentService, UserAssignmentService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerService, PTKD.Application.Customers.Services.CustomerService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMergeService, PTKD.Application.Customers.Services.CustomerMergeService>();
 
+// Grave Management Services
+builder.Services.AddScoped<PTKD.Application.Graves.Services.IGraveService, PTKD.Application.Graves.Services.GraveService>();
+builder.Services.AddScoped<PTKD.Application.Relationships.Services.IRelationshipDerivationService, PTKD.Application.Relationships.Services.RelationshipDerivationService>();
+builder.Services.AddScoped<PTKD.Application.Graves.Services.IGraveAttachmentService, PTKD.Application.Graves.Services.GraveAttachmentService>();
+builder.Services.AddScoped<PTKD.Application.Common.Interfaces.IGraveFileStorage, PTKD.Infrastructure.Files.GraveFileStorage>();
+
+// Customer Care Package Assignment Services
+builder.Services.AddScoped<PTKD.Application.CustomerCarePackages.Services.ICustomerCarePackageService, PTKD.Application.CustomerCarePackages.Services.CustomerCarePackageService>();
+builder.Services.AddScoped<PTKD.Application.Tags.Services.ITagService, PTKD.Application.Tags.Services.TagService>();
+
 // Card Reprint Services (Phase 1B.8-B1)
 builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardReprintRequestService, PTKD.Application.Cards.Services.CardReprintRequestService>();
 

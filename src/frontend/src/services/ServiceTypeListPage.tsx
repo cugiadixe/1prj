@@ -24,7 +24,7 @@ const ServiceTypeListPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view service types."
+        message="Bạn không có quyền xem loại dịch vụ."
         data-testid="permission-denied"
       />
     );
@@ -32,35 +32,35 @@ const ServiceTypeListPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Code',
+      title: 'Mã',
       dataIndex: 'code',
       key: 'code',
     },
     {
-      title: 'Name',
+      title: 'Tên',
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: 'Standard Price',
+      title: 'Giá chuẩn',
       dataIndex: 'standardPrice',
       key: 'standardPrice',
-      render: (val: number, record: ServiceTypeListItem) => 
+      render: (val: number, record: ServiceTypeListItem) =>
         `${val.toLocaleString()} ${record.standardPriceCurrency}`,
     },
     {
-      title: 'Cycle (Months)',
+      title: 'Chu kỳ (Tháng)',
       dataIndex: 'cycleDurationMonths',
       key: 'cycleDurationMonths',
       render: (val: number | null) => val ?? '—',
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive: boolean) => (
         <Tag color={isActive ? 'green' : 'red'}>
-          {isActive ? 'ACTIVE' : 'INACTIVE'}
+          {isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
         </Tag>
       ),
     },
@@ -69,11 +69,11 @@ const ServiceTypeListPage: React.FC = () => {
   return (
     <div data-testid="service-types-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Service Types</Title>
+        <Title level={4} style={{ margin: 0 }}>Gói dịch vụ</Title>
         <Space>
           {hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') && (
             <Button type="primary" data-testid="create-service-type-btn">
-              <Link to="/services/types/new">Create Service Type</Link>
+              <Link to="/services/types/new">Tạo loại dịch vụ</Link>
             </Button>
           )}
         </Space>
@@ -93,7 +93,7 @@ const ServiceTypeListPage: React.FC = () => {
       {!isLoading && !error && data && data.items.length === 0 && (
         <Alert
           type="info"
-          message="No service types found."
+          message="Không tìm thấy loại dịch vụ nào."
           data-testid="service-type-list-empty"
         />
       )}

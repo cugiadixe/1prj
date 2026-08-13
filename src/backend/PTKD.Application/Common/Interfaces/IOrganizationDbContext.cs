@@ -46,6 +46,18 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<CardReprintRequest> CardReprintRequests { get; }
     DbSet<CarePackageRequest> CarePackageRequests { get; }
     DbSet<CarePackageRequestItem> CarePackageRequestItems { get; }
+    DbSet<Grave> Graves { get; }
+    DbSet<GraveOccupant> GraveOccupants { get; }
+    DbSet<CustomerCarePackage> CustomerCarePackages { get; }
+    DbSet<RelationshipKind> RelationshipKinds { get; }
+    DbSet<KinshipComposition> KinshipCompositions { get; }
+    DbSet<CustomerRelationship> CustomerRelationships { get; }
+    DbSet<GraveOwnershipHistory> GraveOwnershipHistories { get; }
+    DbSet<GraveAttachment> GraveAttachments { get; }
+    DbSet<GraveEmergencyContact> GraveEmergencyContacts { get; }
+    DbSet<Tag> Tags { get; }
+    DbSet<CustomerTag> CustomerTags { get; }
+    DbSet<GraveTag> GraveTags { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
     System.Data.Common.DbConnection GetDbConnection();

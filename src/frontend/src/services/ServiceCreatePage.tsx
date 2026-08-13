@@ -19,7 +19,7 @@ const ServiceCreatePage: React.FC = () => {
 
   const [formError, setFormError] = useState<string | null>(null);
 
-  // For a real app, this might be paginated or an autocomplete. 
+  // For a real app, this might be paginated or an autocomplete.
   // For simplicity, we just fetch the first 100 active service types.
   const { data: serviceTypesData } = useQuery({
     queryKey: ['serviceTypes', 1, 100],
@@ -29,7 +29,7 @@ const ServiceCreatePage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (values: CreateServiceRequest) => createService(values),
     onSuccess: (data) => {
-      message.success('Service created successfully');
+      message.success('Tạo dịch vụ thành công');
       navigate(`/services/${data.id}`);
     },
     onError: (err) => {
@@ -54,7 +54,7 @@ const ServiceCreatePage: React.FC = () => {
     return (
       <Alert
         type="warning"
-        message="Please select a company context first."
+        message="Vui lòng chọn ngữ cảnh công ty trước."
         data-testid="no-company-warning"
       />
     );
@@ -64,7 +64,7 @@ const ServiceCreatePage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to create services."
+        message="Bạn không có quyền tạo dịch vụ."
         data-testid="permission-denied"
       />
     );
@@ -75,8 +75,8 @@ const ServiceCreatePage: React.FC = () => {
   return (
     <div data-testid="service-create-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Create Service</Title>
-        <Button onClick={() => navigate('/services')}>Cancel</Button>
+        <Title level={4} style={{ margin: 0 }}>Tạo dịch vụ</Title>
+        <Button onClick={() => navigate('/services')}>Hủy</Button>
       </Space>
 
       {formError && (
@@ -96,12 +96,12 @@ const ServiceCreatePage: React.FC = () => {
       >
         <Form.Item
           name="serviceTypeId"
-          label="Service Type"
-          rules={[{ required: true, message: 'Please select a service type' }]}
+          label="Loại dịch vụ"
+          rules={[{ required: true, message: 'Vui lòng chọn loại dịch vụ' }]}
         >
           <Select
             showSearch
-            placeholder="Select a service type"
+            placeholder="Chọn loại dịch vụ"
             optionFilterProp="children"
             data-testid="input-service-type"
           >
@@ -115,8 +115,8 @@ const ServiceCreatePage: React.FC = () => {
 
         <Form.Item
           name="customerId"
-          label="Customer ID"
-          rules={[{ required: true, message: 'Please enter a customer ID' }]}
+          label="Mã khách hàng"
+          rules={[{ required: true, message: 'Vui lòng nhập mã khách hàng' }]}
         >
           <InputNumber
             style={{ width: '100%' }}
@@ -127,13 +127,13 @@ const ServiceCreatePage: React.FC = () => {
 
         <Form.Item
           name="validFrom"
-          label="Valid From"
-          rules={[{ required: true, message: 'Please select a valid from date' }]}
+          label="Hiệu lực từ"
+          rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu hiệu lực' }]}
         >
           <DatePicker style={{ width: '100%' }} data-testid="input-valid-from" />
         </Form.Item>
 
-        <Form.Item name="validTo" label="Valid To (Optional)">
+        <Form.Item name="validTo" label="Hiệu lực đến (Tùy chọn)">
           <DatePicker style={{ width: '100%' }} data-testid="input-valid-to" />
         </Form.Item>
 
@@ -144,7 +144,7 @@ const ServiceCreatePage: React.FC = () => {
             loading={createMutation.isPending}
             data-testid="submit-service-btn"
           >
-            Create
+            Tạo
           </Button>
         </Form.Item>
       </Form>

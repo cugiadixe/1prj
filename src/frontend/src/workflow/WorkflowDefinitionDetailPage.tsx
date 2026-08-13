@@ -44,7 +44,7 @@ const WorkflowDefinitionDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this workflow definition."
+        message="Bạn không có quyền xem định nghĩa quy trình này."
         data-testid="permission-denied"
       />
     );
@@ -64,13 +64,13 @@ const WorkflowDefinitionDetailPage: React.FC = () => {
 
   const versionColumns = [
     {
-      title: 'Version',
+      title: 'Phiên bản',
       dataIndex: 'versionNumber',
       key: 'versionNumber',
       render: (v: number) => `v${v}`,
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'versionStatus',
       key: 'versionStatus',
       render: (status: string) => (
@@ -78,16 +78,16 @@ const WorkflowDefinitionDetailPage: React.FC = () => {
       ),
     },
     {
-      title: 'Effective From',
+      title: 'Hiệu lực từ',
       dataIndex: 'effectiveFrom',
       key: 'effectiveFrom',
-      render: (val: string | null) => val ? new Date(val).toLocaleDateString() : '—',
+      render: (val: string | null) => val ? new Date(val).toLocaleDateString('vi-VN') : '—',
     },
     {
-      title: 'Effective To',
+      title: 'Hiệu lực đến',
       dataIndex: 'effectiveTo',
       key: 'effectiveTo',
-      render: (val: string | null) => val ? new Date(val).toLocaleDateString() : '—',
+      render: (val: string | null) => val ? new Date(val).toLocaleDateString('vi-VN') : '—',
     },
   ];
 
@@ -95,42 +95,42 @@ const WorkflowDefinitionDetailPage: React.FC = () => {
     <div data-testid="workflow-definition-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>
-          Workflow: {definition.definitionName}
+          Quy trình: {definition.definitionName}
         </Title>
         <Space>
           {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
             <Button data-testid="edit-definition-btn">
-              <Link to={`/workflow/definitions/${id}/edit`}>Edit</Link>
+              <Link to={`/workflow/definitions/${id}/edit`}>Sửa</Link>
             </Button>
           )}
           {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
             <Button type="primary" data-testid="create-version-btn">
-              <Link to={`/workflow/definitions/${id}/versions/new`}>New Version</Link>
+              <Link to={`/workflow/definitions/${id}/versions/new`}>Phiên bản mới</Link>
             </Button>
           )}
           <Button>
-            <Link to="/workflow">Back to List</Link>
+            <Link to="/workflow">Quay lại danh sách</Link>
           </Button>
         </Space>
       </Space>
 
       <Descriptions bordered column={2} style={{ marginBottom: 24 }} data-testid="definition-details">
-        <Descriptions.Item label="Code">{definition.definitionCode}</Descriptions.Item>
-        <Descriptions.Item label="Process">{definition.processCode}</Descriptions.Item>
-        <Descriptions.Item label="Active">
+        <Descriptions.Item label="Mã">{definition.definitionCode}</Descriptions.Item>
+        <Descriptions.Item label="Quy trình">{definition.processCode}</Descriptions.Item>
+        <Descriptions.Item label="Hoạt động">
           <Tag color={definition.isActive ? 'green' : 'red'}>
-            {definition.isActive ? 'Active' : 'Inactive'}
+            {definition.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Created">{new Date(definition.createdAt).toLocaleDateString()}</Descriptions.Item>
+        <Descriptions.Item label="Đã tạo">{new Date(definition.createdAt).toLocaleDateString('vi-VN')}</Descriptions.Item>
         {definition.description && (
-          <Descriptions.Item label="Description" span={2}>{definition.description}</Descriptions.Item>
+          <Descriptions.Item label="Mô tả" span={2}>{definition.description}</Descriptions.Item>
         )}
       </Descriptions>
 
-      <Title level={5}>Versions</Title>
+      <Title level={5}>Các phiên bản</Title>
       {versions && versions.length === 0 && (
-        <Alert type="info" message="No versions yet." data-testid="versions-empty" />
+        <Alert type="info" message="Chưa có phiên bản nào." data-testid="versions-empty" />
       )}
       {versions && versions.length > 0 && (
         <Table

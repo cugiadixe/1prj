@@ -11,6 +11,7 @@ public class ServiceType
     public decimal StandardPrice { get; private set; }
     public string StandardPriceCurrency { get; private set; } = null!;
     public int? CycleDurationMonths { get; private set; }
+    public bool IsCarePackage { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -25,6 +26,7 @@ public class ServiceType
         string? description,
         decimal standardPrice,
         int? cycleDurationMonths,
+        bool isCarePackage,
         long createdByUserId)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -46,12 +48,13 @@ public class ServiceType
         StandardPrice = standardPrice;
         StandardPriceCurrency = "VND";
         CycleDurationMonths = cycleDurationMonths;
+        IsCarePackage = isCarePackage;
         IsActive = true;
         CreatedByUserId = createdByUserId;
         CreatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string name, string? description, int? cycleDurationMonths)
+    public void Update(string name, string? description, int? cycleDurationMonths, bool isCarePackage)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name is required.", nameof(name));
@@ -63,6 +66,7 @@ public class ServiceType
         Name = name;
         Description = description;
         CycleDurationMonths = cycleDurationMonths;
+        IsCarePackage = isCarePackage;
         UpdatedAt = DateTime.UtcNow;
     }
 

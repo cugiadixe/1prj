@@ -42,6 +42,10 @@ import CustomerMergeDuplicateSearchPage from './customers/CustomerMergeDuplicate
 import CustomerMergeRequestCreatePage from './customers/CustomerMergeRequestCreatePage';
 import CustomerMergeRequestsPage from './customers/CustomerMergeRequestsPage';
 import CustomerMergeRequestDetailPage from './customers/CustomerMergeRequestDetailPage';
+import GravesPage from './graves/GravesPage';
+import GraveDetailPage from './graves/GraveDetailPage';
+import GraveCreatePage from './graves/GraveCreatePage';
+import GraveEditPage from './graves/GraveEditPage';
 import CardReprintRequestsPage from './cards/CardReprintRequestsPage';
 import CardReprintRequestCreatePage from './cards/CardReprintRequestCreatePage';
 import CardReprintRequestDetailPage from './cards/CardReprintRequestDetailPage';
@@ -59,6 +63,7 @@ import ServiceCreatePage from './services/ServiceCreatePage';
 import CarePackageRequestsPage from './care-packages/CarePackageRequestsPage';
 import CarePackageRequestCreatePage from './care-packages/CarePackageRequestCreatePage';
 import CarePackageRequestDetailPage from './care-packages/CarePackageRequestDetailPage';
+import TagManagementPage from './tags/TagManagementPage';
 const queryClient = new QueryClient();
 
 /**
@@ -131,6 +136,11 @@ const App: React.FC = () => {
               <Route path="customers/merge/new" element={<CustomerMergeRequestCreatePage />} />
               <Route path="customers/merge-requests" element={<CustomerMergeRequestsPage />} />
               <Route path="customers/merge-requests/:id" element={<CustomerMergeRequestDetailPage />} />
+              {/* Quản lý mộ */}
+              <Route path="graves" element={<GravesPage />} />
+              <Route path="graves/new" element={<GraveCreatePage />} />
+              <Route path="graves/:graveId" element={<GraveDetailPage />} />
+              <Route path="graves/:graveId/edit" element={<GraveEditPage />} />
               {/* Phase 1B.8-C — Card Reprint UI */}
               <Route path="cards/reprints" element={<CardReprintRequestsPage />} />
               <Route path="cards/reprints/new" element={<CardReprintRequestCreatePage />} />
@@ -166,6 +176,8 @@ const App: React.FC = () => {
               <Route path="care-packages" element={<CarePackageRequestsPage />} />
               <Route path="care-packages/new" element={<CarePackageRequestCreatePage />} />
               <Route path="care-packages/:id" element={<CarePackageRequestDetailPage />} />
+              {/* Quản lý thẻ (hashtag) */}
+              <Route path="tags" element={<TagManagementPage />} />
             </Route>
 
             {/* Catch-all */}

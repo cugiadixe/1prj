@@ -37,7 +37,7 @@ const WorkflowVersionCreatePage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to create workflow versions."
+        message="Bạn không có quyền tạo phiên bản quy trình."
         data-testid="permission-denied"
       />
     );
@@ -59,10 +59,10 @@ const WorkflowVersionCreatePage: React.FC = () => {
     <div data-testid="workflow-version-create-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>
-          Create New Version for: {definition.definitionName}
+          Tạo phiên bản mới cho: {definition.definitionName}
         </Title>
         <Button>
-          <Link to={`/workflow/definitions/${defId}`}>Back to Definition</Link>
+          <Link to={`/workflow/definitions/${defId}`}>Quay lại định nghĩa</Link>
         </Button>
       </Space>
 
@@ -79,9 +79,9 @@ const WorkflowVersionCreatePage: React.FC = () => {
 
       <Card>
         <Typography.Paragraph>
-          A new DRAFT version will be created for definition{' '}
-          <strong>{definition.definitionCode}</strong>. You can then add steps and approver
-          rules before publishing.
+          Một phiên bản NHÁP mới sẽ được tạo cho định nghĩa{' '}
+          <strong>{definition.definitionCode}</strong>. Sau đó bạn có thể thêm các bước và quy tắc
+          phê duyệt trước khi xuất bản.
         </Typography.Paragraph>
         <Space>
           <Button
@@ -90,10 +90,10 @@ const WorkflowVersionCreatePage: React.FC = () => {
             loading={createMutation.isPending}
             data-testid="submit-create-version"
           >
-            Create Draft Version
+            Tạo phiên bản nháp
           </Button>
           <Button>
-            <Link to={`/workflow/definitions/${defId}`}>Cancel</Link>
+            <Link to={`/workflow/definitions/${defId}`}>Hủy</Link>
           </Button>
         </Space>
       </Card>

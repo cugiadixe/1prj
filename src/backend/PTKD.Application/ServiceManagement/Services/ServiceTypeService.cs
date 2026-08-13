@@ -62,6 +62,7 @@ public class ServiceTypeService : IServiceTypeService
             request.Description,
             request.StandardPrice,
             request.CycleDurationMonths,
+            request.IsCarePackage,
             userId);
 
         db.ServiceTypes.Add(entity);
@@ -88,7 +89,7 @@ public class ServiceTypeService : IServiceTypeService
             ?? throw new InvalidOperationException("Service type not found.");
 
         db.Entry(entity).Property(e => e.RowVersion).OriginalValue = Convert.FromBase64String(request.RowVersion);
-        entity.Update(request.Name, request.Description, request.CycleDurationMonths);
+        entity.Update(request.Name, request.Description, request.CycleDurationMonths, request.IsCarePackage);
         await db.SaveChangesAsync(ct);
 
         return MapToDto(entity);
@@ -119,6 +120,7 @@ public class ServiceTypeService : IServiceTypeService
             StandardPrice = entity.StandardPrice,
             StandardPriceCurrency = entity.StandardPriceCurrency,
             CycleDurationMonths = entity.CycleDurationMonths,
+            IsCarePackage = entity.IsCarePackage,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,

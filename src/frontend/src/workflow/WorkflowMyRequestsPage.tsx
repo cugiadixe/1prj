@@ -33,7 +33,7 @@ const WorkflowMyRequestsPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view requests."
+        message="Bạn không có quyền xem các yêu cầu."
         data-testid="permission-denied"
       />
     );
@@ -41,34 +41,34 @@ const WorkflowMyRequestsPage: React.FC = () => {
 
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id' },
-    { title: 'Process', dataIndex: 'processCode', key: 'processCode' },
-    { title: 'Entity Type', dataIndex: 'businessEntityType', key: 'businessEntityType' },
+    { title: 'Quy trình', dataIndex: 'processCode', key: 'processCode' },
+    { title: 'Loại đối tượng', dataIndex: 'businessEntityType', key: 'businessEntityType' },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'instanceStatus',
       key: 'instanceStatus',
       render: (val: string) => (
         <Tag color={INSTANCE_STATUS_COLORS[val] ?? 'default'}>{val}</Tag>
       ),
     },
-    { title: 'Round', dataIndex: 'roundNo', key: 'roundNo' },
+    { title: 'Vòng', dataIndex: 'roundNo', key: 'roundNo' },
     {
-      title: 'Created',
+      title: 'Đã tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (val: string) => new Date(val).toLocaleString(),
+      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
     },
     {
-      title: 'Updated',
+      title: 'Đã cập nhật',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
-      render: (val: string | null) => val ? new Date(val).toLocaleString() : '—',
+      render: (val: string | null) => val ? new Date(val).toLocaleString('vi-VN') : '—',
     },
   ];
 
   return (
     <div data-testid="my-requests-page">
-      <Title level={4} style={{ marginBottom: 16 }}>My Requests</Title>
+      <Title level={4} style={{ marginBottom: 16 }}>Yêu cầu của tôi</Title>
 
       {error && !isPermissionDenied(error) && (
         <Alert
@@ -82,7 +82,7 @@ const WorkflowMyRequestsPage: React.FC = () => {
       {isLoading && <Spin data-testid="my-requests-loading" />}
 
       {!isLoading && !error && requests && requests.length === 0 && (
-        <Alert type="info" message="You have no workflow requests." data-testid="my-requests-empty" />
+        <Alert type="info" message="Bạn chưa có yêu cầu quy trình nào." data-testid="my-requests-empty" />
       )}
 
       {requests && requests.length > 0 && (

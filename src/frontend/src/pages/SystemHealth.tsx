@@ -17,7 +17,6 @@ interface HealthResponse {
 
 const fetchSystemHealth = async (): Promise<HealthResponse> => {
   const { data } = await axiosClient.get('/health');
-  // Support both JSON response and plain-text legacy response
   if (typeof data === 'string') {
     return { status: data, entries: [] };
   }
@@ -36,7 +35,7 @@ const SystemHealth: React.FC = () => {
   if (error) {
     return (
       <Alert
-        message="System Offline or Error"
+        message="Hệ thống ngoại tuyến hoặc lỗi"
         description={(error as Error).message}
         type="error"
         showIcon
@@ -45,16 +44,16 @@ const SystemHealth: React.FC = () => {
   }
 
   return (
-    <Card title="System Health" style={{ width: 400 }}>
+    <Card title="Sức khỏe hệ thống" style={{ width: 400 }}>
       <p>
-        Overall Status:{' '}
+        Trạng thái tổng:{' '}
         <Tag color={data?.status === 'Healthy' ? 'green' : 'red'}>
           {data?.status}
         </Tag>
       </p>
       {data?.entries && data.entries.length > 0 && (
         <div>
-          <p style={{ fontWeight: 'bold', marginBottom: 8 }}>Components:</p>
+          <p style={{ fontWeight: 'bold', marginBottom: 8 }}>Thành phần:</p>
           {data.entries.map((entry) => (
             <p key={entry.name}>
               {entry.name}:{' '}

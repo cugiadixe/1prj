@@ -181,4 +181,5 @@ docker compose --profile migrate run --rm migrator
 | 06/08/2026 | GĐ 3 | docker-compose.prod.yml (HTTPS overlay) | Tạo mới |
 | 06/08/2026 | GĐ 3 | Dockerfile.migrator + compose migrate profile | Tạo mới |
 | 06/08/2026 | GĐ 3 | README.md — hướng dẫn Docker deploy | Cập nhật |
+| 06/08/2026 | GĐ 3 | Commit + push Phase 3 | `48deaca` → origin/main |
 | 06/08/2026 | GĐ 3 | **Tổng kết GĐ 3** | **Cấu hình xong. Chờ server để deploy thật.** |

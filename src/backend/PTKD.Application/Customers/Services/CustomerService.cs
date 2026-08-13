@@ -180,7 +180,19 @@ public class CustomerService : ICustomerService
             .Include(c => c.Profile)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
-        return customer == null ? null : MapToDetailDto(customer, customer.Profile, !canViewSensitive);
+        if (customer == null) return null;
+
+        var dto = MapToDetailDto(customer, customer.Profile, !canViewSensitive);
+        dto.Tags = await context.CustomerTags.AsNoTracking()
+            .Where(x => x.CustomerId == id)
+            .OrderBy(x => x.Tag!.Name)
+            .Select(x => new PTKD.Application.Tags.DTOs.TagDto
+            {
+                Id = x.Tag!.Id, TagType = x.Tag.TagType, Name = x.Tag.Name,
+                Color = x.Tag.Color, IsActive = x.Tag.IsActive
+            })
+            .ToArrayAsync(ct);
+        return dto;
     }
 
     public async Task<PagedResult<CustomerListItemDto>> SearchCustomersAsync(CustomerSearchRequest request, bool canViewSensitive, CancellationToken ct = default)
@@ -194,23 +206,53 @@ public class CustomerService : ICustomerService
         if (!string.IsNullOrWhiteSpace(request.CustomerStatus))
             query = query.Where(c => c.CustomerStatus == request.CustomerStatus);
 
-        if (!string.IsNullOrWhiteSpace(request.Search))
+        var hasSearch = !string.IsNullOrWhiteSpace(request.Search);
+        if (hasSearch)
         {
-            var search = request.Search;
-            query = query.Where(c =>
-                c.CustomerCode.Contains(search) ||
-                c.Profile.FullName.Contains(search) ||
-                (c.Profile.Cccd != null && c.Profile.Cccd.Contains(search)) ||
-                (c.Profile.Phone != null && c.Profile.Phone.Contains(search)));
+            // Nhận diện ý định để TRÁNH LIKE '%x%' 4 cột (full scan ~2s trên 300K KH).
+            //  • Mã KH (chữ + số, vd KH0098943) → prefix trên customer_code → SEEK index, ~tức thì.
+            //  • Toàn số → SĐT/CCCD (contains, 1 cột).
+            //  • Chữ → họ tên (contains, 1 cột).
+            var term = request.Search!.Trim();
+            var allDigits = term.Length > 0 && term.All(char.IsDigit);
+            var looksLikeCode = !allDigits && term.Length >= 2 && char.IsLetter(term[0]) && term.Any(char.IsDigit);
+
+            if (looksLikeCode)
+            {
+                // LIKE 'KH0098943%' → SEEK trên IX_Customers_customer_code_search (dùng EF.Functions.Like
+                // để chắc chắn ra dạng prefix sargable, escape wildcard bằng [].)
+                var prefix = LikePrefix(term);
+                query = query.Where(c => EF.Functions.Like(c.CustomerCode, prefix));
+            }
+            else if (allDigits)
+                query = query.Where(c =>
+                    (c.Profile.Phone != null && c.Profile.Phone.Contains(term)) ||
+                    (c.Profile.Cccd != null && c.Profile.Cccd.Contains(term)));
+            else
+                query = query.Where(c => c.Profile.FullName.Contains(term));
         }
 
-        var totalCount = await query.CountAsync(ct);
+        var hasContextFilter = request.CompanyId.HasValue || request.AssignedStaffId.HasValue || request.UnassignedStaff == true;
+        if (hasContextFilter)
+        {
+            query = query.Where(c => context.CustomerCompanyContexts.Any(ctx =>
+                ctx.CustomerId == c.Id
+                && (request.CompanyId == null || ctx.CompanyId == request.CompanyId)
+                && (request.AssignedStaffId == null || ctx.AssignedStaffId == request.AssignedStaffId)
+                && (request.UnassignedStaff != true || ctx.AssignedStaffId == null)));
+        }
+
+        var hasTagFilter = request.TagIds != null && request.TagIds.Length > 0;
+        if (hasTagFilter)
+        {
+            var tagIds = request.TagIds!;
+            query = query.Where(c => context.CustomerTags.Any(x => x.CustomerId == c.Id && tagIds.Contains(x.TagId)));
+        }
+
         var mask = !canViewSensitive;
 
-        var items = await query
-            .OrderBy(c => c.Profile.FullName)
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
+        var projectedQuery = query
+            .OrderBy(c => c.Id)
             .Select(c => new CustomerListItemDto
             {
                 Id = c.Id,
@@ -219,9 +261,38 @@ public class CustomerService : ICustomerService
                 Cccd = mask ? MaskCccd(c.Profile.Cccd) : c.Profile.Cccd,
                 Phone = mask ? MaskPhone(c.Profile.Phone) : c.Profile.Phone,
                 CustomerStatus = c.CustomerStatus,
-                CreatedAt = c.CreatedAt
-            })
-            .ToArrayAsync(ct);
+                CreatedAt = c.CreatedAt,
+                Tags = context.CustomerTags
+                    .Where(x => x.CustomerId == c.Id)
+                    .OrderBy(x => x.Tag!.Name)
+                    .Select(x => new PTKD.Application.Tags.DTOs.TagDto
+                    {
+                        Id = x.Tag!.Id, TagType = x.Tag.TagType, Name = x.Tag.Name,
+                        Color = x.Tag.Color, IsActive = x.Tag.IsActive
+                    }).ToArray()
+            });
+
+        var anyFilter = hasSearch || hasContextFilter || hasTagFilter || !string.IsNullOrWhiteSpace(request.CustomerStatus);
+
+        int totalCount;
+        CustomerListItemDto[] items;
+
+        if (!anyFilter)
+        {
+            totalCount = await context.Customers.CountAsync(ct);
+            items = await projectedQuery
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToArrayAsync(ct);
+        }
+        else
+        {
+            totalCount = await query.CountAsync(ct);
+            items = await projectedQuery
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToArrayAsync(ct);
+        }
 
         return new PagedResult<CustomerListItemDto>
         {
@@ -230,6 +301,43 @@ public class CustomerService : ICustomerService
             Page = request.Page,
             PageSize = request.PageSize
         };
+    }
+
+    public async Task<CompanyLookupDto[]> GetAssignedCompanyLookupsAsync(CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var companyIds = await context.CustomerCompanyContexts
+            .AsNoTracking()
+            .Select(c => c.CompanyId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (companyIds.Count == 0) return Array.Empty<CompanyLookupDto>();
+
+        return await context.Companies
+            .AsNoTracking()
+            .Where(co => companyIds.Contains(co.Id))
+            .OrderBy(co => co.Name)
+            .Select(co => new CompanyLookupDto { Id = co.Id, Name = co.Name })
+            .ToArrayAsync(ct);
+    }
+
+    public async Task<StaffLookupDto[]> GetAssignedStaffLookupsAsync(CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var staffIds = await context.CustomerCompanyContexts
+            .AsNoTracking()
+            .Where(c => c.AssignedStaffId != null)
+            .Select(c => c.AssignedStaffId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+        if (staffIds.Count == 0) return Array.Empty<StaffLookupDto>();
+
+        return await context.Users
+            .AsNoTracking()
+            .Where(u => staffIds.Contains(u.Id))
+            .OrderBy(u => u.FullName)
+            .Select(u => new StaffLookupDto { Id = u.Id, FullName = u.FullName })
+            .ToArrayAsync(ct);
     }
 
     public async Task<DuplicateCheckResult> CheckDuplicatesAsync(DuplicateCheckRequest request, CancellationToken ct = default)
@@ -267,12 +375,35 @@ public class CustomerService : ICustomerService
     public async Task<CustomerCompanyContextDto[]> GetCompanyContextsAsync(long customerId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        return await context.CustomerCompanyContexts
+        var contexts = await context.CustomerCompanyContexts
             .AsNoTracking()
             .Where(c => c.CustomerId == customerId)
             .OrderBy(c => c.CompanyId)
-            .Select(c => MapToContextDto(c))
-            .ToArrayAsync(ct);
+            .ToListAsync(ct);
+        if (contexts.Count == 0) return System.Array.Empty<CustomerCompanyContextDto>();
+
+        var companyIds = contexts.Select(c => c.CompanyId).Distinct().ToList();
+        var companyNames = await context.Companies.AsNoTracking()
+            .Where(co => companyIds.Contains(co.Id))
+            .Select(co => new { co.Id, co.Name })
+            .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+
+        var staffIds = contexts.Where(c => c.AssignedStaffId.HasValue)
+            .Select(c => c.AssignedStaffId!.Value).Distinct().ToList();
+        var staffNames = staffIds.Count == 0
+            ? new Dictionary<long, string>()
+            : await context.Users.AsNoTracking()
+                .Where(u => staffIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FullName })
+                .ToDictionaryAsync(x => x.Id, x => x.FullName, ct);
+
+        return contexts.Select(c =>
+        {
+            var dto = MapToContextDto(c);
+            dto.CompanyName = companyNames.TryGetValue(c.CompanyId, out var cn) ? cn : null;
+            dto.AssignedStaffName = c.AssignedStaffId.HasValue && staffNames.TryGetValue(c.AssignedStaffId.Value, out var sn) ? sn : null;
+            return dto;
+        }).ToArray();
     }
 
     public async Task<CustomerCompanyContextDto> CreateCompanyContextAsync(long customerId, CreateCustomerCompanyContextRequest request, long actorUserId, CancellationToken ct = default)
@@ -444,4 +575,8 @@ public class CustomerService : ICustomerService
         if (string.IsNullOrEmpty(address)) return address;
         return "***";
     }
+
+    // Tạo pattern LIKE 'term%' an toàn: escape %, _, [ bằng cú pháp [] (không cần ESCAPE clause).
+    private static string LikePrefix(string term)
+        => term.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
 }

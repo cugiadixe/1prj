@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +19,7 @@ vi.mock('./permissionAssignmentApi', () => ({
 
 vi.mock('../accountManagement/accountManagementApi', () => ({
   searchAccounts: vi.fn(),
+  getAccountsByUserId: vi.fn(),
 }));
 
 vi.mock('../auth/CompanyProvider', () => ({
@@ -26,11 +27,33 @@ vi.mock('../auth/CompanyProvider', () => ({
 }));
 
 const MOCK_CATALOG = [
-  { permissionCode: 'SECURITY_ADMIN_MANAGE', moduleCode: 'SECURITY', actionCode: 'ADMIN_MANAGE', dataScope: 'GLOBAL', isSensitive: true, isDelegable: false, requiresReason: true, isActive: true, description: 'Manage security' },
+  {
+    permissionCode: 'SECURITY_ADMIN_MANAGE',
+    moduleCode: 'SECURITY',
+    actionCode: 'ADMIN_MANAGE',
+    dataScope: 'GLOBAL',
+    isSensitive: true,
+    isDelegable: false,
+    requiresReason: true,
+    isActive: true,
+    description: 'Quản trị bảo mật',
+  },
 ];
 
 const MOCK_ASSIGNMENTS = [
-  { id: 1, userId: 100, permissionCode: 'SECURITY_ADMIN_MANAGE', scopeType: 'GLOBAL', companyId: null, grantType: 'ALLOW', assignmentStatus: 'ACTIVE', effectiveFrom: '2026-01-01T00:00:00Z', effectiveTo: null, reason: 'test', rowVersion: 'v1' },
+  {
+    id: 1,
+    userId: 100,
+    permissionCode: 'SECURITY_ADMIN_MANAGE',
+    scopeType: 'GLOBAL',
+    companyId: null,
+    grantType: 'ALLOW',
+    assignmentStatus: 'ACTIVE',
+    effectiveFrom: '2026-01-01T00:00:00Z',
+    effectiveTo: null,
+    reason: 'test',
+    rowVersion: 'v1',
+  },
 ];
 
 const MOCK_EFFECTIVE = {
@@ -40,11 +63,27 @@ const MOCK_EFFECTIVE = {
 };
 
 const MOCK_ACCOUNTS = {
-  items: [
-    { accountId: 42, userId: 100, username: 'alice', fullName: 'Alice', employeeCode: 'EMP1', providerType: 'INTERNAL', status: 'ACTIVE', employmentStatus: 'ACTIVE' },
-  ],
+  page: 1,
+  pageSize: 20,
   totalCount: 1,
+  items: [
+    {
+      accountId: 42,
+      userId: 100,
+      username: 'alice',
+      fullName: 'Alice Nguyen',
+      employeeCode: 'EMP1',
+      providerType: 'INTERNAL',
+      status: 'ACTIVE',
+      mustChangePassword: false,
+      employmentStatus: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: null,
+    },
+  ],
 };
+
+const USER_OPTION_LABEL = 'Alice Nguyen — alice · EMP1';
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -57,19 +96,29 @@ function makeWrapper() {
   );
 }
 
+/** Chọn người dùng "alice" qua ô chọn ở bước 1. */
+async function selectAliceUser(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('user-search-input'));
+  const option = await screen.findByText(USER_OPTION_LABEL);
+  await user.click(option);
+}
+
 describe('PermissionAssignmentPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useCompany as ReturnType<typeof vi.fn>).mockReturnValue({
       currentCompanyId: null,
+      companies: [],
     });
+    (accountApi.searchAccounts as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ACCOUNTS);
+    (accountApi.getAccountsByUserId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('renders page and loads catalog', async () => {
+  it('hiển thị trang và tải danh mục quyền', async () => {
     (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
 
     render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
@@ -79,81 +128,102 @@ describe('PermissionAssignmentPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('permission-assignment-page')).toBeInTheDocument();
     });
-    expect(screen.getByText('Permission Assignment')).toBeInTheDocument();
+    expect(screen.getByText('Phân quyền cá nhân')).toBeInTheDocument();
   });
 
-  it('searches for a user', async () => {
+  it('chọn người dùng và hiển thị họ tên thay vì mã số', async () => {
     (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
-    (accountApi.searchAccounts as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ACCOUNTS);
-
-    const user = userEvent.setup();
-    render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('user-search-input')).toBeInTheDocument();
-    });
-
-    const input = screen.getByPlaceholderText(/Search by username/i);
-    await user.type(input, 'alice{Enter}');
-
-    await waitFor(() => {
-      expect(accountApi.searchAccounts).toHaveBeenCalledWith({ search: 'alice', page: 1, pageSize: 20 });
-    });
-    expect(screen.getByText('alice — Alice')).toBeInTheDocument();
-  });
-
-  it('selects a user and loads assignments', async () => {
-    (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
-    (accountApi.searchAccounts as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ACCOUNTS);
     (api.fetchUserIndividualPermissions as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ASSIGNMENTS);
     (api.fetchEffectivePermissions as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_EFFECTIVE);
 
     const user = userEvent.setup();
     render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
 
-    await waitFor(() => expect(screen.getByTestId('user-search-input')).toBeInTheDocument());
-    await user.type(screen.getByPlaceholderText(/Search by username/i), 'alice{Enter}');
+    await waitFor(() => expect(screen.getByTestId('user-selection-card')).toBeInTheDocument());
+    await selectAliceUser(user);
 
-    await waitFor(() => expect(screen.getByTestId('select-user-100')).toBeInTheDocument());
-    await user.click(screen.getByTestId('select-user-100'));
+    // Banner người dùng hiển thị họ tên + tên đăng nhập + mã NV (không phải "Người dùng: 100")
+    const banner = await screen.findByTestId('selected-user-info');
+    expect(within(banner).getByText('Alice Nguyen')).toBeInTheDocument();
+    expect(within(banner).getByText('alice')).toBeInTheDocument();
+    expect(within(banner).getByText('EMP1')).toBeInTheDocument();
+    expect(screen.queryByText('Người dùng đã chọn: 100')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId('assignments-card')).toBeInTheDocument();
       expect(screen.getByTestId('effective-permissions-card')).toBeInTheDocument();
     });
-
-    expect(screen.getAllByText('SECURITY_ADMIN_MANAGE').length).toBeGreaterThan(0);
-    expect(screen.getByText('ALLOW')).toBeInTheDocument();
-    expect(screen.getByText('GLOBAL')).toBeInTheDocument();
   });
 
-  it('opens grant modal and requires reason if validation is hit', async () => {
+  it('hiển thị quyền cá nhân với nhãn tiếng Việt', async () => {
     (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
-    (accountApi.searchAccounts as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ACCOUNTS);
+    (api.fetchUserIndividualPermissions as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ASSIGNMENTS);
+    (api.fetchEffectivePermissions as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_EFFECTIVE);
+
+    const user = userEvent.setup();
+    render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
+
+    await waitFor(() => expect(screen.getByTestId('user-selection-card')).toBeInTheDocument());
+    await selectAliceUser(user);
+
+    const list = await screen.findByTestId('assignments-list');
+    // Tên quyền dễ đọc + mã quyền phụ
+    expect(within(list).getByText('Quản trị bảo mật')).toBeInTheDocument();
+    expect(within(list).getByText('SECURITY_ADMIN_MANAGE')).toBeInTheDocument();
+    // Nhãn đã Việt hóa
+    expect(within(list).getByText('Cho phép')).toBeInTheDocument();
+    expect(within(list).getByText('Toàn hệ thống')).toBeInTheDocument();
+    // Không còn mã tiếng Anh thô trong bảng
+    expect(within(list).queryByText('ALLOW')).not.toBeInTheDocument();
+    expect(within(list).queryByText('GLOBAL')).not.toBeInTheDocument();
+  });
+
+  it('mở modal cấp quyền và báo lỗi khi chưa chọn quyền', async () => {
+    (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
     (api.fetchUserIndividualPermissions as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (api.fetchEffectivePermissions as ReturnType<typeof vi.fn>).mockResolvedValue({ userId: 100, companyId: null, permissionCodes: [] });
 
     const user = userEvent.setup();
     render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
 
-    await waitFor(() => expect(screen.getByTestId('user-search-input')).toBeInTheDocument());
-    await user.type(screen.getByPlaceholderText(/Search by username/i), 'alice{Enter}');
-    await waitFor(() => expect(screen.getByTestId('select-user-100')).toBeInTheDocument());
-    await user.click(screen.getByTestId('select-user-100'));
+    await waitFor(() => expect(screen.getByTestId('user-selection-card')).toBeInTheDocument());
+    await selectAliceUser(user);
 
     await waitFor(() => expect(screen.getByTestId('grant-permission-button')).toBeInTheDocument());
     await user.click(screen.getByTestId('grant-permission-button'));
 
     expect(screen.getByTestId('grant-permission-modal')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Grant' }));
+    await user.click(screen.getByRole('button', { name: 'Cấp quyền' }));
 
-    expect(screen.getByTestId('grant-validation-error')).toHaveTextContent('Please select a permission');
+    expect(screen.getByTestId('grant-validation-error')).toHaveTextContent('Vui lòng chọn một quyền.');
   });
 
-  it('submits grant request', async () => {
+  it('bắt buộc lý do với quyền requiresReason', async () => {
     (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
-    (accountApi.searchAccounts as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ACCOUNTS);
+    (api.fetchUserIndividualPermissions as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (api.fetchEffectivePermissions as ReturnType<typeof vi.fn>).mockResolvedValue({ userId: 100, companyId: null, permissionCodes: [] });
+
+    const user = userEvent.setup();
+    render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
+
+    await waitFor(() => expect(screen.getByTestId('user-selection-card')).toBeInTheDocument());
+    await selectAliceUser(user);
+
+    await waitFor(() => expect(screen.getByTestId('grant-permission-button')).toBeInTheDocument());
+    await user.click(screen.getByTestId('grant-permission-button'));
+
+    await user.click(screen.getByRole('combobox', { name: 'Chọn quyền' }));
+    await user.click(await screen.findByText('Quản trị bảo mật (SECURITY_ADMIN_MANAGE)'));
+
+    await user.click(screen.getByRole('button', { name: 'Cấp quyền' }));
+
+    expect(screen.getByTestId('grant-validation-error')).toHaveTextContent('Quyền này yêu cầu nhập lý do.');
+    expect(api.grantIndividualPermission).not.toHaveBeenCalled();
+  });
+
+  it('gửi yêu cầu cấp quyền thành công', async () => {
+    (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
     (api.fetchUserIndividualPermissions as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (api.fetchEffectivePermissions as ReturnType<typeof vi.fn>).mockResolvedValue({ userId: 100, companyId: null, permissionCodes: [] });
     (api.grantIndividualPermission as ReturnType<typeof vi.fn>).mockResolvedValue({ ...MOCK_ASSIGNMENTS[0] });
@@ -161,31 +231,49 @@ describe('PermissionAssignmentPage', () => {
     const user = userEvent.setup();
     render(<PermissionAssignmentPage />, { wrapper: makeWrapper() });
 
-    await waitFor(() => expect(screen.getByTestId('user-search-input')).toBeInTheDocument());
-    await user.type(screen.getByPlaceholderText(/Search by username/i), 'alice{Enter}');
-    await waitFor(() => expect(screen.getByTestId('select-user-100')).toBeInTheDocument());
-    await user.click(screen.getByTestId('select-user-100'));
+    await waitFor(() => expect(screen.getByTestId('user-selection-card')).toBeInTheDocument());
+    await selectAliceUser(user);
 
     await waitFor(() => expect(screen.getByTestId('grant-permission-button')).toBeInTheDocument());
     await user.click(screen.getByTestId('grant-permission-button'));
 
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Select permission' })).toBeInTheDocument());
-    await user.click(screen.getByRole('combobox', { name: 'Select permission' }));
+    await user.click(screen.getByRole('combobox', { name: 'Chọn quyền' }));
+    await user.click(await screen.findByText('Quản trị bảo mật (SECURITY_ADMIN_MANAGE)'));
 
-    // Select permission
-    await user.click(screen.getByText('SECURITY_ADMIN_MANAGE — Manage security'));
+    // Quyền này bắt buộc lý do → nhập lý do
+    await user.type(screen.getByPlaceholderText('Nhập lý do cấp quyền'), 'Cấp cho quản trị viên');
 
-    // Submit
-    await user.click(screen.getByRole('button', { name: 'Grant' }));
+    await user.click(screen.getByRole('button', { name: 'Cấp quyền' }));
 
     await waitFor(() => {
       expect(api.grantIndividualPermission).toHaveBeenCalledWith(100, expect.objectContaining({
         permissionCode: 'SECURITY_ADMIN_MANAGE',
         scopeType: 'GLOBAL',
-        grantType: 'ALLOW'
+        grantType: 'ALLOW',
+        reason: 'Cấp cho quản trị viên',
       }));
     });
 
     await waitFor(() => expect(screen.getByTestId('success-message')).toBeInTheDocument());
+  });
+
+  it('hydrate họ tên khi mở bằng liên kết ?userId=', async () => {
+    (api.fetchPermissionCatalog as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CATALOG);
+    (api.fetchUserIndividualPermissions as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (api.fetchEffectivePermissions as ReturnType<typeof vi.fn>).mockResolvedValue({ userId: 100, companyId: null, permissionCodes: [] });
+    (accountApi.getAccountsByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_ACCOUNTS.items);
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/security/permissions/assignments?userId=100']}>
+          <PermissionAssignmentPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const banner = await screen.findByTestId('selected-user-info');
+    expect(within(banner).getByText('Alice Nguyen')).toBeInTheDocument();
+    expect(accountApi.getAccountsByUserId).toHaveBeenCalledWith(100);
   });
 });

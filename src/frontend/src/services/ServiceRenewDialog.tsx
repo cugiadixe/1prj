@@ -19,7 +19,7 @@ const ServiceRenewDialog: React.FC<ServiceRenewDialogProps> = ({ visible, onClos
   const renewMutation = useMutation({
     mutationFn: (values: RenewServiceRequest) => renewService(service.id, values),
     onSuccess: (data) => {
-      message.success('Service renewed successfully');
+      message.success('Gia hạn dịch vụ thành công');
       queryClient.setQueryData(['service', service.id], data);
       queryClient.invalidateQueries({ queryKey: ['services'] });
       form.resetFields();
@@ -27,7 +27,7 @@ const ServiceRenewDialog: React.FC<ServiceRenewDialogProps> = ({ visible, onClos
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        setFormError('This record was modified by another user. Please refresh and try again.');
+        setFormError('Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng tải lại và thử lại.');
       } else {
         setFormError(getErrorMessage(err));
       }
@@ -53,7 +53,7 @@ const ServiceRenewDialog: React.FC<ServiceRenewDialogProps> = ({ visible, onClos
 
   return (
     <Modal
-      title="Renew Service"
+      title="Gia hạn dịch vụ"
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
@@ -71,12 +71,12 @@ const ServiceRenewDialog: React.FC<ServiceRenewDialogProps> = ({ visible, onClos
       <Form form={form} layout="vertical">
         <Form.Item
           name="validFrom"
-          label="Valid From"
-          rules={[{ required: true, message: 'Please select a valid from date' }]}
+          label="Hiệu lực từ"
+          rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu hiệu lực' }]}
         >
           <DatePicker style={{ width: '100%' }} data-testid="input-valid-from" />
         </Form.Item>
-        <Form.Item name="validTo" label="Valid To (Optional)">
+        <Form.Item name="validTo" label="Hiệu lực đến (Tùy chọn)">
           <DatePicker style={{ width: '100%' }} data-testid="input-valid-to" />
         </Form.Item>
       </Form>

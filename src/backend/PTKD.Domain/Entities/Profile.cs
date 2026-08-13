@@ -95,4 +95,13 @@ public class Profile
         UpdatedAt = DateTime.UtcNow;
         UpdatedByUserId = updatedByUserId;
     }
+
+    /// <summary>Ghi nhận ngày mất (dùng khi đánh dấu khách hàng qua đời).</summary>
+    public void MarkDeceased(DateTime? deathDateSolar, long? updatedByUserId)
+    {
+        if (deathDateSolar.HasValue)
+            DeathDateSolar = deathDateSolar;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedByUserId = updatedByUserId;
+    }
 }

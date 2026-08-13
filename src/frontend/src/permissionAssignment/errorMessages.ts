@@ -5,24 +5,24 @@
  */
 
 const ERROR_MESSAGES: Record<string, string> = {
-  PERMISSION_NOT_FOUND: 'The selected permission was not found.',
-  USER_NOT_FOUND: 'User not found.',
-  AUTH_ACCOUNT_NOT_FOUND: 'Account not found.',
-  ASSIGNMENT_CONFLICT: 'A conflicting assignment already exists for this permission.',
-  ASSIGNMENT_NOT_FOUND: 'The assignment was not found or has already been deactivated.',
+  PERMISSION_NOT_FOUND: 'Không tìm thấy quyền đã chọn.',
+  USER_NOT_FOUND: 'Không tìm thấy người dùng.',
+  AUTH_ACCOUNT_NOT_FOUND: 'Không tìm thấy tài khoản.',
+  ASSIGNMENT_CONFLICT: 'Đã tồn tại một phân quyền xung đột cho quyền này.',
+  ASSIGNMENT_NOT_FOUND: 'Phân quyền không tồn tại hoặc đã được thu hồi.',
   CONCURRENCY_CONFLICT:
-    'The assignment was modified by another user. Please refresh and try again.',
-  REASON_REQUIRED: 'A reason is required for this action.',
-  REASON_TOO_LONG: 'Reason must not exceed 500 characters.',
-  INVALID_SCOPE_TYPE: 'Invalid scope type.',
-  INVALID_GRANT_TYPE: 'Invalid grant type.',
-  COMPANY_REQUIRED: 'A company must be selected for company-scoped assignments.',
+    'Phân quyền vừa bị người khác thay đổi. Vui lòng tải lại và thử lại.',
+  REASON_REQUIRED: 'Cần nhập lý do cho thao tác này.',
+  REASON_TOO_LONG: 'Lý do không được vượt quá 500 ký tự.',
+  INVALID_SCOPE_TYPE: 'Phạm vi không hợp lệ.',
+  INVALID_GRANT_TYPE: 'Kiểu cấp quyền không hợp lệ.',
+  COMPANY_REQUIRED: 'Cần chọn một công ty cho phân quyền theo phạm vi công ty.',
   COMPANY_ASSIGNMENT_MISSING:
-    'The target user does not have an active assignment to the selected company.',
+    'Người dùng đích chưa được gán vào công ty đã chọn.',
 };
 
-export const GENERIC_ERROR = 'An error occurred. Please try again.';
-export const PERMISSION_DENIED_MSG = 'You do not have permission to manage permission assignments.';
+export const GENERIC_ERROR = 'Đã xảy ra lỗi. Vui lòng thử lại.';
+export const PERMISSION_DENIED_MSG = 'Bạn không có quyền quản lý phân quyền.';
 
 /**
  * Extracts a user-friendly message from an axios error.
@@ -43,8 +43,8 @@ export function getAssignmentErrorMessage(error: unknown): string {
     const status = err?.response?.status;
 
     if (status === 403) return PERMISSION_DENIED_MSG;
-    if (status === 404) return 'The requested resource was not found.';
-    if (status === 409) return 'A conflict was detected. Please refresh and try again.';
+    if (status === 404) return 'Không tìm thấy tài nguyên yêu cầu.';
+    if (status === 409) return 'Phát hiện xung đột. Vui lòng tải lại và thử lại.';
 
     const extensions = err?.response?.data?.extensions;
     if (extensions && typeof extensions['errorCode'] === 'string') {

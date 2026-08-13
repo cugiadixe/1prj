@@ -1,4 +1,5 @@
 using System;
+using PTKD.Application.Tags.DTOs;
 
 namespace PTKD.Application.Customers.DTOs;
 
@@ -11,6 +12,7 @@ public class CustomerListItemDto
     public string? Phone { get; set; }
     public string CustomerStatus { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+    public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
 }
 
 public class CustomerDetailDto
@@ -23,6 +25,7 @@ public class CustomerDetailDto
     public DateTime? UpdatedAt { get; set; }
 
     public ProfileDto Profile { get; set; } = null!;
+    public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
 }
 
 public class ProfileDto
@@ -101,7 +104,9 @@ public class CustomerCompanyContextDto
     public long Id { get; set; }
     public long CustomerId { get; set; }
     public long CompanyId { get; set; }
+    public string? CompanyName { get; set; }
     public long? AssignedStaffId { get; set; }
+    public string? AssignedStaffName { get; set; }
     public string RelationshipStatus { get; set; } = null!;
     public string? InternalNotes { get; set; }
     public DateTime? FirstInteractionAt { get; set; }
@@ -144,8 +149,24 @@ public class CustomerSearchRequest
 {
     public string? Search { get; set; }
     public string? CustomerStatus { get; set; }
+    public long? CompanyId { get; set; }
+    public long? AssignedStaffId { get; set; }
+    public bool? UnassignedStaff { get; set; }
+    public long[]? TagIds { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
+}
+
+public class CompanyLookupDto
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = null!;
+}
+
+public class StaffLookupDto
+{
+    public long Id { get; set; }
+    public string FullName { get; set; } = null!;
 }
 
 public class PagedResult<T>

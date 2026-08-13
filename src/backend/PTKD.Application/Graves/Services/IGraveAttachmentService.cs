@@ -1,0 +1,24 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using PTKD.Application.Graves.DTOs;
+
+namespace PTKD.Application.Graves.Services;
+
+public interface IGraveAttachmentService
+{
+    Task<GraveAttachmentDto> UploadAsync(
+        long graveId, string category, long? ownershipHistoryId,
+        string fileName, string contentType, long size, Stream content,
+        string? description, long actorUserId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<GraveAttachmentDto>> ListAsync(long graveId, CancellationToken ct = default);
+
+    /// <summary>Trả metadata + stream để controller phát file (gốc hoặc thumbnail). Null nếu không có.</summary>
+    Task<AttachmentContent?> OpenContentAsync(long attachmentId, bool thumbnail, CancellationToken ct = default);
+
+    Task DeleteAsync(long attachmentId, long actorUserId, CancellationToken ct = default);
+}
+
+public sealed record AttachmentContent(Stream Stream, string ContentType, string FileName);

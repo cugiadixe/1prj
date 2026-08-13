@@ -18,7 +18,7 @@ const CardReprintRequestCreatePage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to create card reprint requests."
+        message="Bạn không có quyền tạo yêu cầu in lại thẻ."
         data-testid="permission-denied"
       />
     );
@@ -28,7 +28,7 @@ const CardReprintRequestCreatePage: React.FC = () => {
     setErrorMsg(null);
     try {
       const result = await createMutation.mutateAsync(values);
-      notification.success({ message: 'Request created successfully' });
+      notification.success({ message: 'Tạo yêu cầu thành công' });
       navigate(`/cards/reprints/${result.id}`);
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
@@ -37,8 +37,8 @@ const CardReprintRequestCreatePage: React.FC = () => {
 
   return (
     <div data-testid="card-reprint-create-page">
-      <Title level={4}>Create Card Reprint Request</Title>
-      
+      <Title level={4}>Tạo yêu cầu in lại thẻ</Title>
+
       {errorMsg && (
         <Alert
           type="error"
@@ -57,22 +57,22 @@ const CardReprintRequestCreatePage: React.FC = () => {
       >
         <Form.Item
           name="cardId"
-          label="Card ID"
-          rules={[{ required: true, message: 'Please input the Card ID!' }]}
+          label="Mã thẻ"
+          rules={[{ required: true, message: 'Vui lòng nhập mã thẻ!' }]}
         >
           <InputNumber style={{ width: '100%' }} min={1} data-testid="input-cardId" />
         </Form.Item>
 
         <Form.Item
           name="reasonCode"
-          label="Reason Code"
+          label="Mã lý do"
         >
           <Input data-testid="input-reasonCode" />
         </Form.Item>
 
         <Form.Item
           name="notes"
-          label="Notes"
+          label="Ghi chú"
         >
           <Input.TextArea rows={4} data-testid="input-notes" />
         </Form.Item>
@@ -85,10 +85,10 @@ const CardReprintRequestCreatePage: React.FC = () => {
               loading={createMutation.isPending}
               data-testid="submit-btn"
             >
-              Create
+              Tạo
             </Button>
             <Button onClick={() => navigate('/cards/reprints')} data-testid="cancel-btn">
-              Cancel
+              Hủy
             </Button>
           </Space>
         </Form.Item>

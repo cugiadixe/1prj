@@ -19,7 +19,7 @@ const ServicePriceOverrideDialog: React.FC<ServicePriceOverrideDialogProps> = ({
   const overrideMutation = useMutation({
     mutationFn: (values: RequestPriceOverrideRequest) => requestPriceOverride(service.id, values),
     onSuccess: () => {
-      message.success('Price override requested successfully');
+      message.success('Yêu cầu ghi đè giá thành công');
       queryClient.invalidateQueries({ queryKey: ['service', service.id] });
       queryClient.invalidateQueries({ queryKey: ['services'] });
       form.resetFields();
@@ -27,7 +27,7 @@ const ServicePriceOverrideDialog: React.FC<ServicePriceOverrideDialogProps> = ({
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        setFormError('This record was modified by another user. Please refresh and try again.');
+        setFormError('Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng tải lại và thử lại.');
       } else {
         setFormError(getErrorMessage(err));
       }
@@ -53,7 +53,7 @@ const ServicePriceOverrideDialog: React.FC<ServicePriceOverrideDialogProps> = ({
 
   return (
     <Modal
-      title="Request Price Override"
+      title="Yêu cầu ghi đè giá"
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
@@ -71,8 +71,8 @@ const ServicePriceOverrideDialog: React.FC<ServicePriceOverrideDialogProps> = ({
       <Form form={form} layout="vertical">
         <Form.Item
           name="requestedPrice"
-          label="Requested Price"
-          rules={[{ required: true, message: 'Please enter requested price' }]}
+          label="Giá yêu cầu"
+          rules={[{ required: true, message: 'Vui lòng nhập giá yêu cầu' }]}
         >
           <InputNumber
             style={{ width: '100%' }}
@@ -83,8 +83,8 @@ const ServicePriceOverrideDialog: React.FC<ServicePriceOverrideDialogProps> = ({
         </Form.Item>
         <Form.Item
           name="reason"
-          label="Reason"
-          rules={[{ required: true, message: 'Please enter a reason' }]}
+          label="Lý do"
+          rules={[{ required: true, message: 'Vui lòng nhập lý do' }]}
         >
           <Input.TextArea rows={4} data-testid="input-reason" />
         </Form.Item>

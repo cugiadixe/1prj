@@ -1,18 +1,33 @@
 import React from 'react';
 import { Alert, Button, Card, Descriptions, Space, Spin, Table, Tag, Typography } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
 import { getCustomerById, getCompanyContexts } from './customersApi';
+import EntityTagsSection from '../tags/EntityTagsSection';
+import { setCustomerTags } from '../tags/tagsApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
-import type { CustomerCompanyContext } from './types';
+import { CUSTOMER_STATUS_COLORS, CUSTOMER_STATUS_LABELS, type CustomerCompanyContext } from './types';
+
+const fmtDate = (v: string | null | undefined): string => {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+};
+
+const genderLabel = (g: string | null | undefined): string =>
+  g === 'MALE' ? 'Nam' : g === 'FEMALE' ? 'Nữ' : g === 'OTHER' ? 'Khác' : (g ?? '—');
 import CustomerMasterChangeRequestForm from './CustomerMasterChangeRequestForm';
+import CustomerCarePackagesSection from '../customerCarePackages/CustomerCarePackagesSection';
 
 const { Title } = Typography;
 
 const CustomerDetailPage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const { hasPermission } = usePermissions();
+  const queryClient = useQueryClient();
   const id = Number(customerId);
   const [showChangeForm, setShowChangeForm] = React.useState(false);
   const {
@@ -40,7 +55,7 @@ const CustomerDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this customer."
+        message="Bạn không có quyền xem khách hàng này."
         data-testid="permission-denied"
       />
     );
@@ -64,6 +79,7 @@ const CustomerDetailPage: React.FC = () => {
         customerId={id}
         customerName={customer.profile.fullName}
         targetRowVersion={customer.rowVersion}
+        profile={customer.profile}
         onCancel={() => setShowChangeForm(false)}
       />
     );
@@ -74,21 +90,31 @@ const CustomerDetailPage: React.FC = () => {
     val != null && (val.includes('***') || val.includes('****'));
 
   const contextColumns = [
-    { title: 'Company ID', dataIndex: 'companyId', key: 'companyId' },
-    { title: 'Staff ID', dataIndex: 'assignedStaffId', key: 'assignedStaffId', render: (v: number | null) => v ?? '—' },
     {
-      title: 'Status',
+      title: 'Công ty phụ trách',
+      key: 'company',
+      render: (_: unknown, r: CustomerCompanyContext) => r.companyName ?? `Mã ${r.companyId}`,
+    },
+    {
+      title: 'Nhân viên phụ trách',
+      key: 'staff',
+      render: (_: unknown, r: CustomerCompanyContext) => r.assignedStaffName ?? '— (chưa phân)',
+    },
+    {
+      title: 'Trạng thái',
       dataIndex: 'relationshipStatus',
       key: 'relationshipStatus',
       render: (s: string) => (
-        <Tag color={s === 'ACTIVE' ? 'green' : 'red'}>{s}</Tag>
+        <Tag color={s === 'ACTIVE' ? 'green' : 'default'}>
+          {s === 'ACTIVE' ? 'Đang phụ trách' : s === 'INACTIVE' ? 'Ngừng' : s}
+        </Tag>
       ),
     },
-    { title: 'Notes', dataIndex: 'internalNotes', key: 'internalNotes', render: (v: string | null) => v ?? '—' },
+    { title: 'Ghi chú', dataIndex: 'internalNotes', key: 'internalNotes', render: (v: string | null) => v ?? '—' },
     ...(hasPermission('CUSTOMER_MASTER_UPDATE', 'GLOBAL')
       ? [
           {
-            title: 'Action',
+            title: 'Thao tác',
             key: 'action',
             render: (_: unknown, record: CustomerCompanyContext) => (
               <Link
@@ -96,7 +122,7 @@ const CustomerDetailPage: React.FC = () => {
                 state={{ editContext: record }}
                 data-testid={`edit-context-${record.id}`}
               >
-                Edit
+                Sửa
               </Link>
             ),
           },
@@ -108,89 +134,100 @@ const CustomerDetailPage: React.FC = () => {
     <div data-testid="customer-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>
-          Customer: {customer.customerCode}
+          Khách hàng: {customer.customerCode}
         </Title>
         <Space>
           <Button>
-            <Link to="/customers">Back to List</Link>
+            <Link to="/customers">Quay lại danh sách</Link>
           </Button>
           {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') && (
             <Button data-testid="request-change-btn" onClick={() => setShowChangeForm(true)}>
-              Request Change
+              Yêu cầu thay đổi
             </Button>
           )}
           {hasPermission('CUSTOMER_MASTER_UPDATE', 'GLOBAL') && (
             <Button type="primary" data-testid="edit-customer-btn">
-              <Link to={`/customers/${id}/edit`}>Edit</Link>
+              <Link to={`/customers/${id}/edit`}>Sửa</Link>
             </Button>
           )}
         </Space>
       </Space>
 
-      <Card title="Customer Info" style={{ marginBottom: 16 }} data-testid="customer-info-card">
+      <Card title="Thông tin khách hàng" style={{ marginBottom: 16 }} data-testid="customer-info-card">
         <Descriptions column={2}>
-          <Descriptions.Item label="Customer Code">{customer.customerCode}</Descriptions.Item>
-          <Descriptions.Item label="Status">
-            <Tag color={customer.customerStatus === 'ACTIVE' ? 'green' : 'red'}>
-              {customer.customerStatus}
+          <Descriptions.Item label="Mã khách hàng">{customer.customerCode}</Descriptions.Item>
+          <Descriptions.Item label="Trạng thái">
+            <Tag color={CUSTOMER_STATUS_COLORS[customer.customerStatus] ?? 'default'}>
+              {CUSTOMER_STATUS_LABELS[customer.customerStatus] ?? customer.customerStatus}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Created">{customer.createdAt}</Descriptions.Item>
-          <Descriptions.Item label="Updated">{customer.updatedAt ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Ngày tạo">{fmtDate(customer.createdAt)}</Descriptions.Item>
+          <Descriptions.Item label="Ngày cập nhật">{fmtDate(customer.updatedAt)}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="Profile" style={{ marginBottom: 16 }} data-testid="profile-card">
+      <Card title="Hồ sơ" style={{ marginBottom: 16 }} data-testid="profile-card">
         <Descriptions column={2}>
-          <Descriptions.Item label="Full Name">{profile.fullName}</Descriptions.Item>
-          <Descriptions.Item label="Gender">{profile.gender ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Họ tên">{profile.fullName}</Descriptions.Item>
+          <Descriptions.Item label="Giới tính">{genderLabel(profile.gender)}</Descriptions.Item>
           <Descriptions.Item label="CCCD">
             <span data-testid="profile-cccd">
               {profile.cccd ?? '—'}
-              {isMasked(profile.cccd) && <Tag style={{ marginLeft: 4 }}>masked</Tag>}
+              {isMasked(profile.cccd) && <Tag style={{ marginLeft: 4 }}>ẩn</Tag>}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="Phone">
+          <Descriptions.Item label="Điện thoại">
             <span data-testid="profile-phone">
               {profile.phone ?? '—'}
-              {isMasked(profile.phone) && <Tag style={{ marginLeft: 4 }}>masked</Tag>}
+              {isMasked(profile.phone) && <Tag style={{ marginLeft: 4 }}>ẩn</Tag>}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="Permanent Address">
+          <Descriptions.Item label="Địa chỉ thường trú">
             <span data-testid="profile-permanent-address">
               {profile.permanentAddress ?? '—'}
-              {isMasked(profile.permanentAddress) && <Tag style={{ marginLeft: 4 }}>masked</Tag>}
+              {isMasked(profile.permanentAddress) && <Tag style={{ marginLeft: 4 }}>ẩn</Tag>}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="Contact Address">
+          <Descriptions.Item label="Địa chỉ liên hệ">
             <span data-testid="profile-contact-address">
               {profile.contactAddress ?? '—'}
-              {isMasked(profile.contactAddress) && <Tag style={{ marginLeft: 4 }}>masked</Tag>}
+              {isMasked(profile.contactAddress) && <Tag style={{ marginLeft: 4 }}>ẩn</Tag>}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="Date of Birth">{profile.dob ?? profile.dobPartial ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="DOB Precision">{profile.dobPrecision ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="CCCD Issue Date">{profile.cccdIssueDate ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="CCCD Issue Place">{profile.cccdIssuePlace ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Tax Code">{profile.taxCode ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Hometown">{profile.hometown ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Death Date (Solar)">{profile.deathDateSolar ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Death Date (Lunar)">{profile.deathDateLunar ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Death Place">{profile.deathPlace ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Ngày sinh">{profile.dob ? fmtDate(profile.dob) : (profile.dobPartial ?? '—')}</Descriptions.Item>
+          <Descriptions.Item label="Độ chính xác ngày sinh">{profile.dobPrecision ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Ngày cấp CCCD">{fmtDate(profile.cccdIssueDate)}</Descriptions.Item>
+          <Descriptions.Item label="Nơi cấp CCCD">{profile.cccdIssuePlace ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Mã số thuế">{profile.taxCode ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Quê quán">{profile.hometown ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Ngày mất (Dương lịch)">{fmtDate(profile.deathDateSolar)}</Descriptions.Item>
+          <Descriptions.Item label="Ngày mất (Âm lịch)">{profile.deathDateLunar ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label="Nơi mất">{profile.deathPlace ?? '—'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="Company Contexts" data-testid="company-contexts-card">
+      <EntityTagsSection
+        tagType="CUSTOMER"
+        tags={customer.tags}
+        canManage={hasPermission('TAG_MANAGE', 'GLOBAL')}
+        onSave={(req) => setCustomerTags(id, req)}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['customer', id] })}
+        testId="customer-tags-section"
+      />
+
+      <CustomerCarePackagesSection customerId={id} />
+
+      <Card title="Công ty / nhân viên phụ trách" data-testid="company-contexts-card">
         <Space style={{ marginBottom: 8 }}>
           {hasPermission('CUSTOMER_CREATE_FINAL', 'GLOBAL') && (
             <Button type="primary" size="small" data-testid="add-context-btn" disabled>
-              Add Company Context
+              Thêm công ty phụ trách
             </Button>
           )}
         </Space>
         {contextsLoading && <Spin />}
         {contexts && contexts.length === 0 && (
-          <Alert type="info" message="No company contexts." data-testid="no-contexts" />
+          <Alert type="info" message="Chưa có công ty/nhân viên phụ trách khách hàng này." data-testid="no-contexts" />
         )}
         {contexts && contexts.length > 0 && (
           <Table

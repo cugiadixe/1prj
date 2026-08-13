@@ -9,6 +9,8 @@ import {
   createCompanyContext,
   updateCompanyContext,
   checkDuplicates,
+  getCompanyLookups,
+  getStaffLookups,
 } from './customersApi';
 
 vi.mock('../api/axiosClient', () => ({
@@ -31,6 +33,44 @@ describe('customersApi', () => {
       params: { search: 'test', customerStatus: undefined, page: 2, pageSize: 20 },
     });
     expect(result.items).toEqual([]);
+  });
+
+  it('searchCustomers forwards company/staff filters', async () => {
+    mockAxios.get.mockResolvedValue({ data: { items: [], totalCount: 0, page: 1, pageSize: 20 } });
+    await searchCustomers({ companyId: 3, assignedStaffId: 7 });
+    expect(mockAxios.get).toHaveBeenCalledWith('/customers', {
+      params: {
+        search: undefined,
+        customerStatus: undefined,
+        companyId: 3,
+        assignedStaffId: 7,
+        unassignedStaff: undefined,
+        page: 1,
+        pageSize: 20,
+      },
+    });
+  });
+
+  it('searchCustomers forwards unassignedStaff as true', async () => {
+    mockAxios.get.mockResolvedValue({ data: { items: [], totalCount: 0, page: 1, pageSize: 20 } });
+    await searchCustomers({ unassignedStaff: true });
+    expect(mockAxios.get).toHaveBeenCalledWith('/customers', {
+      params: expect.objectContaining({ unassignedStaff: true }),
+    });
+  });
+
+  it('getCompanyLookups calls GET /customers/lookups/companies', async () => {
+    mockAxios.get.mockResolvedValue({ data: [{ id: 1, name: 'PTKD HCM' }] });
+    const result = await getCompanyLookups();
+    expect(mockAxios.get).toHaveBeenCalledWith('/customers/lookups/companies');
+    expect(result).toEqual([{ id: 1, name: 'PTKD HCM' }]);
+  });
+
+  it('getStaffLookups calls GET /customers/lookups/staff', async () => {
+    mockAxios.get.mockResolvedValue({ data: [{ id: 2, fullName: 'Nguyen Van A' }] });
+    const result = await getStaffLookups();
+    expect(mockAxios.get).toHaveBeenCalledWith('/customers/lookups/staff');
+    expect(result).toEqual([{ id: 2, fullName: 'Nguyen Van A' }]);
   });
 
   it('getCustomerById calls GET /customers/:id', async () => {

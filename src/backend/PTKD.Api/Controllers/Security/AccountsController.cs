@@ -13,7 +13,7 @@ namespace PTKD.Api.Controllers.Security;
 
 [ApiController]
 [Authorize]
-[RequirePermission(PermissionCodes.SecurityAccountManage, PermissionScope.Global)]
+[RequirePermission(PTKD.Api.Security.Authorization.PermissionCodes.SecurityAccountManage, PermissionScope.Global)]
 [Route("api/v2/security/accounts")]
 public sealed class AccountsController : ControllerBase
 {
@@ -158,6 +158,41 @@ public sealed class AccountsController : ControllerBase
         return Ok(new AdminResetPasswordDto(result.TemporaryPassword!));
     }
 
+    [HttpGet("users-without-account")]
+    [ProducesResponseType(typeof(UserWithoutAccountDto[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetUsersWithoutAccount(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetUsersWithoutAccountAsync(cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(AdminResetPasswordDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request, CancellationToken cancellationToken)
+    {
+        if (request.UserId <= 0)
+            return ValidationProblem("UserId is required.", "USER_ID_REQUIRED");
+
+        if (string.IsNullOrWhiteSpace(request.ProviderSubject))
+            return ValidationProblem("ProviderSubject (username) is required.", "PROVIDER_SUBJECT_REQUIRED");
+
+        if (request.ProviderSubject.Length > 200)
+            return ValidationProblem("ProviderSubject must not exceed 200 characters.", "PROVIDER_SUBJECT_TOO_LONG");
+
+        var actorUserId = SecurityControllerHelper.GetActorUserId(User);
+        var result = await _service.CreateInternalAccountAsync(request.UserId, request.ProviderSubject.Trim(), actorUserId, cancellationToken);
+
+        if (!result.Succeeded)
+            return MapCreateErrorResult(result);
+
+        return Ok(new AdminResetPasswordDto(result.TemporaryPassword!));
+    }
+
     [HttpPost("{accountId:long}/revoke-sessions")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -202,6 +237,24 @@ public sealed class AccountsController : ControllerBase
     {
         if (result.Succeeded) return NoContent();
         return MapErrorResult(result);
+    }
+
+    private IActionResult MapCreateErrorResult(AccountManagementResult result)
+    {
+        return result.ErrorCode switch
+        {
+            "USER_NOT_FOUND" =>
+                NotFoundProblem("USER_NOT_FOUND", "User not found."),
+            "AUTH_ACCOUNT_ALREADY_EXISTS" =>
+                ConflictProblem("AUTH_ACCOUNT_ALREADY_EXISTS", "This user already has an auth account."),
+            "AUTH_PROVIDER_SUBJECT_DUPLICATE" =>
+                ConflictProblem("AUTH_PROVIDER_SUBJECT_DUPLICATE", "This username is already taken."),
+            _ =>
+                StatusCode(StatusCodes.Status500InternalServerError, BuildProblem(
+                    StatusCodes.Status500InternalServerError,
+                    "ACCOUNT_OPERATION_FAILED",
+                    "The operation could not be completed."))
+        };
     }
 
     private IActionResult MapErrorResult(AccountManagementResult result)
@@ -266,3 +319,4 @@ public sealed class AccountsController : ControllerBase
 
 public sealed record AccountReasonRequest(string Reason);
 public sealed record AdminResetPasswordDto(string TemporaryPassword);
+public sealed record CreateAccountRequest(long UserId, string ProviderSubject);

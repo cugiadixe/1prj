@@ -92,7 +92,7 @@ const WorkflowBindingsPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view workflow bindings."
+        message="Bạn không có quyền xem liên kết quy trình."
         data-testid="permission-denied"
       />
     );
@@ -141,42 +141,42 @@ const WorkflowBindingsPage: React.FC = () => {
   };
 
   const columns = [
-    { title: 'Process', dataIndex: 'processCode', key: 'processCode' },
+    { title: 'Quy trình', dataIndex: 'processCode', key: 'processCode' },
     {
-      title: 'Version ID',
+      title: 'ID Phiên bản',
       dataIndex: 'workflowVersionId',
       key: 'workflowVersionId',
     },
     {
-      title: 'Scope',
+      title: 'Phạm vi',
       dataIndex: 'scopeType',
       key: 'scopeType',
       render: (val: string, record: WorkflowBindingListItem) =>
         val === 'COMPANY' ? `COMPANY (${record.companyId})` : val,
     },
-    { title: 'Priority', dataIndex: 'priority', key: 'priority' },
+    { title: 'Ưu tiên', dataIndex: 'priority', key: 'priority' },
     {
-      title: 'Effective From',
+      title: 'Hiệu lực từ',
       dataIndex: 'effectiveFrom',
       key: 'effectiveFrom',
-      render: (val: string) => new Date(val).toLocaleDateString(),
+      render: (val: string) => new Date(val).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Active',
+      title: 'Hoạt động',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (val: boolean) => (
-        <Tag color={val ? 'green' : 'red'}>{val ? 'Active' : 'Inactive'}</Tag>
+        <Tag color={val ? 'green' : 'red'}>{val ? 'Hoạt động' : 'Ngừng hoạt động'}</Tag>
       ),
     },
     ...(hasPermission('WORKFLOW_BIND_PROCESS', 'GLOBAL')
       ? [
           {
-            title: 'Actions',
+            title: 'Thao tác',
             key: 'actions',
             render: (_: unknown, record: WorkflowBindingListItem) => (
               <Button size="small" onClick={() => openEdit(record)} data-testid={`edit-binding-${record.id}`}>
-                Edit
+                Sửa
               </Button>
             ),
           },
@@ -187,17 +187,17 @@ const WorkflowBindingsPage: React.FC = () => {
   return (
     <div data-testid="workflow-bindings-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Workflow Bindings</Title>
+        <Title level={4} style={{ margin: 0 }}>Liên kết quy trình</Title>
         {hasPermission('WORKFLOW_BIND_PROCESS', 'GLOBAL') && (
           <Button type="primary" onClick={openCreate} data-testid="create-binding-btn">
-            Create Binding
+            Tạo liên kết
           </Button>
         )}
       </Space>
 
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder="Filter by process code..."
+          placeholder="Lọc theo mã quy trình..."
           allowClear
           onSearch={(val) => setProcessCodeFilter(val || undefined)}
           style={{ width: 300 }}
@@ -216,7 +216,7 @@ const WorkflowBindingsPage: React.FC = () => {
           action={
             showConcurrencyRefresh ? (
               <Button size="small" type="primary" onClick={handleRefresh} data-testid="refresh-btn">
-                Refresh
+                Tải lại
               </Button>
             ) : undefined
           }
@@ -235,7 +235,7 @@ const WorkflowBindingsPage: React.FC = () => {
       {isLoading && <Spin data-testid="binding-list-loading" />}
 
       {!isLoading && !error && bindings && bindings.length === 0 && (
-        <Alert type="info" message="No workflow bindings found." data-testid="binding-list-empty" />
+        <Alert type="info" message="Không tìm thấy liên kết quy trình nào." data-testid="binding-list-empty" />
       )}
 
       {bindings && bindings.length > 0 && (
@@ -249,7 +249,7 @@ const WorkflowBindingsPage: React.FC = () => {
       )}
 
       <Modal
-        title={editingBinding ? 'Edit Binding' : 'Create Binding'}
+        title={editingBinding ? 'Sửa liên kết' : 'Tạo liên kết'}
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditingBinding(null); form.resetFields(); }}
         onOk={() => form.submit()}
@@ -261,15 +261,15 @@ const WorkflowBindingsPage: React.FC = () => {
             <>
               <Form.Item
                 name="workflowVersionId"
-                label="Workflow Version ID"
-                rules={[{ required: true, message: 'Version ID is required' }]}
+                label="ID Phiên bản quy trình"
+                rules={[{ required: true, message: 'ID phiên bản là bắt buộc' }]}
               >
                 <InputNumber min={1} style={{ width: '100%' }} data-testid="input-versionId" />
               </Form.Item>
               <Form.Item
                 name="processCode"
-                label="Business Process"
-                rules={[{ required: true, message: 'Process is required' }]}
+                label="Quy trình nghiệp vụ"
+                rules={[{ required: true, message: 'Quy trình là bắt buộc' }]}
               >
                 <Select
                   data-testid="input-bindingProcessCode"
@@ -281,22 +281,22 @@ const WorkflowBindingsPage: React.FC = () => {
               </Form.Item>
               <Form.Item
                 name="scopeType"
-                label="Scope"
-                rules={[{ required: true, message: 'Scope is required' }]}
+                label="Phạm vi"
+                rules={[{ required: true, message: 'Phạm vi là bắt buộc' }]}
               >
                 <Select
                   data-testid="input-scopeType"
                   options={[
-                    { label: 'Global', value: 'GLOBAL' },
-                    { label: 'Company', value: 'COMPANY' },
+                    { label: 'Toàn cục', value: 'GLOBAL' },
+                    { label: 'Công ty', value: 'COMPANY' },
                   ]}
                 />
               </Form.Item>
               {scopeType === 'COMPANY' && (
                 <Form.Item
                   name="companyId"
-                  label="Company ID"
-                  rules={[{ required: true, message: 'Company ID is required for COMPANY scope' }]}
+                  label="ID Công ty"
+                  rules={[{ required: true, message: 'ID công ty là bắt buộc đối với phạm vi COMPANY' }]}
                 >
                   <InputNumber min={1} style={{ width: '100%' }} data-testid="input-companyId" />
                 </Form.Item>
@@ -305,18 +305,18 @@ const WorkflowBindingsPage: React.FC = () => {
           )}
           <Form.Item
             name="effectiveFrom"
-            label="Effective From"
-            rules={[{ required: true, message: 'Effective from is required' }]}
+            label="Hiệu lực từ"
+            rules={[{ required: true, message: 'Ngày hiệu lực từ là bắt buộc' }]}
           >
             <DatePicker style={{ width: '100%' }} data-testid="input-bindingEffectiveFrom" />
           </Form.Item>
-          <Form.Item name="effectiveTo" label="Effective To">
+          <Form.Item name="effectiveTo" label="Hiệu lực đến">
             <DatePicker style={{ width: '100%' }} data-testid="input-bindingEffectiveTo" />
           </Form.Item>
           <Form.Item
             name="priority"
-            label="Priority"
-            rules={[{ required: true, message: 'Priority is required' }]}
+            label="Ưu tiên"
+            rules={[{ required: true, message: 'Ưu tiên là bắt buộc' }]}
           >
             <InputNumber min={1} style={{ width: '100%' }} data-testid="input-bindingPriority" />
           </Form.Item>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Form, Input, InputNumber, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Checkbox, Form, Input, InputNumber, Space, Spin, Typography, message } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
@@ -34,6 +34,7 @@ const ServiceTypeFormPage: React.FC = () => {
         name: initialData.name,
         description: initialData.description,
         cycleDurationMonths: initialData.cycleDurationMonths,
+        isCarePackage: initialData.isCarePackage,
       });
     }
   }, [initialData, isEdit, form]);
@@ -41,7 +42,7 @@ const ServiceTypeFormPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (values: CreateServiceTypeRequest) => createServiceType(values),
     onSuccess: (data) => {
-      message.success('Service type created successfully');
+      message.success('Tạo loại dịch vụ thành công');
       navigate(`/services/types/${data.id}`);
     },
     onError: (err) => {
@@ -52,13 +53,13 @@ const ServiceTypeFormPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: (values: UpdateServiceTypeRequest) => updateServiceType(serviceTypeId, values),
     onSuccess: (data) => {
-      message.success('Service type updated successfully');
+      message.success('Cập nhật loại dịch vụ thành công');
       queryClient.setQueryData(['serviceType', serviceTypeId], data);
       navigate(`/services/types/${data.id}`);
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        setFormError('This record was modified by another user. Please refresh and try again.');
+        setFormError('Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng tải lại và thử lại.');
       } else {
         setFormError(getErrorMessage(err));
       }
@@ -73,6 +74,7 @@ const ServiceTypeFormPage: React.FC = () => {
         name: values.name,
         description: values.description,
         cycleDurationMonths: values.cycleDurationMonths,
+        isCarePackage: Boolean(values.isCarePackage),
         rowVersion: initialData.rowVersion,
       });
     } else {
@@ -82,6 +84,7 @@ const ServiceTypeFormPage: React.FC = () => {
         description: values.description,
         standardPrice: values.standardPrice,
         cycleDurationMonths: values.cycleDurationMonths,
+        isCarePackage: Boolean(values.isCarePackage),
       });
     }
   };
@@ -92,7 +95,7 @@ const ServiceTypeFormPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to manage service types."
+        message="Bạn không có quyền quản lý loại dịch vụ."
         data-testid="permission-denied"
       />
     );
@@ -116,10 +119,10 @@ const ServiceTypeFormPage: React.FC = () => {
     <div data-testid="service-type-form-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>
-          {isEdit ? 'Edit Service Type' : 'Create Service Type'}
+          {isEdit ? 'Sửa loại dịch vụ' : 'Tạo loại dịch vụ'}
         </Title>
         <Button onClick={() => navigate(isEdit ? `/services/types/${serviceTypeId}` : '/services/types')}>
-          Cancel
+          Hủy
         </Button>
       </Space>
 
@@ -132,7 +135,7 @@ const ServiceTypeFormPage: React.FC = () => {
           action={
             isEdit && isConcurrencyError(formError) ? (
               <Button size="small" type="primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['serviceType', serviceTypeId] })}>
-                Refresh
+                Tải lại
               </Button>
             ) : undefined
           }
@@ -148,8 +151,8 @@ const ServiceTypeFormPage: React.FC = () => {
         {!isEdit && (
           <Form.Item
             name="code"
-            label="Code"
-            rules={[{ required: true, message: 'Please enter a code' }]}
+            label="Mã"
+            rules={[{ required: true, message: 'Vui lòng nhập mã' }]}
           >
             <Input data-testid="input-code" />
           </Form.Item>
@@ -157,21 +160,21 @@ const ServiceTypeFormPage: React.FC = () => {
 
         <Form.Item
           name="name"
-          label="Name"
-          rules={[{ required: true, message: 'Please enter a name' }]}
+          label="Tên"
+          rules={[{ required: true, message: 'Vui lòng nhập tên' }]}
         >
           <Input data-testid="input-name" />
         </Form.Item>
 
-        <Form.Item name="description" label="Description">
+        <Form.Item name="description" label="Mô tả">
           <TextArea rows={4} data-testid="input-description" />
         </Form.Item>
 
         {!isEdit && (
           <Form.Item
             name="standardPrice"
-            label="Standard Price"
-            rules={[{ required: true, message: 'Please enter a standard price' }]}
+            label="Giá chuẩn"
+            rules={[{ required: true, message: 'Vui lòng nhập giá chuẩn' }]}
           >
             <InputNumber
               style={{ width: '100%' }}
@@ -182,13 +185,17 @@ const ServiceTypeFormPage: React.FC = () => {
           </Form.Item>
         )}
 
-        <Form.Item name="cycleDurationMonths" label="Cycle Duration (Months)">
+        <Form.Item name="cycleDurationMonths" label="Chu kỳ (Tháng)">
           <InputNumber
             style={{ width: '100%' }}
             min={1}
             max={120}
             data-testid="input-cycle-duration"
           />
+        </Form.Item>
+
+        <Form.Item name="isCarePackage" valuePropName="checked">
+          <Checkbox data-testid="input-is-care-package">Là gói chăm sóc (hiển thị khi gán cho khách hàng)</Checkbox>
         </Form.Item>
 
         <Form.Item>
@@ -198,7 +205,7 @@ const ServiceTypeFormPage: React.FC = () => {
             loading={createMutation.isPending || updateMutation.isPending}
             data-testid="submit-service-type-btn"
           >
-            {isEdit ? 'Save Changes' : 'Create'}
+            {isEdit ? 'Lưu thay đổi' : 'Tạo'}
           </Button>
         </Form.Item>
       </Form>

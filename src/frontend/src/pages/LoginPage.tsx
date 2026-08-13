@@ -18,12 +18,6 @@ interface LoginFormValues {
   password: string;
 }
 
-/**
- * Login page (Phase 1B.1-J).
- * - Authenticated users without mustChangePassword are redirected to /.
- * - Authenticated users with mustChangePassword are redirected to /change-password.
- * - Displays sanitized error on failure — no raw backend detail exposed.
- */
 const LoginPage: React.FC = () => {
   const { login, isAuthenticated, mustChangePassword, isBootstrapping } =
     useAuth();
@@ -31,10 +25,8 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // While bootstrapping, render nothing to avoid flash
   if (isBootstrapping) return null;
 
-  // Already authenticated
   if (isAuthenticated) {
     return mustChangePassword ? (
       <Navigate to="/change-password" replace />
@@ -48,18 +40,16 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       await login(values.username, values.password);
-      // Navigation is handled after auth state updates — navigate is used
-      // only as a fallback; AuthProvider triggers re-render naturally.
       navigate(mustChangePassword ? '/change-password' : '/', { replace: true });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response
         ?.status;
       if (status === 401 || status === 403) {
-        setErrorMessage('Invalid credentials. Please try again.');
+        setErrorMessage('Thông tin đăng nhập không đúng. Vui lòng thử lại.');
       } else if (status === 503) {
-        setErrorMessage('Authentication service is temporarily unavailable.');
+        setErrorMessage('Dịch vụ xác thực tạm thời không khả dụng.');
       } else {
-        setErrorMessage('Login failed. Please try again later.');
+        setErrorMessage('Đăng nhập thất bại. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -73,23 +63,41 @@ const LoginPage: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       }}
     >
-      <Card style={{ width: 380, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+      <Card
+        style={{
+          width: 400,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          borderRadius: 12,
+        }}
+      >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <UserOutlined style={{ fontSize: 28, color: '#fff' }} />
+          </div>
           <Title level={3} style={{ marginBottom: 4 }}>
             PTKD ERP
           </Title>
           <Typography.Text type="secondary">
-            Sign in to your account
+            Đăng nhập vào hệ thống
           </Typography.Text>
         </div>
 
         {errorMessage && (
           <Alert
             type="error"
-            title={errorMessage}
+            message={errorMessage}
             showIcon
             style={{ marginBottom: 16 }}
             data-testid="login-error"
@@ -104,26 +112,28 @@ const LoginPage: React.FC = () => {
         >
           <Form.Item
             name="username"
-            label="Username"
-            rules={[{ required: true, message: 'Please enter your username.' }]}
+            label="Tên đăng nhập"
+            rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập.' }]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="Username"
+              placeholder="Tên đăng nhập"
               data-testid="login-username"
               autoFocus
+              size="large"
             />
           </Form.Item>
 
           <Form.Item
             name="password"
-            label="Password"
-            rules={[{ required: true, message: 'Please enter your password.' }]}
+            label="Mật khẩu"
+            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu.' }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password"
+              placeholder="Mật khẩu"
               data-testid="login-password"
+              size="large"
             />
           </Form.Item>
 
@@ -133,9 +143,10 @@ const LoginPage: React.FC = () => {
               htmlType="submit"
               loading={loading}
               block
+              size="large"
               data-testid="login-submit"
             >
-              Sign In
+              Đăng nhập
             </Button>
           </Form.Item>
         </Form>

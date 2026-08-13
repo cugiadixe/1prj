@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Alert, Button, Card, DatePicker, Form, Input, Select, Space, Typography } from 'antd';
+import dayjs from 'dayjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createCustomerMasterChangeRequest } from './customerMasterChangeApi';
 import { getErrorMessage } from './errorMessages';
 import type { CreateCustomerMasterChangeRequest } from './customerMasterChangeTypes';
+import type { ProfileInfo } from './types';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -13,19 +15,44 @@ interface CustomerMasterChangeRequestFormProps {
   customerId: number;
   customerName: string;
   targetRowVersion: string;
+  profile: ProfileInfo;
   onCancel: () => void;
 }
+
+/** Chuỗi rỗng/khoảng trắng coi như không có giá trị, để so sánh delta. */
+const norm = (v: unknown): string => (v == null ? '' : String(v).trim());
 
 const CustomerMasterChangeRequestForm: React.FC<CustomerMasterChangeRequestFormProps> = ({
   customerId,
   customerName,
   targetRowVersion,
+  profile,
   onCancel,
 }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Đổ sẵn thông tin hiện tại của khách để anh nhìn và sửa trực tiếp.
+  const initialValues = {
+    fullName: profile.fullName ?? undefined,
+    cccd: profile.cccd ?? undefined,
+    phone: profile.phone ?? undefined,
+    gender: profile.gender ?? undefined,
+    dob: profile.dob ? dayjs(profile.dob) : undefined,
+    dobPartial: profile.dobPartial ?? undefined,
+    dobPrecision: profile.dobPrecision ?? undefined,
+    permanentAddress: profile.permanentAddress ?? undefined,
+    cccdIssueDate: profile.cccdIssueDate ? dayjs(profile.cccdIssueDate) : undefined,
+    cccdIssuePlace: profile.cccdIssuePlace ?? undefined,
+    taxCode: profile.taxCode ?? undefined,
+    contactAddress: profile.contactAddress ?? undefined,
+    deathDateSolar: profile.deathDateSolar ? dayjs(profile.deathDateSolar) : undefined,
+    deathDateLunar: profile.deathDateLunar ?? undefined,
+    deathPlace: profile.deathPlace ?? undefined,
+    hometown: profile.hometown ?? undefined,
+  };
 
   const createMutation = useMutation({
     mutationFn: (values: CreateCustomerMasterChangeRequest) =>
@@ -41,29 +68,37 @@ const CustomerMasterChangeRequestForm: React.FC<CustomerMasterChangeRequestFormP
 
   const handleSubmit = (values: Record<string, unknown>) => {
     setSubmitError(null);
+
+    // Chỉ gửi trường THỰC SỰ thay đổi so với giá trị gốc (form đã đổ sẵn giá trị hiện tại).
+    const txt = (key: keyof ProfileInfo, val: unknown): string | null =>
+      norm(val) === norm(profile[key]) ? null : ((val as string) || null);
+    const dt = (key: keyof ProfileInfo, val: unknown): string | null => {
+      const orig = profile[key] as string | null;
+      const next = val ? (val as dayjs.Dayjs).toISOString() : null;
+      if (!orig && !next) return null;
+      if (orig && next && dayjs(orig).isSame(dayjs(next), 'day')) return null;
+      return next;
+    };
+
     const request: CreateCustomerMasterChangeRequest = {
       targetCustomerId: customerId,
       targetRowVersion,
-      fullName: (values.fullName as string) || null,
-      cccd: (values.cccd as string) || null,
-      dob: values.dob ? (values.dob as { toISOString: () => string }).toISOString() : null,
-      dobPartial: (values.dobPartial as string) || null,
-      dobPrecision: (values.dobPrecision as string) || null,
-      gender: (values.gender as string) || null,
-      permanentAddress: (values.permanentAddress as string) || null,
-      cccdIssueDate: values.cccdIssueDate
-        ? (values.cccdIssueDate as { toISOString: () => string }).toISOString()
-        : null,
-      cccdIssuePlace: (values.cccdIssuePlace as string) || null,
-      taxCode: (values.taxCode as string) || null,
-      phone: (values.phone as string) || null,
-      contactAddress: (values.contactAddress as string) || null,
-      deathDateSolar: values.deathDateSolar
-        ? (values.deathDateSolar as { toISOString: () => string }).toISOString()
-        : null,
-      deathDateLunar: (values.deathDateLunar as string) || null,
-      deathPlace: (values.deathPlace as string) || null,
-      hometown: (values.hometown as string) || null,
+      fullName: txt('fullName', values.fullName),
+      cccd: txt('cccd', values.cccd),
+      dob: dt('dob', values.dob),
+      dobPartial: txt('dobPartial', values.dobPartial),
+      dobPrecision: txt('dobPrecision', values.dobPrecision),
+      gender: txt('gender', values.gender),
+      permanentAddress: txt('permanentAddress', values.permanentAddress),
+      cccdIssueDate: dt('cccdIssueDate', values.cccdIssueDate),
+      cccdIssuePlace: txt('cccdIssuePlace', values.cccdIssuePlace),
+      taxCode: txt('taxCode', values.taxCode),
+      phone: txt('phone', values.phone),
+      contactAddress: txt('contactAddress', values.contactAddress),
+      deathDateSolar: dt('deathDateSolar', values.deathDateSolar),
+      deathDateLunar: txt('deathDateLunar', values.deathDateLunar),
+      deathPlace: txt('deathPlace', values.deathPlace),
+      hometown: txt('hometown', values.hometown),
       reason: values.reason as string,
     };
     createMutation.mutate(request);
@@ -73,7 +108,7 @@ const CustomerMasterChangeRequestForm: React.FC<CustomerMasterChangeRequestFormP
     <div data-testid="customer-master-change-request-form">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>
-          Request Change for Customer: {customerName}
+          Yêu cầu thay đổi cho khách hàng: {customerName}
         </Title>
       </Space>
 
@@ -92,22 +127,23 @@ const CustomerMasterChangeRequestForm: React.FC<CustomerMasterChangeRequestFormP
         <Form
           form={form}
           layout="vertical"
+          initialValues={initialValues}
           onFinish={handleSubmit}
           data-testid="customer-master-change-form"
         >
           <Form.Item
             name="reason"
-            label="Reason for Change"
+            label="Lý do thay đổi"
             rules={[
-              { required: true, message: 'Reason is required' },
-              { max: 500, message: 'Max 500 characters' },
+              { required: true, message: 'Lý do là bắt buộc' },
+              { max: 500, message: 'Tối đa 500 ký tự' },
             ]}
           >
             <TextArea rows={2} data-testid="input-reason" />
           </Form.Item>
 
           <Alert
-            message="Only fill in the fields you wish to change."
+            message="Thông tin hiện tại đã được điền sẵn. Chỉ cần sửa vào các trường bạn muốn thay đổi — hệ thống chỉ ghi nhận những trường thực sự khác so với hiện tại."
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
@@ -115,117 +151,117 @@ const CustomerMasterChangeRequestForm: React.FC<CustomerMasterChangeRequestFormP
 
           <Form.Item
             name="fullName"
-            label="Full Name"
-            rules={[{ max: 200, message: 'Max 200 characters' }]}
+            label="Họ tên"
+            rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}
           >
             <Input data-testid="input-fullName" />
           </Form.Item>
 
-          <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Max 20 characters' }]}>
+          <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
             <Input data-testid="input-cccd" />
           </Form.Item>
 
-          <Form.Item name="phone" label="Phone" rules={[{ max: 20, message: 'Max 20 characters' }]}>
+          <Form.Item name="phone" label="Điện thoại" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
             <Input data-testid="input-phone" />
           </Form.Item>
 
-          <Form.Item name="gender" label="Gender">
+          <Form.Item name="gender" label="Giới tính">
             <Select
               allowClear
               data-testid="input-gender"
               options={[
-                { label: 'Male', value: 'MALE' },
-                { label: 'Female', value: 'FEMALE' },
-                { label: 'Other', value: 'OTHER' },
+                { label: 'Nam', value: 'MALE' },
+                { label: 'Nữ', value: 'FEMALE' },
+                { label: 'Khác', value: 'OTHER' },
               ]}
             />
           </Form.Item>
 
-          <Form.Item name="dob" label="Date of Birth">
+          <Form.Item name="dob" label="Ngày sinh">
             <DatePicker style={{ width: '100%' }} data-testid="input-dob" />
           </Form.Item>
 
           <Form.Item
             name="dobPartial"
-            label="DOB Partial"
-            rules={[{ max: 10, message: 'Max 10 characters' }]}
+            label="Ngày sinh (một phần)"
+            rules={[{ max: 10, message: 'Tối đa 10 ký tự' }]}
           >
             <Input data-testid="input-dobPartial" />
           </Form.Item>
 
-          <Form.Item name="dobPrecision" label="DOB Precision">
+          <Form.Item name="dobPrecision" label="Độ chính xác ngày sinh">
             <Select
               allowClear
               data-testid="input-dobPrecision"
               options={[
-                { label: 'Full', value: 'FULL' },
-                { label: 'Year & Month', value: 'YEAR_MONTH' },
-                { label: 'Year', value: 'YEAR' },
-                { label: 'Unknown', value: 'UNKNOWN' },
+                { label: 'Đầy đủ', value: 'FULL' },
+                { label: 'Năm & Tháng', value: 'YEAR_MONTH' },
+                { label: 'Năm', value: 'YEAR' },
+                { label: 'Không rõ', value: 'UNKNOWN' },
               ]}
             />
           </Form.Item>
 
           <Form.Item
             name="permanentAddress"
-            label="Permanent Address"
-            rules={[{ max: 500, message: 'Max 500 characters' }]}
+            label="Địa chỉ thường trú"
+            rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}
           >
             <TextArea rows={2} data-testid="input-permanentAddress" />
           </Form.Item>
 
-          <Form.Item name="cccdIssueDate" label="CCCD Issue Date">
+          <Form.Item name="cccdIssueDate" label="Ngày cấp CCCD">
             <DatePicker style={{ width: '100%' }} data-testid="input-cccdIssueDate" />
           </Form.Item>
 
           <Form.Item
             name="cccdIssuePlace"
-            label="CCCD Issue Place"
-            rules={[{ max: 200, message: 'Max 200 characters' }]}
+            label="Nơi cấp CCCD"
+            rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}
           >
             <Input data-testid="input-cccdIssuePlace" />
           </Form.Item>
 
           <Form.Item
             name="taxCode"
-            label="Tax Code"
-            rules={[{ max: 20, message: 'Max 20 characters' }]}
+            label="Mã số thuế"
+            rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}
           >
             <Input data-testid="input-taxCode" />
           </Form.Item>
 
           <Form.Item
             name="contactAddress"
-            label="Contact Address"
-            rules={[{ max: 500, message: 'Max 500 characters' }]}
+            label="Địa chỉ liên hệ"
+            rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}
           >
             <TextArea rows={2} data-testid="input-contactAddress" />
           </Form.Item>
 
-          <Form.Item name="deathDateSolar" label="Death Date (Solar)">
+          <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)">
             <DatePicker style={{ width: '100%' }} data-testid="input-deathDateSolar" />
           </Form.Item>
 
           <Form.Item
             name="deathDateLunar"
-            label="Death Date (Lunar)"
-            rules={[{ max: 20, message: 'Max 20 characters' }]}
+            label="Ngày mất (Âm lịch)"
+            rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}
           >
             <Input data-testid="input-deathDateLunar" />
           </Form.Item>
 
           <Form.Item
             name="deathPlace"
-            label="Death Place"
-            rules={[{ max: 200, message: 'Max 200 characters' }]}
+            label="Nơi mất"
+            rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}
           >
             <Input data-testid="input-deathPlace" />
           </Form.Item>
 
           <Form.Item
             name="hometown"
-            label="Hometown"
-            rules={[{ max: 200, message: 'Max 200 characters' }]}
+            label="Quê quán"
+            rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}
           >
             <Input data-testid="input-hometown" />
           </Form.Item>
@@ -238,9 +274,9 @@ const CustomerMasterChangeRequestForm: React.FC<CustomerMasterChangeRequestFormP
                 loading={createMutation.isPending}
                 data-testid="submit-change-request"
               >
-                Submit Change Request
+                Gửi yêu cầu thay đổi
               </Button>
-              <Button onClick={onCancel}>Cancel</Button>
+              <Button onClick={onCancel}>Hủy</Button>
             </Space>
           </Form.Item>
         </Form>

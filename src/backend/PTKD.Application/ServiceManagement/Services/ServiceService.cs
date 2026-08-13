@@ -26,11 +26,13 @@ public class ServiceService : IServiceService
         _workflowRuntimeService = workflowRuntimeService;
     }
 
-    public async Task<PagedResult<ServiceDto>> ListAsync(long companyId, long? customerId, string? status, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<ServiceDto>> ListAsync(long? companyId, long? customerId, string? status, int page, int pageSize, CancellationToken ct = default)
     {
         await using var db = _dbContextFactory.CreateDbContext();
 
-        var query = db.Services.AsNoTracking().Where(s => s.CompanyId == companyId);
+        var query = db.Services.AsNoTracking().AsQueryable();
+        if (companyId.HasValue)
+            query = query.Where(s => s.CompanyId == companyId.Value);
         if (customerId.HasValue)
             query = query.Where(s => s.CustomerId == customerId.Value);
         if (!string.IsNullOrEmpty(status))
@@ -48,9 +50,33 @@ public class ServiceService : IServiceService
             .Where(st => serviceTypeIds.Contains(st.Id))
             .ToDictionaryAsync(st => st.Id, ct);
 
+        var customerIds = items.Select(s => s.CustomerId).Distinct().ToArray();
+        var customers = await db.Customers.AsNoTracking()
+            .Where(c => customerIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.CustomerCode, c.Profile.FullName })
+            .ToDictionaryAsync(x => x.Id, ct);
+
+        var companyIds = items.Select(s => s.CompanyId).Distinct().ToArray();
+        var companies = await db.Companies.AsNoTracking()
+            .Where(co => companyIds.Contains(co.Id))
+            .Select(co => new { co.Id, co.Name })
+            .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+
+        var dtos = items.Select(s =>
+        {
+            var dto = MapToDto(s, serviceTypes.GetValueOrDefault(s.ServiceTypeId));
+            if (customers.TryGetValue(s.CustomerId, out var cu))
+            {
+                dto.CustomerCode = cu.CustomerCode;
+                dto.CustomerName = cu.FullName;
+            }
+            dto.CompanyName = companies.GetValueOrDefault(s.CompanyId);
+            return dto;
+        }).ToArray();
+
         return new PagedResult<ServiceDto>
         {
-            Items = items.Select(s => MapToDto(s, serviceTypes.GetValueOrDefault(s.ServiceTypeId))).ToArray(),
+            Items = dtos,
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -64,7 +90,23 @@ public class ServiceService : IServiceService
         if (entity == null) return null;
 
         var serviceType = await db.ServiceTypes.AsNoTracking().FirstOrDefaultAsync(st => st.Id == entity.ServiceTypeId, ct);
-        return MapToDto(entity, serviceType);
+        var dto = MapToDto(entity, serviceType);
+
+        var customer = await db.Customers.AsNoTracking()
+            .Where(c => c.Id == entity.CustomerId)
+            .Select(c => new { c.CustomerCode, c.Profile.FullName })
+            .FirstOrDefaultAsync(ct);
+        if (customer != null)
+        {
+            dto.CustomerCode = customer.CustomerCode;
+            dto.CustomerName = customer.FullName;
+        }
+        dto.CompanyName = await db.Companies.AsNoTracking()
+            .Where(co => co.Id == entity.CompanyId)
+            .Select(co => co.Name)
+            .FirstOrDefaultAsync(ct);
+
+        return dto;
     }
 
     public async Task<ServiceDto> CreateStandardAsync(CreateServiceRequest request, long userId, CancellationToken ct = default)

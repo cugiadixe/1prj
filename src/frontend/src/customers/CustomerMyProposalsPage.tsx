@@ -21,34 +21,34 @@ const CustomerMyProposalsPage: React.FC = () => {
       key: 'id',
     },
     {
-      title: 'Customer Code',
+      title: 'Mã khách hàng',
       key: 'customerCode',
       render: (_: unknown, record: CustomerProposalDto) => record.summary?.customerCode || 'N/A',
     },
     {
-      title: 'Full Name',
+      title: 'Họ tên',
       key: 'fullName',
       render: (_: unknown, record: CustomerProposalDto) => record.summary?.fullName || 'N/A',
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'requestStatus',
       key: 'requestStatus',
     },
     {
-      title: 'Submitted At',
+      title: 'Ngày gửi',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => new Date(text).toLocaleString(),
+      render: (text: string) => new Date(text).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Action',
+      title: 'Thao tác',
       key: 'action',
       render: (_: unknown, record: CustomerProposalDto) => (
         <Space size="middle">
-          <Link to={`/customers/proposals/${record.id}`}>View Status</Link>
+          <Link to={`/customers/proposals/${record.id}`}>Xem trạng thái</Link>
           {record.workflowInstanceId && (
-            <Link to={`/workflow/instances/${record.workflowInstanceId}`}>View Workflow</Link>
+            <Link to={`/workflow/instances/${record.workflowInstanceId}`}>Xem quy trình</Link>
           )}
         </Space>
       ),
@@ -58,13 +58,13 @@ const CustomerMyProposalsPage: React.FC = () => {
   return (
     <div data-testid="customer-my-proposals-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>My Customer Proposals</Title>
+        <Title level={4} style={{ margin: 0 }}>Đề xuất khách hàng của tôi</Title>
         <Space>
           <Button type="primary">
-            <Link to="/customers/proposals/new">Submit Proposal</Link>
+            <Link to="/customers/proposals/new">Gửi đề xuất</Link>
           </Button>
           <Button>
-            <Link to="/customers">Back to Customers</Link>
+            <Link to="/customers">Quay lại khách hàng</Link>
           </Button>
         </Space>
       </Space>
@@ -72,7 +72,7 @@ const CustomerMyProposalsPage: React.FC = () => {
       {error && (
         <Alert
           type="error"
-          message={getErrorMessage(error) || 'Failed to load proposals'}
+          message={getErrorMessage(error) || 'Không thể tải danh sách đề xuất'}
           style={{ marginBottom: 16 }}
         />
       )}

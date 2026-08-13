@@ -25,7 +25,7 @@ const WorkflowRejectDialog: React.FC<WorkflowRejectDialogProps> = ({
 
   return (
     <Modal
-      title="Reject Step"
+      title="Từ chối bước"
       open={open}
       onCancel={handleCancel}
       onOk={handleOk}
@@ -34,7 +34,7 @@ const WorkflowRejectDialog: React.FC<WorkflowRejectDialogProps> = ({
     >
       <Alert
         type="warning"
-        message="This action is permanent. The request will be rejected and cannot be resubmitted."
+        message="Thao tác này là vĩnh viễn. Yêu cầu sẽ bị từ chối và không thể gửi lại."
         style={{ marginBottom: 16 }}
         data-testid="reject-warning"
       />
@@ -45,12 +45,12 @@ const WorkflowRejectDialog: React.FC<WorkflowRejectDialogProps> = ({
       >
         <Form.Item
           name="reason"
-          label="Reason"
-          rules={[{ required: true, message: 'Reason is required' }]}
+          label="Lý do"
+          rules={[{ required: true, message: 'Lý do là bắt buộc' }]}
         >
           <Input.TextArea rows={2} data-testid="reject-reason" maxLength={500} />
         </Form.Item>
-        <Form.Item name="comment" label="Comment (optional)">
+        <Form.Item name="comment" label="Ghi chú (tùy chọn)">
           <Input.TextArea rows={2} data-testid="reject-comment" />
         </Form.Item>
       </Form>

@@ -8,6 +8,9 @@ public class CarePackageRequestDto
     public long Id { get; set; }
     public long CompanyId { get; set; }
     public long CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? CustomerCode { get; set; }
+    public string? ServiceName { get; set; }
     public string Status { get; set; } = null!;
     public bool RequiresApproval { get; set; }
     public long? WorkflowInstanceId { get; set; }

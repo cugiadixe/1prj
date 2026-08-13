@@ -94,3 +94,15 @@ export interface AccountSearchParams {
   page?: number;
   pageSize?: number;
 }
+
+export interface UserWithoutAccountDto {
+  userId: number;
+  fullName: string;
+  employeeCode: string | null;
+  email: string | null;
+}
+
+export interface CreateAccountRequest {
+  userId: number;
+  providerSubject: string;
+}

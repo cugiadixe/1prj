@@ -26,13 +26,13 @@ const ServiceTypeDetailPage: React.FC = () => {
   const deactivateMutation = useMutation({
     mutationFn: (rowVersion: string) => deactivateServiceType(serviceTypeId, rowVersion),
     onSuccess: (updatedData) => {
-      message.success('Service type deactivated successfully');
+      message.success('Ngừng hoạt động loại dịch vụ thành công');
       queryClient.setQueryData(['serviceType', serviceTypeId], updatedData);
       setDeactivateError(null);
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        setDeactivateError('This record was modified by another user. Please refresh the page and try again.');
+        setDeactivateError('Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng tải lại trang và thử lại.');
       } else {
         setDeactivateError(getErrorMessage(err));
       }
@@ -43,7 +43,7 @@ const ServiceTypeDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view service types."
+        message="Bạn không có quyền xem loại dịch vụ."
         data-testid="permission-denied"
       />
     );
@@ -65,11 +65,11 @@ const ServiceTypeDetailPage: React.FC = () => {
 
   const handleDeactivate = () => {
     Modal.confirm({
-      title: 'Deactivate Service Type',
-      content: 'Are you sure you want to deactivate this service type?',
-      okText: 'Yes',
+      title: 'Ngừng hoạt động loại dịch vụ',
+      content: 'Bạn có chắc chắn muốn ngừng hoạt động loại dịch vụ này không?',
+      okText: 'Có',
       okType: 'danger',
-      cancelText: 'No',
+      cancelText: 'Không',
       onOk: () => deactivateMutation.mutate(data.rowVersion),
     });
   };
@@ -77,22 +77,22 @@ const ServiceTypeDetailPage: React.FC = () => {
   return (
     <div data-testid="service-type-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Service Type Details</Title>
+        <Title level={4} style={{ margin: 0 }}>Chi tiết gói dịch vụ</Title>
         <Space>
-          <Button onClick={() => navigate('/services/types')}>Back to List</Button>
+          <Button onClick={() => navigate('/services/types')}>Quay lại danh sách</Button>
           {hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') && (
             <>
               <Button type="primary" data-testid="edit-service-type-btn">
-                <Link to={`/services/types/${serviceTypeId}/edit`}>Edit</Link>
+                <Link to={`/services/types/${serviceTypeId}/edit`}>Sửa</Link>
               </Button>
               {data.isActive && (
-                <Button 
-                  danger 
-                  onClick={handleDeactivate} 
+                <Button
+                  danger
+                  onClick={handleDeactivate}
                   loading={deactivateMutation.isPending}
                   data-testid="deactivate-service-type-btn"
                 >
-                  Deactivate
+                  Ngừng hoạt động
                 </Button>
               )}
             </>
@@ -109,7 +109,7 @@ const ServiceTypeDetailPage: React.FC = () => {
           action={
              isConcurrencyError(deactivateError) ? (
                <Button size="small" type="primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['serviceType', serviceTypeId] })}>
-                 Refresh
+                 Tải lại
                </Button>
              ) : undefined
           }
@@ -117,25 +117,25 @@ const ServiceTypeDetailPage: React.FC = () => {
       )}
 
       <Descriptions bordered column={1}>
-        <Descriptions.Item label="Code">{data.code}</Descriptions.Item>
-        <Descriptions.Item label="Name">{data.name}</Descriptions.Item>
-        <Descriptions.Item label="Description">{data.description || '—'}</Descriptions.Item>
-        <Descriptions.Item label="Standard Price">
+        <Descriptions.Item label="Mã">{data.code}</Descriptions.Item>
+        <Descriptions.Item label="Tên">{data.name}</Descriptions.Item>
+        <Descriptions.Item label="Mô tả">{data.description || '—'}</Descriptions.Item>
+        <Descriptions.Item label="Giá chuẩn">
           {data.standardPrice.toLocaleString()} {data.standardPriceCurrency}
         </Descriptions.Item>
-        <Descriptions.Item label="Cycle Duration (Months)">
+        <Descriptions.Item label="Chu kỳ (Tháng)">
           {data.cycleDurationMonths ?? '—'}
         </Descriptions.Item>
-        <Descriptions.Item label="Status">
+        <Descriptions.Item label="Trạng thái">
           <Tag color={data.isActive ? 'green' : 'red'}>
-            {data.isActive ? 'ACTIVE' : 'INACTIVE'}
+            {data.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Created At">
-          {new Date(data.createdAt).toLocaleString()}
+        <Descriptions.Item label="Ngày tạo">
+          {new Date(data.createdAt).toLocaleString('vi-VN')}
         </Descriptions.Item>
-        <Descriptions.Item label="Updated At">
-          {data.updatedAt ? new Date(data.updatedAt).toLocaleString() : '—'}
+        <Descriptions.Item label="Ngày cập nhật">
+          {data.updatedAt ? new Date(data.updatedAt).toLocaleString('vi-VN') : '—'}
         </Descriptions.Item>
       </Descriptions>
     </div>

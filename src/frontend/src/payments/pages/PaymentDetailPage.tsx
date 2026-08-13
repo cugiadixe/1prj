@@ -28,12 +28,12 @@ const PaymentDetailPage: React.FC = () => {
   const confirmMutation = useMutation({
     mutationFn: (rowVersion: string) => confirmPayment(paymentId, { rowVersion }),
     onSuccess: () => {
-      message.success('Payment confirmed successfully.');
+      message.success('Xác nhận thanh toán thành công.');
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] });
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        message.error('Data has changed since you started. Please refresh and try again.');
+        message.error('Dữ liệu đã thay đổi kể từ khi bạn bắt đầu. Vui lòng tải lại và thử lại.');
       } else {
         message.error(getErrorMessage(err));
       }
@@ -44,14 +44,14 @@ const PaymentDetailPage: React.FC = () => {
     mutationFn: ({ reason, rowVersion }: { reason: string; rowVersion: string }) =>
       correctConfirmed(paymentId, { reason, rowVersion }),
     onSuccess: () => {
-      message.success('Payment corrected successfully.');
+      message.success('Điều chỉnh thanh toán thành công.');
       setCorrectModalVisible(false);
       setCorrectReason('');
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] });
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        message.error('Data has changed since you started. Please refresh and try again.');
+        message.error('Dữ liệu đã thay đổi kể từ khi bạn bắt đầu. Vui lòng tải lại và thử lại.');
       } else {
         message.error(getErrorMessage(err));
       }
@@ -61,12 +61,12 @@ const PaymentDetailPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (rowVersion: string) => softDeleteDraft(paymentId, { rowVersion }),
     onSuccess: () => {
-      message.success('Draft payment deleted.');
+      message.success('Đã xóa thanh toán nháp.');
       navigate('/payments');
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        message.error('Data has changed since you started. Please refresh and try again.');
+        message.error('Dữ liệu đã thay đổi kể từ khi bạn bắt đầu. Vui lòng tải lại và thử lại.');
       } else {
         message.error(getErrorMessage(err));
       }
@@ -77,7 +77,7 @@ const PaymentDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this payment."
+        message="Bạn không có quyền xem thanh toán này."
         data-testid="permission-denied"
       />
     );
@@ -91,7 +91,7 @@ const PaymentDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message={error ? getErrorMessage(error) : 'Payment not found'}
+        message={error ? getErrorMessage(error) : 'Không tìm thấy thanh toán'}
         data-testid="payment-detail-error"
       />
     );
@@ -104,12 +104,12 @@ const PaymentDetailPage: React.FC = () => {
   const canCorrect = isConfirmed && hasPermission('PAYMENT_CORRECT_CONFIRMED', 'GLOBAL');
 
   const itemColumns = [
-    { title: 'Service ID', dataIndex: 'serviceId', key: 'serviceId' },
-    { title: 'Type Code', dataIndex: 'serviceTypeCode', key: 'serviceTypeCode' },
-    { title: 'Cycle', dataIndex: 'serviceCycleNumber', key: 'serviceCycleNumber' },
-    { title: 'Description', dataIndex: 'description', key: 'description' },
+    { title: 'Mã dịch vụ', dataIndex: 'serviceId', key: 'serviceId' },
+    { title: 'Mã loại', dataIndex: 'serviceTypeCode', key: 'serviceTypeCode' },
+    { title: 'Chu kỳ', dataIndex: 'serviceCycleNumber', key: 'serviceCycleNumber' },
+    { title: 'Mô tả', dataIndex: 'description', key: 'description' },
     {
-      title: 'Amount',
+      title: 'Số tiền',
       dataIndex: 'amount',
       key: 'amount',
       render: (val: number) => `${val.toLocaleString()} VND`
@@ -119,7 +119,7 @@ const PaymentDetailPage: React.FC = () => {
   return (
     <div data-testid="payment-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Payment Details: {data.billCode}</Title>
+        <Title level={4} style={{ margin: 0 }}>Chi tiết thanh toán: {data.billCode}</Title>
         <Space>
           {canConfirm && (
             <Button
@@ -128,7 +128,7 @@ const PaymentDetailPage: React.FC = () => {
               loading={confirmMutation.isPending}
               onClick={() => confirmMutation.mutate(data.rowVersion)}
             >
-              Confirm
+              Xác nhận
             </Button>
           )}
           {canDelete && (
@@ -137,7 +137,7 @@ const PaymentDetailPage: React.FC = () => {
               data-testid="delete-draft-btn"
               onClick={() => setDeleteModalVisible(true)}
             >
-              Delete Draft
+              Xóa nháp
             </Button>
           )}
           {canCorrect && (
@@ -146,29 +146,29 @@ const PaymentDetailPage: React.FC = () => {
               data-testid="correct-payment-btn"
               onClick={() => setCorrectModalVisible(true)}
             >
-              Admin Correction
+              Điều chỉnh quản trị
             </Button>
           )}
         </Space>
       </Space>
 
-      <Card title="General Information" style={{ marginBottom: 16 }}>
+      <Card title="Thông tin chung" style={{ marginBottom: 16 }}>
         <Descriptions column={2}>
-          <Descriptions.Item label="Status">
+          <Descriptions.Item label="Trạng thái">
             <Tag color={isConfirmed ? 'green' : 'blue'}>{data.status}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Payment Method">{data.paymentMethod}</Descriptions.Item>
-          <Descriptions.Item label="Payment Date">{new Date(data.paymentDate).toLocaleDateString()}</Descriptions.Item>
-          <Descriptions.Item label="Customer ID">{data.customerId}</Descriptions.Item>
-          <Descriptions.Item label="Company ID">{data.companyId}</Descriptions.Item>
-          <Descriptions.Item label="Total Amount">{`${data.totalAmount.toLocaleString()} VND`}</Descriptions.Item>
-          <Descriptions.Item label="Currency">{data.currencyCode}</Descriptions.Item>
-          <Descriptions.Item label="Created At">{new Date(data.createdAt).toLocaleString()}</Descriptions.Item>
-          <Descriptions.Item label="Notes">{data.notes || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Phương thức thanh toán">{data.paymentMethod}</Descriptions.Item>
+          <Descriptions.Item label="Ngày thanh toán">{new Date(data.paymentDate).toLocaleDateString('vi-VN')}</Descriptions.Item>
+          <Descriptions.Item label="Mã khách hàng">{data.customerId}</Descriptions.Item>
+          <Descriptions.Item label="Mã công ty">{data.companyId}</Descriptions.Item>
+          <Descriptions.Item label="Tổng số tiền">{`${data.totalAmount.toLocaleString()} VND`}</Descriptions.Item>
+          <Descriptions.Item label="Tiền tệ">{data.currencyCode}</Descriptions.Item>
+          <Descriptions.Item label="Ngày tạo">{new Date(data.createdAt).toLocaleString('vi-VN')}</Descriptions.Item>
+          <Descriptions.Item label="Ghi chú">{data.notes || '—'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="Payment Items">
+      <Card title="Các mục thanh toán">
         <Table
           dataSource={data.items}
           columns={itemColumns}
@@ -179,40 +179,40 @@ const PaymentDetailPage: React.FC = () => {
       </Card>
 
       <Modal
-        title="Delete Draft Payment"
+        title="Xóa thanh toán nháp"
         open={deleteModalVisible}
         onOk={() => {
           deleteMutation.mutate(data.rowVersion);
           setDeleteModalVisible(false);
         }}
         onCancel={() => setDeleteModalVisible(false)}
-        okText="Delete"
+        okText="Xóa"
         okButtonProps={{ danger: true }}
       >
-        <p>Are you sure you want to delete this draft payment?</p>
+        <p>Bạn có chắc chắn muốn xóa thanh toán nháp này không?</p>
       </Modal>
       <Modal
-        title="Admin Correction"
+        title="Điều chỉnh quản trị"
         open={correctModalVisible}
         onOk={() => {
           if (!correctReason) {
-            message.error('Reason is required');
+            message.error('Lý do là bắt buộc');
             return;
           }
           correctMutation.mutate({ reason: correctReason, rowVersion: data.rowVersion });
         }}
         confirmLoading={correctMutation.isPending}
         onCancel={() => setCorrectModalVisible(false)}
-        okText="Submit Correction"
+        okText="Gửi điều chỉnh"
       >
-        <p>Enter the reason for this administrative correction:</p>
+        <p>Nhập lý do cho điều chỉnh quản trị này:</p>
         <Input.TextArea
           value={correctReason}
           onChange={(e) => setCorrectReason(e.target.value)}
-          placeholder="Correction reason..."
+          placeholder="Lý do điều chỉnh..."
           data-testid="correction-reason-input"
         />
-        <p style={{ marginTop: 8, color: 'gray' }}>Note: Field modifications are omitted in this simplified form.</p>
+        <p style={{ marginTop: 8, color: 'gray' }}>Lưu ý: Các thay đổi trường được bỏ qua trong biểu mẫu đơn giản này.</p>
       </Modal>
     </div>
   );

@@ -54,17 +54,17 @@ const CustomerMergeRequestDetailPage: React.FC = () => {
 
   const candidateColumns = [
     {
-      title: 'Candidate Customer ID',
+      title: 'Mã KH ứng viên',
       dataIndex: 'candidateCustomerId',
       key: 'candidateCustomerId',
     },
     {
-      title: 'Match Type',
+      title: 'Loại khớp',
       dataIndex: 'matchType',
       key: 'matchType',
     },
     {
-      title: 'Confidence',
+      title: 'Độ tin cậy',
       dataIndex: 'matchConfidence',
       key: 'matchConfidence',
       render: (val: number | null) =>
@@ -82,7 +82,7 @@ const CustomerMergeRequestDetailPage: React.FC = () => {
         }}
       >
         <Title level={4} style={{ margin: 0 }}>
-          Merge Request Detail
+          Chi tiết yêu cầu gộp
         </Title>
         <Space>
           {request.workflowInstanceId && (
@@ -90,34 +90,34 @@ const CustomerMergeRequestDetailPage: React.FC = () => {
               <Link
                 to={`/workflow/instances/${request.workflowInstanceId}`}
               >
-                View Workflow
+                Xem quy trình
               </Link>
             </Button>
           )}
           <Button>
             <Link to={`/customers/${request.sourceCustomerId}`}>
-              View Source Customer
+              Xem KH nguồn
             </Link>
           </Button>
           <Button type="primary">
             <Link to={`/customers/${request.targetCustomerId}`}>
-              View Target Customer
+              Xem KH đích
             </Link>
           </Button>
           <Button>
             <Link to="/customers/merge-requests">
-              Back to Merge Requests
+              Quay lại yêu cầu gộp
             </Link>
           </Button>
         </Space>
       </Space>
 
-      <Card title="Request Status" style={{ marginBottom: 16 }}>
+      <Card title="Trạng thái yêu cầu" style={{ marginBottom: 16 }}>
         <Descriptions bordered column={2}>
-          <Descriptions.Item label="Request ID">
+          <Descriptions.Item label="Mã yêu cầu">
             {request.id}
           </Descriptions.Item>
-          <Descriptions.Item label="Status">
+          <Descriptions.Item label="Trạng thái">
             <Tag
               color={STATUS_COLORS[request.requestStatus] || 'default'}
               data-testid="status-tag"
@@ -125,31 +125,31 @@ const CustomerMergeRequestDetailPage: React.FC = () => {
               {request.requestStatus}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Source Customer ID">
+          <Descriptions.Item label="Mã KH nguồn">
             {request.sourceCustomerId}
           </Descriptions.Item>
-          <Descriptions.Item label="Target Customer ID">
+          <Descriptions.Item label="Mã KH đích">
             {request.targetCustomerId}
           </Descriptions.Item>
-          <Descriptions.Item label="Requester ID">
+          <Descriptions.Item label="Người yêu cầu">
             {request.requesterId}
           </Descriptions.Item>
-          <Descriptions.Item label="Created At">
-            {new Date(request.createdAt).toLocaleString()}
+          <Descriptions.Item label="Ngày tạo">
+            {new Date(request.createdAt).toLocaleDateString('vi-VN')}
           </Descriptions.Item>
-          <Descriptions.Item label="Last Updated">
+          <Descriptions.Item label="Cập nhật lần cuối">
             {request.updatedAt
-              ? new Date(request.updatedAt).toLocaleString()
+              ? new Date(request.updatedAt).toLocaleDateString('vi-VN')
               : 'N/A'}
           </Descriptions.Item>
-          <Descriptions.Item label="Workflow Instance">
-            {request.workflowInstanceId || 'Not linked'}
+          <Descriptions.Item label="Phiên quy trình">
+            {request.workflowInstanceId || 'Chưa liên kết'}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
       {request.candidates && request.candidates.length > 0 && (
-        <Card title="Candidates" style={{ marginBottom: 16 }}>
+        <Card title="Ứng viên" style={{ marginBottom: 16 }}>
           <Table
             columns={candidateColumns}
             dataSource={request.candidates}

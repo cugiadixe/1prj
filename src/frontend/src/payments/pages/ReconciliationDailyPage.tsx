@@ -23,12 +23,12 @@ const ReconciliationDailyPage: React.FC = () => {
     mutationFn: (args: { periodId: number, rowVersion: string }) =>
       prepareReconciliation(args.periodId, { rowVersion: args.rowVersion }),
     onSuccess: () => {
-      message.success('Reconciliation period prepared.');
+      message.success('Đã chuẩn bị kỳ đối soát.');
       queryClient.invalidateQueries({ queryKey: ['reconciliation-daily', companyId, date] });
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        message.error('Data has changed since you started. Please refresh and try again.');
+        message.error('Dữ liệu đã thay đổi kể từ khi bạn bắt đầu. Vui lòng tải lại và thử lại.');
       } else {
         message.error(getErrorMessage(err));
       }
@@ -39,12 +39,12 @@ const ReconciliationDailyPage: React.FC = () => {
     mutationFn: (args: { periodId: number, rowVersion: string }) =>
       confirmReconciliation(args.periodId, { rowVersion: args.rowVersion }),
     onSuccess: () => {
-      message.success('Reconciliation period confirmed.');
+      message.success('Đã xác nhận kỳ đối soát.');
       queryClient.invalidateQueries({ queryKey: ['reconciliation-daily', companyId, date] });
     },
     onError: (err) => {
       if (isConcurrencyError(err)) {
-        message.error('Data has changed since you started. Please refresh and try again.');
+        message.error('Dữ liệu đã thay đổi kể từ khi bạn bắt đầu. Vui lòng tải lại và thử lại.');
       } else {
         message.error(getErrorMessage(err));
       }
@@ -55,28 +55,28 @@ const ReconciliationDailyPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view reconciliation reports."
+        message="Bạn không có quyền xem báo cáo đối soát."
         data-testid="permission-denied"
       />
     );
   }
 
   const columns = [
-    { title: 'Bill Code', dataIndex: 'billCode', key: 'billCode' },
-    { title: 'Payment Method', dataIndex: 'paymentMethod', key: 'paymentMethod' },
+    { title: 'Mã hóa đơn', dataIndex: 'billCode', key: 'billCode' },
+    { title: 'Phương thức thanh toán', dataIndex: 'paymentMethod', key: 'paymentMethod' },
     {
-      title: 'Total Amount',
+      title: 'Tổng số tiền',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       render: (val: number) => `${val.toLocaleString()} VND`
     },
-    { title: 'Status', dataIndex: 'status', key: 'status' },
+    { title: 'Trạng thái', dataIndex: 'status', key: 'status' },
   ];
 
   return (
     <div data-testid="reconciliation-daily-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Daily Reconciliation Report</Title>
+        <Title level={4} style={{ margin: 0 }}>Báo cáo đối soát hàng ngày</Title>
         <Space>
           <DatePicker
             value={dayjs(date)}
@@ -100,13 +100,13 @@ const ReconciliationDailyPage: React.FC = () => {
       {data && (
         <>
           <div style={{ marginBottom: 16 }}>
-            <strong>Period Status: </strong>
+            <strong>Trạng thái kỳ: </strong>
             <Tag color={data.period?.status === 'CONFIRMED' ? 'green' : data.period?.status === 'PREPARED' ? 'blue' : 'default'}>
               {data.period?.status || 'UNPREPARED'}
             </Tag>
-            <strong style={{ marginLeft: 16 }}>Total Amount: </strong>
+            <strong style={{ marginLeft: 16 }}>Tổng số tiền: </strong>
             {`${data.totalAmount.toLocaleString()} VND`}
-            <strong style={{ marginLeft: 16 }}>Transactions: </strong>
+            <strong style={{ marginLeft: 16 }}>Số giao dịch: </strong>
             {data.transactionCount}
 
             <Space style={{ marginLeft: 32 }}>
@@ -117,7 +117,7 @@ const ReconciliationDailyPage: React.FC = () => {
                   loading={confirmMutation.isPending}
                   onClick={() => confirmMutation.mutate({ periodId: data.period!.id, rowVersion: data.period!.rowVersion })}
                 >
-                  Confirm Reconciliation
+                  Xác nhận đối soát
                 </Button>
               )}
               {data.period && data.period.status !== 'CONFIRMED' && data.period.status !== 'PREPARED' && hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') && (
@@ -127,7 +127,7 @@ const ReconciliationDailyPage: React.FC = () => {
                   loading={prepareMutation.isPending}
                   onClick={() => prepareMutation.mutate({ periodId: data.period!.id, rowVersion: data.period!.rowVersion })}
                 >
-                  Prepare Reconciliation
+                  Chuẩn bị đối soát
                 </Button>
               )}
             </Space>

@@ -96,7 +96,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
     onError: (err: unknown) => {
       const errMessage = getErrorMessage(err);
       if (err instanceof Error && err.message === 'COMPANY_CONTEXT_REQUIRED') {
-        setActionError('A specific company must be selected to assign a COMPANY-scoped role.');
+        setActionError('Phải chọn một công ty cụ thể để phân công vai trò có phạm vi COMPANY.');
       } else {
         setActionError(errMessage);
       }
@@ -126,7 +126,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
     onError: (err: unknown) => {
       const errMessage = getErrorMessage(err);
       if (err instanceof Error && err.message === 'COMPANY_CONTEXT_REQUIRED') {
-        setActionError('A specific company must be selected to deactivate this COMPANY-scoped assignment.');
+        setActionError('Phải chọn một công ty cụ thể để hủy phân công có phạm vi COMPANY này.');
       } else {
         setActionError(errMessage);
       }
@@ -176,7 +176,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
 
   // Render logic
   if (isNaN(userIdNum)) {
-    return <Alert type="error" message="Invalid User ID." data-testid="invalid-user-id" />;
+    return <Alert type="error" message="Mã người dùng không hợp lệ." data-testid="invalid-user-id" />;
   }
 
   if (isAssignmentsError) {
@@ -191,7 +191,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Role',
+      title: 'Vai trò',
       key: 'role',
       render: (record: UserRoleAssignmentDto) => (
         <Space direction="vertical" size={0}>
@@ -201,38 +201,38 @@ const UserRoleAssignmentsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Scope',
+      title: 'Phạm vi',
       dataIndex: 'scopeType',
       key: 'scopeType',
       render: (scopeType: string) => <Tag data-testid={`assignment-scope-${scopeType}`}>{scopeType}</Tag>,
     },
     {
-      title: 'Effective From',
+      title: 'Hiệu lực từ',
       dataIndex: 'effectiveFrom',
       key: 'effectiveFrom',
-      render: (val: string) => new Date(val).toLocaleString(),
+      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
     },
     {
-      title: 'Effective To',
+      title: 'Hiệu lực đến',
       dataIndex: 'effectiveTo',
       key: 'effectiveTo',
-      render: (val: string | null) => (val ? new Date(val).toLocaleString() : '—'),
+      render: (val: string | null) => (val ? new Date(val).toLocaleString('vi-VN') : '—'),
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       key: 'status',
       render: (record: UserRoleAssignmentDto) => {
         const isPastEffectiveTo = record.effectiveTo ? new Date(record.effectiveTo) < new Date() : false;
         const effectivelyActive = record.isActive && !isPastEffectiveTo;
         return (
           <Tag color={effectivelyActive ? 'green' : 'default'} data-testid={`assignment-status-${record.id}`}>
-            {effectivelyActive ? 'ACTIVE' : 'INACTIVE'}
+            {effectivelyActive ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
           </Tag>
         );
       },
     },
     {
-      title: 'Action',
+      title: 'Hành động',
       key: 'action',
       render: (record: UserRoleAssignmentDto) => (
         record.isActive && (
@@ -242,7 +242,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
             onClick={() => handleDeactivateClick(record)}
             data-testid={`deactivate-assignment-button-${record.id}`}
           >
-            Deactivate
+            Vô hiệu hóa
           </Button>
         )
       ),
@@ -254,8 +254,8 @@ const UserRoleAssignmentsPage: React.FC = () => {
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div>
-            <Title level={3}>User Role Assignments</Title>
-            <Text type="secondary" data-testid="user-id-display">User ID: {userIdNum}</Text>
+            <Title level={3}>Phân vai trò người dùng</Title>
+            <Text type="secondary" data-testid="user-id-display">Mã người dùng: {userIdNum}</Text>
           </div>
           <Space>
             <Button
@@ -263,7 +263,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
               onClick={handleAssignClick}
               data-testid="assign-role-button"
             >
-              Assign Role
+              Phân vai trò
             </Button>
           </Space>
         </div>
@@ -281,7 +281,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
       {/* Assign Role Modal */}
       <Modal
         open={isAssignModalVisible}
-        title="Assign Role"
+        title="Phân vai trò"
         onCancel={handleAssignCancel}
         onOk={handleAssignSubmit}
         confirmLoading={assignMutation.isPending}
@@ -291,12 +291,12 @@ const UserRoleAssignmentsPage: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="roleId"
-            label="Role"
-            rules={[{ required: true, message: 'Please select a role.' }]}
+            label="Vai trò"
+            rules={[{ required: true, message: 'Vui lòng chọn một vai trò.' }]}
           >
             <Select
               loading={isLoadingRoles}
-              placeholder="Select a role"
+              placeholder="Chọn một vai trò"
               data-testid="assign-role-select"
             >
               {activeRoles.map(role => (
@@ -306,11 +306,11 @@ const UserRoleAssignmentsPage: React.FC = () => {
               ))}
             </Select>
           </Form.Item>
-          
+
           <Form.Item
             name="effectiveFrom"
-            label="Effective From"
-            rules={[{ required: true, message: 'Effective From date is required.' }]}
+            label="Hiệu lực từ"
+            rules={[{ required: true, message: 'Ngày hiệu lực từ là bắt buộc.' }]}
             initialValue={dayjs()}
           >
             <DatePicker showTime style={{ width: '100%' }} data-testid="effective-from-picker" />
@@ -318,7 +318,7 @@ const UserRoleAssignmentsPage: React.FC = () => {
 
           <Form.Item
             name="effectiveTo"
-            label="Effective To"
+            label="Hiệu lực đến"
           >
             <DatePicker showTime style={{ width: '100%' }} data-testid="effective-to-picker" />
           </Form.Item>
@@ -331,17 +331,17 @@ const UserRoleAssignmentsPage: React.FC = () => {
       {/* Deactivate Assignment Modal */}
       <Modal
         open={!!deactivatingAssignment}
-        title="Deactivate Role Assignment"
+        title="Vô hiệu hóa phân vai trò"
         onCancel={handleDeactivateCancel}
         onOk={handleDeactivateConfirm}
         confirmLoading={deactivateMutation.isPending}
         okButtonProps={{ danger: true }}
-        okText="Deactivate"
+        okText="Vô hiệu hóa"
         destroyOnClose
         data-testid="deactivate-assignment-modal"
       >
-        <p>Are you sure you want to deactivate the role assignment for <strong>{deactivatingAssignment?.roleName}</strong>?</p>
-        <Alert type="warning" message="This action will immediately revoke the role from the user." style={{ marginBottom: 16 }} />
+        <p>Bạn có chắc chắn muốn vô hiệu hóa phân vai trò cho <strong>{deactivatingAssignment?.roleName}</strong>?</p>
+        <Alert type="warning" message="Hành động này sẽ thu hồi ngay lập tức vai trò khỏi người dùng." style={{ marginBottom: 16 }} />
         {actionError && (
           <Alert type="error" message={actionError} data-testid="deactivate-error" />
         )}

@@ -12,8 +12,8 @@ const WorkflowRetryExecutionButton: React.FC<WorkflowRetryExecutionButtonProps> 
 }) => {
   const handleClick = () => {
     Modal.confirm({
-      title: 'Retry Execution',
-      content: 'This will retry the failed execution. The system will attempt to complete the approved action.',
+      title: 'Thử lại thực thi',
+      content: 'Thao tác này sẽ thử lại lần thực thi đã thất bại. Hệ thống sẽ cố gắng hoàn tất hành động đã được phê duyệt.',
       onOk: onRetry,
     });
   };
@@ -24,7 +24,7 @@ const WorkflowRetryExecutionButton: React.FC<WorkflowRetryExecutionButtonProps> 
       loading={loading}
       data-testid="retry-execution-btn"
     >
-      Retry Execution
+      Thử lại thực thi
     </Button>
   );
 };

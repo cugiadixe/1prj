@@ -24,7 +24,7 @@ const ReconciliationMonthlyPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view reconciliation reports."
+        message="Bạn không có quyền xem báo cáo đối soát."
         data-testid="permission-denied"
       />
     );
@@ -32,20 +32,20 @@ const ReconciliationMonthlyPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Date',
+      title: 'Ngày',
       dataIndex: 'date',
       key: 'date',
-      render: (val: string) => new Date(val).toLocaleDateString()
+      render: (val: string) => new Date(val).toLocaleDateString('vi-VN')
     },
     {
-      title: 'Total Amount',
+      title: 'Tổng số tiền',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       render: (val: number) => `${val.toLocaleString()} VND`
     },
-    { title: 'Transactions', dataIndex: 'transactionCount', key: 'transactionCount' },
+    { title: 'Số giao dịch', dataIndex: 'transactionCount', key: 'transactionCount' },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'periodStatus',
       key: 'periodStatus',
       render: (val: string | undefined) => {
@@ -61,7 +61,7 @@ const ReconciliationMonthlyPage: React.FC = () => {
   return (
     <div data-testid="reconciliation-monthly-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Monthly Reconciliation Report</Title>
+        <Title level={4} style={{ margin: 0 }}>Báo cáo đối soát hàng tháng</Title>
         <Space>
           <DatePicker
             picker="month"
@@ -86,9 +86,9 @@ const ReconciliationMonthlyPage: React.FC = () => {
       {data && (
         <>
           <div style={{ marginBottom: 16 }}>
-            <strong>Monthly Total Amount: </strong>
+            <strong>Tổng số tiền tháng: </strong>
             {`${data.monthlyTotalAmount.toLocaleString()} VND`}
-            <strong style={{ marginLeft: 16 }}>Monthly Transactions: </strong>
+            <strong style={{ marginLeft: 16 }}>Số giao dịch tháng: </strong>
             {data.monthlyTransactionCount}
           </div>
 

@@ -32,7 +32,7 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
     const phone = (values.phone as string)?.trim() || undefined;
 
     if (!cccd && !phone) {
-      setSearchError('Please enter at least CCCD or Phone to search.');
+      setSearchError('Vui lòng nhập ít nhất CCCD hoặc Điện thoại để tìm kiếm.');
       return;
     }
 
@@ -42,17 +42,17 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Customer ID',
+      title: 'Mã KH',
       dataIndex: 'id',
       key: 'id',
     },
     {
-      title: 'Customer Code',
+      title: 'Mã khách hàng',
       dataIndex: 'customerCode',
       key: 'customerCode',
     },
     {
-      title: 'Full Name',
+      title: 'Họ tên',
       dataIndex: 'fullName',
       key: 'fullName',
     },
@@ -63,25 +63,25 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
       render: (text: string | null) => text || '—',
     },
     {
-      title: 'Phone',
+      title: 'Điện thoại',
       dataIndex: 'phone',
       key: 'phone',
       render: (text: string | null) => text || '—',
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'customerStatus',
       key: 'customerStatus',
     },
     {
-      title: 'Action',
+      title: 'Thao tác',
       key: 'action',
       render: (_: unknown, record: CustomerListItem) => (
         <Link
           to={`/customers/merge/new?sourceCustomerId=${record.id}`}
           data-testid={`select-source-${record.id}`}
         >
-          Select as Source
+          Chọn làm nguồn
         </Link>
       ),
     },
@@ -97,14 +97,14 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
         }}
       >
         <Title level={4} style={{ margin: 0 }}>
-          Find Duplicate Customers
+          Tìm khách hàng trùng lặp
         </Title>
         <Button>
-          <Link to="/customers">Back to Customers</Link>
+          <Link to="/customers">Quay lại khách hàng</Link>
         </Button>
       </Space>
 
-      <Card title="Search Criteria" style={{ marginBottom: 16 }}>
+      <Card title="Tiêu chí tìm kiếm" style={{ marginBottom: 16 }}>
         <Form
           form={form}
           layout="inline"
@@ -113,13 +113,13 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
         >
           <Form.Item name="cccd" label="CCCD">
             <Input
-              placeholder="Enter CCCD"
+              placeholder="Nhập CCCD"
               data-testid="input-search-cccd"
             />
           </Form.Item>
-          <Form.Item name="phone" label="Phone">
+          <Form.Item name="phone" label="Điện thoại">
             <Input
-              placeholder="Enter phone number"
+              placeholder="Nhập số điện thoại"
               data-testid="input-search-phone"
             />
           </Form.Item>
@@ -130,7 +130,7 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
               loading={searchMutation.isPending}
               data-testid="search-duplicates-button"
             >
-              Search
+              Tìm kiếm
             </Button>
           </Form.Item>
         </Form>
@@ -150,14 +150,14 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
       {result && !result.hasDuplicates && (
         <Alert
           type="info"
-          message="No duplicate customers found."
+          message="Không tìm thấy khách hàng trùng lặp."
           style={{ marginBottom: 16 }}
           data-testid="no-duplicates-message"
         />
       )}
 
       {result && result.hasDuplicates && (
-        <Card title="Duplicate Candidates">
+        <Card title="Ứng viên trùng lặp">
           <Table
             columns={columns}
             dataSource={result.matches}

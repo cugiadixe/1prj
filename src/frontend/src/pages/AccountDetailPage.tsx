@@ -43,8 +43,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 const MAX_REASON_LENGTH = 500;
 
-// ── Confirmation modal with optional reason textarea ──────────────────────────
-
 interface ConfirmActionModalProps {
   open: boolean;
   title: string;
@@ -72,11 +70,11 @@ const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
   const handleOk = () => {
     if (requireReason) {
       if (!reason.trim()) {
-        setValidationError('A reason is required.');
+        setValidationError('Vui lòng nhập lý do.');
         return;
       }
       if (reason.length > MAX_REASON_LENGTH) {
-        setValidationError(`Reason must not exceed ${MAX_REASON_LENGTH} characters.`);
+        setValidationError(`Lý do không được vượt quá ${MAX_REASON_LENGTH} ký tự.`);
         return;
       }
     }
@@ -97,8 +95,8 @@ const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={isLoading}
-      okText="Confirm"
-      cancelText="Cancel"
+      okText="Xác nhận"
+      cancelText="Hủy"
       data-testid="confirm-action-modal"
       destroyOnHidden
     >
@@ -106,7 +104,7 @@ const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
       {requireReason && (
         <Form layout="vertical">
           <Form.Item
-            label="Reason"
+            label="Lý do"
             validateStatus={validationError ? 'error' : undefined}
             help={validationError}
           >
@@ -115,9 +113,9 @@ const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               maxLength={MAX_REASON_LENGTH}
-              placeholder="Enter reason (required)"
+              placeholder="Nhập lý do (bắt buộc)"
               data-testid="reason-input"
-              aria-label="Reason"
+              aria-label="Lý do"
             />
           </Form.Item>
         </Form>
@@ -133,8 +131,6 @@ const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
     </Modal>
   );
 };
-
-// ── Temporary password display modal ─────────────────────────────────────────
 
 interface TempPasswordModalProps {
   open: boolean;
@@ -154,21 +150,21 @@ const TempPasswordModal: React.FC<TempPasswordModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Temporary Password"
+      title="Mật khẩu tạm thời"
       footer={
         <Space>
           <Button
             onClick={handleCopy}
             data-testid="copy-temp-password-button"
           >
-            Copy to Clipboard
+            Sao chép
           </Button>
           <Button
             type="primary"
             onClick={onClose}
             data-testid="dismiss-temp-password-button"
           >
-            Close
+            Đóng
           </Button>
         </Space>
       }
@@ -179,7 +175,7 @@ const TempPasswordModal: React.FC<TempPasswordModalProps> = ({
     >
       <Alert
         type="warning"
-        message="Record this password now. It will not be shown again."
+        message="Ghi lại mật khẩu này ngay. Mật khẩu sẽ không hiển thị lại."
         style={{ marginBottom: 12 }}
       />
       <Text
@@ -193,8 +189,6 @@ const TempPasswordModal: React.FC<TempPasswordModalProps> = ({
     </Modal>
   );
 };
-
-// ── Main AccountDetailPage ────────────────────────────────────────────────────
 
 type ActionType =
   | 'activate'
@@ -213,36 +207,36 @@ interface ActionConfig {
 
 const ACTION_CONFIG: Record<NonNullable<ActionType>, ActionConfig> = {
   activate: {
-    title: 'Activate Account',
-    confirmationText: 'Are you sure you want to activate this account?',
+    title: 'Kích hoạt tài khoản',
+    confirmationText: 'Bạn có chắc muốn kích hoạt tài khoản này?',
     requireReason: false,
   },
   disable: {
-    title: 'Disable Account',
+    title: 'Vô hiệu hóa tài khoản',
     confirmationText:
-      'This will prevent the user from logging in. Enter a reason.',
+      'Thao tác này sẽ ngăn người dùng đăng nhập. Vui lòng nhập lý do.',
     requireReason: true,
   },
   lock: {
-    title: 'Lock Account',
-    confirmationText: 'This will lock the account. Enter a reason.',
+    title: 'Khóa tài khoản',
+    confirmationText: 'Thao tác này sẽ khóa tài khoản. Vui lòng nhập lý do.',
     requireReason: true,
   },
   unlock: {
-    title: 'Unlock Account',
-    confirmationText: 'Are you sure you want to unlock this account?',
+    title: 'Mở khóa tài khoản',
+    confirmationText: 'Bạn có chắc muốn mở khóa tài khoản này?',
     requireReason: false,
   },
   'reset-password': {
-    title: 'Reset Password',
+    title: 'Đặt lại mật khẩu',
     confirmationText:
-      'This will generate a new temporary password and revoke all sessions. Enter a reason.',
+      'Thao tác này sẽ tạo mật khẩu tạm thời mới và thu hồi tất cả phiên đăng nhập. Vui lòng nhập lý do.',
     requireReason: true,
   },
   'revoke-sessions': {
-    title: 'Revoke All Sessions',
+    title: 'Thu hồi phiên đăng nhập',
     confirmationText:
-      'This will revoke all active sessions for this user. Enter a reason.',
+      'Thao tác này sẽ thu hồi tất cả phiên đăng nhập của người dùng. Vui lòng nhập lý do.',
     requireReason: true,
   },
 };
@@ -289,7 +283,6 @@ const AccountDetailPage: React.FC = () => {
           await unlockAccount(accountIdNum);
           break;
         case 'reset-password': {
-          // Temporary password handled separately — do NOT log it
           const result = await resetPassword(accountIdNum, reason);
           setTemporaryPassword(result.temporaryPassword);
           break;
@@ -302,7 +295,6 @@ const AccountDetailPage: React.FC = () => {
     onSuccess: () => {
       setActiveAction(null);
       setActionError(null);
-      // Refetch account detail after successful action
       void queryClient.invalidateQueries({ queryKey: ['account-detail', accountIdNum] });
     },
     onError: (err: unknown) => {
@@ -329,10 +321,8 @@ const AccountDetailPage: React.FC = () => {
     setTemporaryPassword(null);
   };
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
-
   if (isNaN(accountIdNum)) {
-    return <Alert type="error" message="Invalid account ID." data-testid="invalid-account-id" />;
+    return <Alert type="error" message="ID tài khoản không hợp lệ." data-testid="invalid-account-id" />;
   }
 
   if (isLoading) {
@@ -342,8 +332,6 @@ const AccountDetailPage: React.FC = () => {
       </div>
     );
   }
-
-  // ── Error states ────────────────────────────────────────────────────────────
 
   if (isError) {
     if (isPermissionDenied(error)) {
@@ -393,33 +381,32 @@ const AccountDetailPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <Space>
           <Button onClick={() => navigate('/security/accounts')} data-testid="back-to-list-button">
-            ← Back to Account List
+            ← Quay lại danh sách
           </Button>
         </Space>
         {hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') && account && (
           <Space>
             <Link to={`/security/permissions/assignments?userId=${account.userId}`}>
               <Button data-testid="link-permission-assignment">
-                Manage Permissions
+                Phân quyền
               </Button>
             </Link>
             <Link to={`/security/users/${account.userId}/role-assignments`}>
               <Button data-testid="link-role-assignment">
-                Manage Roles
+                Vai trò
               </Button>
             </Link>
             <Link to={`/security/users/${account.userId}/admin-group-assignments`}>
               <Button data-testid="link-admin-group-assignment">
-                Manage Admin Groups
+                Nhóm quản trị
               </Button>
             </Link>
           </Space>
         )}
       </div>
 
-      <Title level={3}>Account Detail</Title>
+      <Title level={3}>Chi tiết tài khoản</Title>
 
-      {/* Status banner */}
       <Space style={{ marginBottom: 16 }}>
         <Tag
           color={STATUS_COLORS[status] ?? 'default'}
@@ -431,7 +418,7 @@ const AccountDetailPage: React.FC = () => {
         {account.mustChangePassword && (
           <Alert
             type="warning"
-            message="User must change password on next login."
+            message="Người dùng phải đổi mật khẩu khi đăng nhập lần tới."
             data-testid="must-change-password-warning"
             style={{ marginBottom: 0 }}
           />
@@ -439,7 +426,7 @@ const AccountDetailPage: React.FC = () => {
         {account.temporaryPasswordExpiresAt && (
           <Alert
             type="info"
-            message={`Temporary password expires at: ${new Date(account.temporaryPasswordExpiresAt).toLocaleString()}`}
+            message={`Mật khẩu tạm hết hạn lúc: ${new Date(account.temporaryPasswordExpiresAt).toLocaleString('vi-VN')}`}
             data-testid="temp-password-expiry-warning"
             style={{ marginBottom: 0 }}
           />
@@ -452,38 +439,37 @@ const AccountDetailPage: React.FC = () => {
         data-testid="account-descriptions"
         style={{ marginBottom: 24 }}
       >
-        <Descriptions.Item label="Account ID" data-testid="field-account-id">
+        <Descriptions.Item label="ID tài khoản" data-testid="field-account-id">
           {account.id}
         </Descriptions.Item>
-        <Descriptions.Item label="User ID" data-testid="field-user-id">
+        <Descriptions.Item label="ID người dùng" data-testid="field-user-id">
           {account.userId}
         </Descriptions.Item>
-        <Descriptions.Item label="Username" data-testid="field-username">
+        <Descriptions.Item label="Tên đăng nhập" data-testid="field-username">
           {account.username}
         </Descriptions.Item>
-        <Descriptions.Item label="Provider Type" data-testid="field-provider-type">
+        <Descriptions.Item label="Loại xác thực" data-testid="field-provider-type">
           {account.providerType}
         </Descriptions.Item>
-        <Descriptions.Item label="Failed Attempts" data-testid="field-failed-attempts">
+        <Descriptions.Item label="Số lần thất bại" data-testid="field-failed-attempts">
           {account.failedAttemptCount}
         </Descriptions.Item>
-        <Descriptions.Item label="Manual Lock" data-testid="field-is-manual-lock">
-          {account.isManualLock ? 'Yes' : 'No'}
+        <Descriptions.Item label="Khóa thủ công" data-testid="field-is-manual-lock">
+          {account.isManualLock ? 'Có' : 'Không'}
         </Descriptions.Item>
         {account.lockoutEnd && (
-          <Descriptions.Item label="Lockout Until" data-testid="field-lockout-end" span={2}>
-            {new Date(account.lockoutEnd).toLocaleString()}
+          <Descriptions.Item label="Khóa đến" data-testid="field-lockout-end" span={2}>
+            {new Date(account.lockoutEnd).toLocaleString('vi-VN')}
           </Descriptions.Item>
         )}
-        <Descriptions.Item label="Created At" data-testid="field-created-at">
-          {new Date(account.createdAt).toLocaleString()}
+        <Descriptions.Item label="Ngày tạo" data-testid="field-created-at">
+          {new Date(account.createdAt).toLocaleString('vi-VN')}
         </Descriptions.Item>
-        <Descriptions.Item label="Updated At" data-testid="field-updated-at">
-          {account.updatedAt ? new Date(account.updatedAt).toLocaleString() : '—'}
+        <Descriptions.Item label="Cập nhật lúc" data-testid="field-updated-at">
+          {account.updatedAt ? new Date(account.updatedAt).toLocaleString('vi-VN') : '—'}
         </Descriptions.Item>
       </Descriptions>
 
-      {/* Action buttons */}
       <Space wrap data-testid="account-actions">
         {canActivate && (
           <Button
@@ -491,7 +477,7 @@ const AccountDetailPage: React.FC = () => {
             onClick={() => handleActionClick('activate')}
             data-testid="activate-button"
           >
-            Activate
+            Kích hoạt
           </Button>
         )}
         {canDisable && (
@@ -500,7 +486,7 @@ const AccountDetailPage: React.FC = () => {
             onClick={() => handleActionClick('disable')}
             data-testid="disable-button"
           >
-            Disable
+            Vô hiệu hóa
           </Button>
         )}
         {canLock && (
@@ -509,7 +495,7 @@ const AccountDetailPage: React.FC = () => {
             onClick={() => handleActionClick('lock')}
             data-testid="lock-button"
           >
-            Lock
+            Khóa
           </Button>
         )}
         {canUnlock && (
@@ -517,7 +503,7 @@ const AccountDetailPage: React.FC = () => {
             onClick={() => handleActionClick('unlock')}
             data-testid="unlock-button"
           >
-            Unlock
+            Mở khóa
           </Button>
         )}
         {canResetPassword && (
@@ -525,7 +511,7 @@ const AccountDetailPage: React.FC = () => {
             onClick={() => handleActionClick('reset-password')}
             data-testid="reset-password-button"
           >
-            Reset Password
+            Đặt lại mật khẩu
           </Button>
         )}
         {canRevokeSessions && (
@@ -534,12 +520,11 @@ const AccountDetailPage: React.FC = () => {
             onClick={() => handleActionClick('revoke-sessions')}
             data-testid="revoke-sessions-button"
           >
-            Revoke Sessions
+            Thu hồi phiên
           </Button>
         )}
       </Space>
 
-      {/* Confirmation modal */}
       {activeConfig && (
         <ConfirmActionModal
           open={activeAction !== null}
@@ -553,7 +538,6 @@ const AccountDetailPage: React.FC = () => {
         />
       )}
 
-      {/* Temporary password modal — shown once after reset-password */}
       {temporaryPassword && (
         <TempPasswordModal
           open={true}

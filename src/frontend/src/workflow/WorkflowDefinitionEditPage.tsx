@@ -78,7 +78,7 @@ const WorkflowDefinitionEditPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to edit this workflow definition."
+        message="Bạn không có quyền sửa định nghĩa quy trình này."
         data-testid="permission-denied"
       />
     );
@@ -100,10 +100,10 @@ const WorkflowDefinitionEditPage: React.FC = () => {
     <div data-testid="workflow-definition-edit-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>
-          Edit: {definition.definitionCode}
+          Sửa: {definition.definitionCode}
         </Title>
         <Button>
-          <Link to={`/workflow/definitions/${id}`}>Back to Detail</Link>
+          <Link to={`/workflow/definitions/${id}`}>Quay lại chi tiết</Link>
         </Button>
       </Space>
 
@@ -118,7 +118,7 @@ const WorkflowDefinitionEditPage: React.FC = () => {
           action={
             showConcurrencyRefresh ? (
               <Button size="small" type="primary" onClick={handleRefresh} data-testid="refresh-btn">
-                Refresh
+                Tải lại
               </Button>
             ) : undefined
           }
@@ -134,13 +134,13 @@ const WorkflowDefinitionEditPage: React.FC = () => {
         >
           <Form.Item
             name="definitionName"
-            label="Definition Name"
-            rules={[{ required: true, message: 'Definition name is required' }]}
+            label="Tên định nghĩa"
+            rules={[{ required: true, message: 'Tên định nghĩa là bắt buộc' }]}
           >
             <Input data-testid="input-definitionName" />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Mô tả">
             <Input.TextArea rows={3} data-testid="input-description" />
           </Form.Item>
 
@@ -152,10 +152,10 @@ const WorkflowDefinitionEditPage: React.FC = () => {
                 loading={updateMutation.isPending}
                 data-testid="submit-update"
               >
-                Update Definition
+                Cập nhật định nghĩa
               </Button>
               <Button>
-                <Link to={`/workflow/definitions/${id}`}>Cancel</Link>
+                <Link to={`/workflow/definitions/${id}`}>Hủy</Link>
               </Button>
             </Space>
           </Form.Item>

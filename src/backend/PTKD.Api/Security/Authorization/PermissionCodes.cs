@@ -70,4 +70,15 @@ public static class PermissionCodes
     public const string CarePackageApprove = "CARE_PACKAGE_APPROVE";
     public const string CarePackageReject = "CARE_PACKAGE_REJECT";
     public const string CarePackageCreatePayment = "CARE_PACKAGE_CREATE_PAYMENT";
+
+    public const string GraveView = "GRAVE_VIEW";
+    public const string GraveCreate = "GRAVE_CREATE";
+    public const string GraveUpdate = "GRAVE_UPDATE";
+    public const string GraveTransferOwnership = "GRAVE_TRANSFER_OWNERSHIP";
+    public const string GraveAttachmentManage = "GRAVE_ATTACHMENT_MANAGE";
+
+    public const string CustomerCarePackageView = "CUSTOMER_CARE_PACKAGE_VIEW";
+    public const string CustomerCarePackageManage = "CUSTOMER_CARE_PACKAGE_MANAGE";
+
+    public const string TagManage = "TAG_MANAGE";
 }

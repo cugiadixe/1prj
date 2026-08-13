@@ -69,7 +69,7 @@ const CustomerMergeRequestCreatePage: React.FC = () => {
     if (!sourceCustomer || !targetCustomer) return;
 
     if (sourceCustomer.id === targetCustomer.id) {
-      setSubmitError('Source and target customer cannot be the same.');
+      setSubmitError('Khách hàng nguồn và đích không được trùng nhau.');
       return;
     }
 
@@ -115,14 +115,14 @@ const CustomerMergeRequestCreatePage: React.FC = () => {
         }}
       >
         <Title level={4} style={{ margin: 0 }}>
-          Create Merge Request
+          Tạo yêu cầu gộp
         </Title>
         <Space>
           <Button>
-            <Link to="/customers/merge/search">Find Duplicates</Link>
+            <Link to="/customers/merge/search">Tìm trùng lặp</Link>
           </Button>
           <Button>
-            <Link to="/customers/merge-requests">Back to Merge Requests</Link>
+            <Link to="/customers/merge-requests">Quay lại yêu cầu gộp</Link>
           </Button>
         </Space>
       </Space>
@@ -138,23 +138,23 @@ const CustomerMergeRequestCreatePage: React.FC = () => {
         />
       )}
 
-      <Card title="Select Customers" style={{ marginBottom: 16 }}>
+      <Card title="Chọn khách hàng" style={{ marginBottom: 16 }}>
         <Form form={form} layout="vertical">
-          <Form.Item label="Source Customer ID (to be merged/retired)">
+          <Form.Item label="Mã KH nguồn (sẽ được gộp/ngừng)">
             <InputNumber
               style={{ width: '100%' }}
               value={sourceId}
               onChange={handleSourceIdChange}
-              placeholder="Enter source customer ID"
+              placeholder="Nhập mã KH nguồn"
               data-testid="input-source-id"
             />
           </Form.Item>
-          <Form.Item label="Target Customer ID (survivor)">
+          <Form.Item label="Mã KH đích (giữ lại)">
             <InputNumber
               style={{ width: '100%' }}
               value={targetId}
               onChange={handleTargetIdChange}
-              placeholder="Enter target customer ID"
+              placeholder="Nhập mã KH đích"
               data-testid="input-target-id"
             />
           </Form.Item>
@@ -185,30 +185,30 @@ const CustomerMergeRequestCreatePage: React.FC = () => {
 
       {sourceCustomer && targetCustomer && (
         <>
-          <Card title="Source vs Survivor Comparison" style={{ marginBottom: 16 }}>
+          <Card title="So sánh nguồn và đích" style={{ marginBottom: 16 }}>
             <Descriptions bordered column={2}>
-              <Descriptions.Item label="Source Customer">
+              <Descriptions.Item label="KH nguồn">
                 {sourceCustomer.profile.fullName} (ID: {sourceCustomer.id})
               </Descriptions.Item>
-              <Descriptions.Item label="Target (Survivor) Customer">
+              <Descriptions.Item label="KH đích (giữ lại)">
                 {targetCustomer.profile.fullName} (ID: {targetCustomer.id})
               </Descriptions.Item>
-              <Descriptions.Item label="Source CCCD">
+              <Descriptions.Item label="CCCD nguồn">
                 {sourceCustomer.profile.cccd || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Target CCCD">
+              <Descriptions.Item label="CCCD đích">
                 {targetCustomer.profile.cccd || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Source Phone">
+              <Descriptions.Item label="ĐT nguồn">
                 {sourceCustomer.profile.phone || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Target Phone">
+              <Descriptions.Item label="ĐT đích">
                 {targetCustomer.profile.phone || '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Source Status">
+              <Descriptions.Item label="Trạng thái nguồn">
                 {sourceCustomer.customerStatus}
               </Descriptions.Item>
-              <Descriptions.Item label="Target Status">
+              <Descriptions.Item label="Trạng thái đích">
                 {targetCustomer.customerStatus}
               </Descriptions.Item>
             </Descriptions>
@@ -221,7 +221,7 @@ const CustomerMergeRequestCreatePage: React.FC = () => {
             loading={createMutation.isPending}
             data-testid="submit-merge-request"
           >
-            Submit Merge Request
+            Gửi yêu cầu gộp
           </Button>
         </>
       )}

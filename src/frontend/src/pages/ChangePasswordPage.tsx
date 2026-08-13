@@ -20,12 +20,6 @@ interface ChangePasswordFormValues {
   confirmPassword: string;
 }
 
-/**
- * MustChangePassword page (Phase 1B.1-J).
- * Only accessible by authenticated users with mustChangePassword=true.
- * After successful change, auth state is cleared and user is redirected to /login
- * (Phase G: backend revokes all sessions; fresh login required).
- */
 const ChangePasswordPage: React.FC = () => {
   const { isAuthenticated, mustChangePassword, onPasswordChanged, isBootstrapping } = useAuth();
   const navigate = useNavigate();
@@ -33,10 +27,8 @@ const ChangePasswordPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form] = Form.useForm<ChangePasswordFormValues>();
 
-  // Wait for bootstrap before enforcing guards
   if (isBootstrapping) return null;
 
-  // Route guard via declarative Navigate — avoids useEffect constraint
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -52,7 +44,6 @@ const ChangePasswordPage: React.FC = () => {
         CurrentPassword: values.currentPassword,
         NewPassword: values.newPassword,
       });
-      // Phase G: backend revokes all sessions — clear auth and return to /login
       onPasswordChanged();
       navigate('/login', { replace: true });
     } catch (err: unknown) {
@@ -60,14 +51,14 @@ const ChangePasswordPage: React.FC = () => {
         ?.status;
       if (status === 400) {
         setErrorMessage(
-          'Password change failed. The current password may be incorrect, or the new password does not meet policy requirements.',
+          'Đổi mật khẩu thất bại. Mật khẩu hiện tại có thể không đúng, hoặc mật khẩu mới không đáp ứng yêu cầu bảo mật.',
         );
       } else if (status === 403) {
-        setErrorMessage('Security validation failed. Please refresh the page and try again.');
+        setErrorMessage('Xác thực bảo mật thất bại. Vui lòng tải lại trang và thử lại.');
       } else if (status === 409) {
-        setErrorMessage('A concurrency conflict occurred. Please try again.');
+        setErrorMessage('Xung đột dữ liệu. Vui lòng thử lại.');
       } else {
-        setErrorMessage('Password change failed. Please try again later.');
+        setErrorMessage('Đổi mật khẩu thất bại. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -81,23 +72,23 @@ const ChangePasswordPage: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       }}
     >
-      <Card style={{ width: 420, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+      <Card style={{ width: 420, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', borderRadius: 12 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={3} style={{ marginBottom: 4 }}>
-            Change Your Password
+            Đổi mật khẩu
           </Title>
           <Typography.Text type="secondary">
-            Your account requires a password change before you can continue.
+            Tài khoản của bạn yêu cầu đổi mật khẩu trước khi tiếp tục sử dụng.
           </Typography.Text>
         </div>
 
         {errorMessage && (
           <Alert
             type="error"
-            title={errorMessage}
+            message={errorMessage}
             showIcon
             style={{ marginBottom: 16 }}
             data-testid="change-password-error"
@@ -113,44 +104,46 @@ const ChangePasswordPage: React.FC = () => {
         >
           <Form.Item
             name="currentPassword"
-            label="Current Password"
+            label="Mật khẩu hiện tại"
             rules={[
               {
                 required: true,
-                message: 'Please enter your current password.',
+                message: 'Vui lòng nhập mật khẩu hiện tại.',
               },
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Current password"
+              placeholder="Mật khẩu hiện tại"
               data-testid="change-current-password"
               autoFocus
+              size="large"
             />
           </Form.Item>
 
           <Form.Item
             name="newPassword"
-            label="New Password"
+            label="Mật khẩu mới"
             rules={[
-              { required: true, message: 'Please enter your new password.' },
+              { required: true, message: 'Vui lòng nhập mật khẩu mới.' },
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="New password"
+              placeholder="Mật khẩu mới"
               data-testid="change-new-password"
+              size="large"
             />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
-            label="Confirm New Password"
+            label="Xác nhận mật khẩu mới"
             dependencies={['newPassword']}
             rules={[
               {
                 required: true,
-                message: 'Please confirm your new password.',
+                message: 'Vui lòng xác nhận mật khẩu mới.',
               },
               ({ getFieldValue }) => ({
                 validator(_, value) {
@@ -158,7 +151,7 @@ const ChangePasswordPage: React.FC = () => {
                     return Promise.resolve();
                   }
                   return Promise.reject(
-                    new Error('New passwords do not match.'),
+                    new Error('Mật khẩu mới không khớp.'),
                   );
                 },
               }),
@@ -166,8 +159,9 @@ const ChangePasswordPage: React.FC = () => {
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Confirm new password"
+              placeholder="Xác nhận mật khẩu mới"
               data-testid="change-confirm-password"
+              size="large"
             />
           </Form.Item>
 
@@ -177,9 +171,10 @@ const ChangePasswordPage: React.FC = () => {
               htmlType="submit"
               loading={loading}
               block
+              size="large"
               data-testid="change-password-submit"
             >
-              Change Password
+              Đổi mật khẩu
             </Button>
           </Form.Item>
         </Form>

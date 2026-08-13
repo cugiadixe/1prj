@@ -12,7 +12,7 @@ const { Title } = Typography;
 const PaymentListPage: React.FC = () => {
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
-  const [companyId] = useState<number>(1); // In a real app this might come from context
+  const [companyId] = useState<number>(1);
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
@@ -24,14 +24,11 @@ const PaymentListPage: React.FC = () => {
       listPayments({ companyId, customerId, status: statusFilter, page, pageSize }),
   });
 
-  // Only allow list access if user has PAYMENT_CREATE_DRAFT (or some read permission, but using accepted UI gating)
-  // According to accepted plan, UI gating relies on specific actions. List page is usually gated by generic or PAYMENT_CREATE_DRAFT.
-  // We'll gate it with PAYMENT_CREATE_DRAFT as minimum access, but if the API returns 403, we show permission denied.
   if (isPermissionDenied(error)) {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view payments."
+        message="Bạn không có quyền xem thanh toán."
         data-testid="permission-denied"
       />
     );
@@ -39,29 +36,29 @@ const PaymentListPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Bill Code',
+      title: 'Mã hóa đơn',
       dataIndex: 'billCode',
       key: 'billCode',
     },
     {
-      title: 'Payment Method',
+      title: 'Phương thức',
       dataIndex: 'paymentMethod',
       key: 'paymentMethod',
     },
     {
-      title: 'Date',
+      title: 'Ngày',
       dataIndex: 'paymentDate',
       key: 'paymentDate',
-      render: (val: string) => new Date(val).toLocaleDateString(),
+      render: (val: string) => new Date(val).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Total Amount',
+      title: 'Tổng tiền',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
-      render: (val: number) => `${val.toLocaleString()} VND`,
+      render: (val: number) => `${val.toLocaleString('vi-VN')} VND`,
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
@@ -76,11 +73,11 @@ const PaymentListPage: React.FC = () => {
   return (
     <div data-testid="payment-list-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Payments</Title>
+        <Title level={4} style={{ margin: 0 }}>Thanh toán</Title>
         <Space>
           {hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') && (
             <Button type="primary" data-testid="create-payment-btn">
-              <Link to="/payments/new">Create Draft Payment</Link>
+              <Link to="/payments/new">Tạo phiếu nháp</Link>
             </Button>
           )}
         </Space>
@@ -88,7 +85,7 @@ const PaymentListPage: React.FC = () => {
 
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder="Search by customer ID..."
+          placeholder="Tìm theo mã KH..."
           allowClear
           onSearch={(val) => {
             const parsed = parseInt(val, 10);
@@ -99,15 +96,15 @@ const PaymentListPage: React.FC = () => {
           data-testid="payment-customer-search"
         />
         <Select
-          placeholder="Status"
+          placeholder="Trạng thái"
           allowClear
           style={{ width: 150 }}
           onChange={(val) => { setStatusFilter(val); setPage(1); }}
           value={statusFilter}
           data-testid="payment-status-filter"
           options={[
-            { label: 'Draft', value: 'DRAFT' },
-            { label: 'Confirmed', value: 'CONFIRMED' },
+            { label: 'Nháp', value: 'DRAFT' },
+            { label: 'Đã xác nhận', value: 'CONFIRMED' },
           ]}
         />
       </Space>
@@ -126,7 +123,7 @@ const PaymentListPage: React.FC = () => {
       {!isLoading && !error && data && data.items.length === 0 && (
         <Alert
           type="info"
-          message="No payments found."
+          message="Không tìm thấy thanh toán."
           data-testid="payment-list-empty"
         />
       )}

@@ -12,12 +12,16 @@ vi.mock('../auth/AuthProvider', () => ({
 
 vi.mock('./customersApi', () => ({
   searchCustomers: vi.fn(),
+  getCompanyLookups: vi.fn(),
+  getStaffLookups: vi.fn(),
 }));
 
 let mockHasPermission = vi.fn();
 
-import { searchCustomers } from './customersApi';
+import { searchCustomers, getCompanyLookups, getStaffLookups } from './customersApi';
 const mockSearchCustomers = vi.mocked(searchCustomers);
+const mockGetCompanyLookups = vi.mocked(getCompanyLookups);
+const mockGetStaffLookups = vi.mocked(getStaffLookups);
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -35,6 +39,8 @@ describe('CustomersPage', () => {
     vi.clearAllMocks();
     queryClient.clear();
     mockHasPermission = vi.fn().mockReturnValue(false);
+    mockGetCompanyLookups.mockResolvedValue([]);
+    mockGetStaffLookups.mockResolvedValue([]);
   });
 
   it('renders the customers page', async () => {

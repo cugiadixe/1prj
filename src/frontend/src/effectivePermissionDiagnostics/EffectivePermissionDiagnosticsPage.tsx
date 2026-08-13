@@ -37,12 +37,12 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
   const handleLookup = () => {
     const trimmed = userIdInput.trim();
     if (!trimmed) {
-      setValidationError('User ID is required.');
+      setValidationError('Mã người dùng là bắt buộc.');
       return;
     }
     const parsed = Number(trimmed);
     if (!Number.isInteger(parsed) || parsed <= 0) {
-      setValidationError('User ID must be a positive integer.');
+      setValidationError('Mã người dùng phải là số nguyên dương.');
       return;
     }
     setValidationError(null);
@@ -122,20 +122,20 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
     <div data-testid="effective-permission-diagnostics-page">
       <Space style={{ marginBottom: 16 }}>
         <Button onClick={() => navigate(-1)} data-testid="back-button">
-          ← Back
+          ← Quay lại
         </Button>
       </Space>
 
-      <Title level={3}>Effective Permission Diagnostics</Title>
+      <Title level={3}>Chẩn đoán quyền hiệu lực</Title>
       <Text type="secondary" data-testid="page-description">
-        Backend-authoritative final effective permissions for a user.
-        Source-level attribution is not available.
+        Quyền hiệu lực cuối cùng do backend xác định cho một người dùng.
+        Không có thông tin phân bổ theo nguồn.
       </Text>
 
-      <Card title="User Selection" style={{ marginTop: 16, marginBottom: 16 }} data-testid="user-selection-card">
+      <Card title="Chọn người dùng" style={{ marginTop: 16, marginBottom: 16 }} data-testid="user-selection-card">
         <Space>
           <Input
-            placeholder="Enter User ID"
+            placeholder="Nhập mã người dùng"
             value={userIdInput}
             onChange={(e) => {
               setUserIdInput(e.target.value);
@@ -146,7 +146,7 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
             data-testid="user-id-input"
           />
           <Button type="primary" onClick={handleLookup} data-testid="lookup-button">
-            Look Up
+            Tra cứu
           </Button>
         </Space>
         {validationError && (
@@ -160,14 +160,14 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
         {currentCompanyId !== null && (
           <div style={{ marginTop: 8 }}>
             <Text type="secondary" data-testid="company-context-indicator">
-              Company context: {currentCompanyId}
+              Bối cảnh công ty: {currentCompanyId}
             </Text>
           </div>
         )}
         {currentCompanyId === null && submittedUserId !== null && (
           <div style={{ marginTop: 8 }}>
             <Text type="secondary" data-testid="global-context-indicator">
-              Showing global effective permissions (no company selected).
+              Đang hiển thị quyền hiệu lực toàn cục (chưa chọn công ty).
             </Text>
           </div>
         )}
@@ -180,7 +180,7 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
       {isEffectiveError && (
         <Alert
           type="error"
-          message={getSanitizedErrorMessage(effectiveError, 'Failed to fetch effective permissions.')}
+          message={getSanitizedErrorMessage(effectiveError, 'Không thể tải quyền hiệu lực.')}
           data-testid="effective-error"
           style={{ marginBottom: 16 }}
         />
@@ -189,24 +189,24 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
       {effectivePermissions && !isEffectiveError && (
         <>
           <Card
-            title="Backend-Authoritative Effective Permissions"
+            title="Quyền hiệu lực do Backend xác định"
             style={{ marginBottom: 16 }}
             data-testid="effective-permissions-card"
           >
             <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="User ID">{effectivePermissions.userId}</Descriptions.Item>
-              <Descriptions.Item label="Company ID">
-                {effectivePermissions.companyId ?? 'Global'}
+              <Descriptions.Item label="Mã người dùng">{effectivePermissions.userId}</Descriptions.Item>
+              <Descriptions.Item label="Mã công ty">
+                {effectivePermissions.companyId ?? 'Toàn cục'}
               </Descriptions.Item>
-              <Descriptions.Item label="Total Permissions">
+              <Descriptions.Item label="Tổng số quyền">
                 {effectivePermissions.permissionCodes.length}
               </Descriptions.Item>
             </Descriptions>
 
             {effectivePermissions.permissionCodes.length === 0 ? (
               <Text type="secondary" data-testid="no-permissions-message">
-                This user has no effective permissions
-                {currentCompanyId !== null ? ' for the selected company' : ''}.
+                Người dùng này không có quyền hiệu lực nào
+                {currentCompanyId !== null ? ' cho công ty đã chọn' : ''}.
               </Text>
             ) : (
               <Table
@@ -217,41 +217,41 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
                 data-testid="effective-permissions-table"
                 columns={[
                   {
-                    title: 'Permission Code',
+                    title: 'Mã quyền',
                     dataIndex: 'code',
                     key: 'code',
                     render: (code: string) => <Text strong>{code}</Text>,
                   },
                   {
-                    title: 'Description',
+                    title: 'Mô tả',
                     dataIndex: 'description',
                     key: 'description',
                     render: (desc: string | null) => desc ?? <Text type="secondary">—</Text>,
                   },
                   {
-                    title: 'Module',
+                    title: 'Phân hệ',
                     dataIndex: 'moduleCode',
                     key: 'moduleCode',
                     render: (mod: string | null) => mod ?? <Text type="secondary">—</Text>,
                   },
                   {
-                    title: 'Scope',
+                    title: 'Phạm vi',
                     dataIndex: 'dataScope',
                     key: 'dataScope',
                     render: (scope: string | null) =>
                       scope ? <Tag>{scope}</Tag> : <Text type="secondary">—</Text>,
                   },
                   {
-                    title: 'Active',
+                    title: 'Hoạt động',
                     dataIndex: 'isActive',
                     key: 'isActive',
                     render: (active: boolean | null) =>
                       active === null ? (
                         <Text type="secondary">—</Text>
                       ) : active ? (
-                        <Tag color="green">Yes</Tag>
+                        <Tag color="green">Có</Tag>
                       ) : (
-                        <Tag color="red">No</Tag>
+                        <Tag color="red">Không</Tag>
                       ),
                   },
                 ]}
@@ -260,13 +260,13 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
           </Card>
 
           <Card
-            title="Context Only — Not Authoritative Source Attribution"
+            title="Chỉ mang tính tham khảo — Không phải phân bổ nguồn chính thức"
             style={{ marginBottom: 16 }}
             data-testid="contextual-sections-card"
           >
             <Alert
               type="info"
-              message="The sections below show contextual information from related APIs. They do not represent authoritative source-level attribution for the effective permissions above."
+              message="Các mục bên dưới hiển thị thông tin tham khảo từ các API liên quan. Chúng không thể hiện phân bổ nguồn chính thức cho các quyền hiệu lực nêu trên."
               style={{ marginBottom: 16 }}
               data-testid="context-disclaimer"
             />
@@ -275,12 +275,12 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
               items={[
                 {
                   key: 'individual',
-                  label: 'Individual Permissions (Context)',
+                  label: 'Quyền cá nhân (Tham khảo)',
                   children: (
                     <div data-testid="individual-permissions-context">
                       {isLoadingIndividual && <Spin data-testid="individual-loading" />}
                       {!isLoadingIndividual && individualPermissions && individualPermissions.length === 0 && (
-                        <Text type="secondary">No individual permissions found.</Text>
+                        <Text type="secondary">Không tìm thấy quyền cá nhân nào.</Text>
                       )}
                       {!isLoadingIndividual && individualPermissions && individualPermissions.length > 0 && (
                         <Table
@@ -290,9 +290,9 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
                           pagination={false}
                           data-testid="individual-permissions-table"
                           columns={[
-                            { title: 'Permission', dataIndex: 'permissionCode', key: 'permissionCode' },
+                            { title: 'Quyền', dataIndex: 'permissionCode', key: 'permissionCode' },
                             {
-                              title: 'Grant',
+                              title: 'Cấp quyền',
                               dataIndex: 'grantType',
                               key: 'grantType',
                               render: (gt: string) =>
@@ -302,8 +302,8 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
                                   <Tag color="red">{gt}</Tag>
                                 ),
                             },
-                            { title: 'Scope', dataIndex: 'scopeType', key: 'scopeType' },
-                            { title: 'Status', dataIndex: 'assignmentStatus', key: 'assignmentStatus' },
+                            { title: 'Phạm vi', dataIndex: 'scopeType', key: 'scopeType' },
+                            { title: 'Trạng thái', dataIndex: 'assignmentStatus', key: 'assignmentStatus' },
                           ]}
                         />
                       )}
@@ -312,12 +312,12 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
                 },
                 {
                   key: 'roles',
-                  label: 'Role Assignments (Context)',
+                  label: 'Phân vai trò (Tham khảo)',
                   children: (
                     <div data-testid="role-assignments-context">
                       {isLoadingRoles && <Spin data-testid="roles-loading" />}
                       {!isLoadingRoles && roleAssignments && roleAssignments.length === 0 && (
-                        <Text type="secondary">No role assignments found.</Text>
+                        <Text type="secondary">Không tìm thấy phân vai trò nào.</Text>
                       )}
                       {!isLoadingRoles && roleAssignments && roleAssignments.length > 0 && (
                         <RoleAssignmentsList assignments={roleAssignments} />
@@ -327,12 +327,12 @@ const EffectivePermissionDiagnosticsPage: React.FC = () => {
                 },
                 {
                   key: 'adminGroups',
-                  label: 'Admin Group Assignments (Context)',
+                  label: 'Phân nhóm quản trị (Tham khảo)',
                   children: (
                     <div data-testid="admin-group-assignments-context">
                       {isLoadingAdminGroups && <Spin data-testid="admin-groups-loading" />}
                       {!isLoadingAdminGroups && adminGroupAssignments && adminGroupAssignments.length === 0 && (
-                        <Text type="secondary">No admin group assignments found.</Text>
+                        <Text type="secondary">Không tìm thấy phân nhóm quản trị nào.</Text>
                       )}
                       {!isLoadingAdminGroups && adminGroupAssignments && adminGroupAssignments.length > 0 && (
                         <AdminGroupAssignmentsList assignments={adminGroupAssignments} />
@@ -361,13 +361,13 @@ const RoleAssignmentsList: React.FC<{ assignments: UserRoleAssignmentDto[] }> = 
               <>
                 <Text strong>{ra.roleCode}</Text> — {ra.roleName}
                 {ra.isActive ? (
-                  <Tag color="green" style={{ marginLeft: 8 }}>Active</Tag>
+                  <Tag color="green" style={{ marginLeft: 8 }}>Hoạt động</Tag>
                 ) : (
-                  <Tag color="red" style={{ marginLeft: 8 }}>Inactive</Tag>
+                  <Tag color="red" style={{ marginLeft: 8 }}>Ngừng hoạt động</Tag>
                 )}
               </>
             }
-            description={`Scope: ${ra.scopeType}${ra.companyId ? ` (Company ${ra.companyId})` : ''}`}
+            description={`Phạm vi: ${ra.scopeType}${ra.companyId ? ` (Công ty ${ra.companyId})` : ''}`}
           />
         </List.Item>
       )}

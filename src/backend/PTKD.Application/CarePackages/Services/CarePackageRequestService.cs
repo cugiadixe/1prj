@@ -80,6 +80,8 @@ public class CarePackageRequestService : ICarePackageRequestService
             .Select(x => MapToDto(x))
             .ToArrayAsync(ct);
 
+        await EnrichNamesAsync(db, items, ct);
+
         return new PagedResult<CarePackageRequestDto>
         {
             Items = items,
@@ -101,7 +103,11 @@ public class CarePackageRequestService : ICarePackageRequestService
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == companyId, ct);
 
-        return entity == null ? null : MapToDto(entity);
+        if (entity == null) return null;
+
+        var dto = MapToDto(entity);
+        await EnrichNamesAsync(db, new[] { dto }, ct);
+        return dto;
     }
 
     public async Task<CarePackageRequestDto> CreateAsync(
@@ -326,6 +332,40 @@ public class CarePackageRequestService : ICarePackageRequestService
         await dbContext.SaveChangesAsync(ct);
 
         return MapToDto(request);
+    }
+
+    private static async Task EnrichNamesAsync(IOrganizationDbContext db, IReadOnlyCollection<CarePackageRequestDto> dtos, CancellationToken ct)
+    {
+        if (dtos.Count == 0) return;
+
+        var customerIds = dtos.Select(d => d.CustomerId).Distinct().ToArray();
+        var customerInfo = await db.Customers
+            .AsNoTracking()
+            .Where(c => customerIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.CustomerCode, FullName = c.Profile.FullName })
+            .ToDictionaryAsync(c => c.Id, ct);
+
+        var serviceIds = dtos.Where(d => d.ServiceId.HasValue).Select(d => d.ServiceId!.Value).Distinct().ToArray();
+        var serviceInfo = serviceIds.Length == 0
+            ? new Dictionary<long, string>()
+            : await db.Services
+                .AsNoTracking()
+                .Where(s => serviceIds.Contains(s.Id))
+                .Join(db.ServiceTypes, s => s.ServiceTypeId, st => st.Id, (s, st) => new { s.Id, st.Name })
+                .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+
+        foreach (var d in dtos)
+        {
+            if (customerInfo.TryGetValue(d.CustomerId, out var c))
+            {
+                d.CustomerName = c.FullName;
+                d.CustomerCode = c.CustomerCode;
+            }
+            if (d.ServiceId.HasValue && serviceInfo.TryGetValue(d.ServiceId.Value, out var name))
+            {
+                d.ServiceName = name;
+            }
+        }
     }
 
     private static CarePackageRequestDto MapToDto(CarePackageRequest entity)

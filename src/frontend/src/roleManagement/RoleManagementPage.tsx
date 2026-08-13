@@ -99,7 +99,7 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
   return (
     <Modal
       open={open}
-      title={isUpdate ? 'Update Role' : 'Create Role'}
+      title={isUpdate ? 'Cập nhật vai trò' : 'Tạo vai trò'}
       onOk={handleOk}
       onCancel={onCancel}
       confirmLoading={isLoading}
@@ -110,27 +110,27 @@ const RoleFormModal: React.FC<RoleFormModalProps> = ({
         {!isUpdate && (
           <Form.Item
             name="roleCode"
-            label="Role Code"
-            rules={[{ required: true, message: 'Role code is required' }]}
+            label="Mã vai trò"
+            rules={[{ required: true, message: 'Mã vai trò là bắt buộc' }]}
           >
             <Input data-testid="role-code-input" />
           </Form.Item>
         )}
         <Form.Item
           name="name"
-          label="Name"
-          rules={[{ required: true, message: 'Name is required' }]}
+          label="Tên"
+          rules={[{ required: true, message: 'Tên là bắt buộc' }]}
         >
           <Input data-testid="role-name-input" />
         </Form.Item>
-        <Form.Item name="description" label="Description">
+        <Form.Item name="description" label="Mô tả">
           <Input.TextArea data-testid="role-description-input" />
         </Form.Item>
         {!isUpdate && (
           <Form.Item
             name="scopeType"
-            label="Scope Type"
-            rules={[{ required: true, message: 'Scope type is required' }]}
+            label="Loại phạm vi"
+            rules={[{ required: true, message: 'Loại phạm vi là bắt buộc' }]}
           >
             <Select data-testid="role-scope-input">
               <Option value="GLOBAL">GLOBAL</Option>
@@ -183,7 +183,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Add Permissions to Role"
+      title="Thêm quyền vào vai trò"
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={isLoading}
@@ -194,7 +194,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
       <Select
         mode="multiple"
         style={{ width: '100%' }}
-        placeholder="Select permissions"
+        placeholder="Chọn quyền"
         value={selectedPermissions}
         onChange={setSelectedPermissions}
         data-testid="permissions-select"
@@ -264,7 +264,7 @@ const RoleManagementPage: React.FC = () => {
     onSuccess: (newRole) => {
       setShowRoleModal(false);
       setRoleFormError(null);
-      setSuccessMessage('Role created successfully.');
+      setSuccessMessage('Tạo vai trò thành công.');
       void queryClient.invalidateQueries({ queryKey: ['roles'] });
       setSelectedRoleId(newRole.id);
     },
@@ -278,7 +278,7 @@ const RoleManagementPage: React.FC = () => {
     onSuccess: () => {
       setShowRoleModal(false);
       setRoleFormError(null);
-      setSuccessMessage('Role updated successfully.');
+      setSuccessMessage('Cập nhật vai trò thành công.');
       void queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
     onError: (err: any) => {
@@ -289,12 +289,12 @@ const RoleManagementPage: React.FC = () => {
   const deactivateRoleMutation = useMutation({
     mutationFn: (request: DeactivateRoleRequest) => roleManagementApi.deactivateRole(selectedRoleId!, request),
     onSuccess: () => {
-      setSuccessMessage('Role deactivated successfully.');
+      setSuccessMessage('Vô hiệu hóa vai trò thành công.');
       void queryClient.invalidateQueries({ queryKey: ['roles'] });
       setSelectedRoleId(null);
     },
     onError: (err: any) => {
-      Modal.error({ title: 'Deactivate Failed', content: err?.response?.data?.detail || ROLE_MANAGEMENT_ERRORS.DEACTIVATE_ROLE_FAILED });
+      Modal.error({ title: 'Vô hiệu hóa thất bại', content: err?.response?.data?.detail || ROLE_MANAGEMENT_ERRORS.DEACTIVATE_ROLE_FAILED });
     },
   });
 
@@ -303,7 +303,7 @@ const RoleManagementPage: React.FC = () => {
     onSuccess: () => {
       setShowPermissionsModal(false);
       setPermissionsFormError(null);
-      setSuccessMessage('Permissions added successfully.');
+      setSuccessMessage('Thêm quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
     onError: (err: any) => {
@@ -314,11 +314,11 @@ const RoleManagementPage: React.FC = () => {
   const removePermissionMutation = useMutation({
     mutationFn: (code: string) => roleManagementApi.removeRolePermission(selectedRoleId!, code),
     onSuccess: () => {
-      setSuccessMessage('Permission removed successfully.');
+      setSuccessMessage('Gỡ quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
     onError: (err: any) => {
-      Modal.error({ title: 'Remove Failed', content: err?.response?.data?.detail || ROLE_MANAGEMENT_ERRORS.REMOVE_PERMISSION_FAILED });
+      Modal.error({ title: 'Gỡ quyền thất bại', content: err?.response?.data?.detail || ROLE_MANAGEMENT_ERRORS.REMOVE_PERMISSION_FAILED });
     },
   });
 
@@ -346,9 +346,9 @@ const RoleManagementPage: React.FC = () => {
   const handleDeactivateRole = () => {
     if (!selectedRole) return;
     Modal.confirm({
-      title: 'Deactivate Role',
-      content: `Are you sure you want to deactivate the role ${selectedRole.roleCode}?`,
-      okText: 'Deactivate',
+      title: 'Vô hiệu hóa vai trò',
+      content: `Bạn có chắc chắn muốn vô hiệu hóa vai trò ${selectedRole.roleCode}?`,
+      okText: 'Vô hiệu hóa',
       okType: 'danger',
       onOk: () => deactivateRoleMutation.mutate({ rowVersion: selectedRole.rowVersion }),
     });
@@ -356,7 +356,7 @@ const RoleManagementPage: React.FC = () => {
 
   const handleOpenAddPermissions = () => {
     if (selectedRole?.scopeType === 'COMPANY' && currentCompanyId === null) {
-      Modal.error({ title: 'Company Required', content: ROLE_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
+      Modal.error({ title: 'Cần chọn công ty', content: ROLE_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
       return;
     }
     setPermissionsFormError(null);
@@ -365,13 +365,13 @@ const RoleManagementPage: React.FC = () => {
 
   const handleRemovePermission = (code: string) => {
     if (selectedRole?.scopeType === 'COMPANY' && currentCompanyId === null) {
-      Modal.error({ title: 'Company Required', content: ROLE_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
+      Modal.error({ title: 'Cần chọn công ty', content: ROLE_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
       return;
     }
     Modal.confirm({
-      title: 'Remove Permission',
-      content: `Are you sure you want to remove ${code} from ${selectedRole?.roleCode}?`,
-      okText: 'Remove',
+      title: 'Gỡ quyền',
+      content: `Bạn có chắc chắn muốn gỡ ${code} khỏi ${selectedRole?.roleCode}?`,
+      okText: 'Gỡ',
       okType: 'danger',
       onOk: () => removePermissionMutation.mutate(code),
     });
@@ -392,10 +392,10 @@ const RoleManagementPage: React.FC = () => {
   return (
     <div data-testid="role-management-page">
       <Space style={{ marginBottom: 16 }}>
-        <Button onClick={() => navigate(-1)} data-testid="back-button">← Back</Button>
+        <Button onClick={() => navigate(-1)} data-testid="back-button">← Quay lại</Button>
       </Space>
 
-      <Title level={3}>Role Management</Title>
+      <Title level={3}>Quản lý vai trò</Title>
 
       {successMessage && (
         <Alert
@@ -408,7 +408,7 @@ const RoleManagementPage: React.FC = () => {
         />
       )}
 
-      <Card title="Roles" style={{ marginBottom: 16 }} extra={<Button type="primary" onClick={handleOpenCreateRole} data-testid="create-role-btn">Create Role</Button>} data-testid="roles-list-card">
+      <Card title="Vai trò" style={{ marginBottom: 16 }} extra={<Button type="primary" onClick={handleOpenCreateRole} data-testid="create-role-btn">Tạo vai trò</Button>} data-testid="roles-list-card">
         {isLoadingRoles && <Spin data-testid="roles-loading" />}
         {!isLoadingRoles && roles && (
           <List
@@ -419,11 +419,11 @@ const RoleManagementPage: React.FC = () => {
               <List.Item
                 key={r.id}
                 actions={[
-                  <Button key="select" type="link" onClick={() => { setSelectedRoleId(r.id); setSuccessMessage(null); }} data-testid={`select-role-${r.id}`}>Select</Button>
+                  <Button key="select" type="link" onClick={() => { setSelectedRoleId(r.id); setSuccessMessage(null); }} data-testid={`select-role-${r.id}`}>Chọn</Button>
                 ]}
               >
                 <List.Item.Meta
-                  title={<><Text strong>{r.roleCode}</Text> {r.isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>}</>}
+                  title={<><Text strong>{r.roleCode}</Text> {r.isActive ? <Tag color="green">Hoạt động</Tag> : <Tag color="red">Ngừng hoạt động</Tag>}</>}
                   description={`${r.name} (${r.scopeType})`}
                 />
               </List.Item>
@@ -434,33 +434,33 @@ const RoleManagementPage: React.FC = () => {
 
       {selectedRole && (
         <Card
-          title={`Role Details: ${selectedRole.roleCode}`}
+          title={`Chi tiết vai trò: ${selectedRole.roleCode}`}
           style={{ marginBottom: 16 }}
           data-testid="role-detail-card"
           extra={
             <Space>
-              <Button onClick={handleOpenEditRole} data-testid="edit-role-btn">Edit</Button>
-              <Button danger onClick={handleDeactivateRole} disabled={!selectedRole.isActive} data-testid="deactivate-role-btn">Deactivate</Button>
+              <Button onClick={handleOpenEditRole} data-testid="edit-role-btn">Sửa</Button>
+              <Button danger onClick={handleDeactivateRole} disabled={!selectedRole.isActive} data-testid="deactivate-role-btn">Vô hiệu hóa</Button>
             </Space>
           }
         >
           <Descriptions bordered size="small" column={1} style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Name">{selectedRole.name}</Descriptions.Item>
-            <Descriptions.Item label="Description">{selectedRole.description || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Scope">{selectedRole.scopeType}</Descriptions.Item>
-            <Descriptions.Item label="Status">{selectedRole.isActive ? 'Active' : 'Inactive'}</Descriptions.Item>
+            <Descriptions.Item label="Tên">{selectedRole.name}</Descriptions.Item>
+            <Descriptions.Item label="Mô tả">{selectedRole.description || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Phạm vi">{selectedRole.scopeType}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">{selectedRole.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}</Descriptions.Item>
           </Descriptions>
 
           <Card
             type="inner"
-            title="Permissions"
-            extra={<Button size="small" type="primary" onClick={handleOpenAddPermissions} disabled={!selectedRole.isActive} data-testid="add-permissions-btn">Add Permissions</Button>}
+            title="Quyền"
+            extra={<Button size="small" type="primary" onClick={handleOpenAddPermissions} disabled={!selectedRole.isActive} data-testid="add-permissions-btn">Thêm quyền</Button>}
           >
             {selectedRole.scopeType === 'COMPANY' && currentCompanyId === null && (
               <Alert type="warning" message={ROLE_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED} style={{ marginBottom: 16 }} data-testid="company-required-warning" />
             )}
             {selectedRole.permissionCodes.length === 0 ? (
-              <Text type="secondary">No permissions assigned.</Text>
+              <Text type="secondary">Chưa gán quyền nào.</Text>
             ) : (
               <List
                 size="small"
@@ -469,7 +469,7 @@ const RoleManagementPage: React.FC = () => {
                   <List.Item
                     key={code}
                     actions={[
-                      <Button key="remove" danger type="link" size="small" onClick={() => handleRemovePermission(code)} disabled={!selectedRole.isActive} data-testid={`remove-permission-${code}`}>Remove</Button>
+                      <Button key="remove" danger type="link" size="small" onClick={() => handleRemovePermission(code)} disabled={!selectedRole.isActive} data-testid={`remove-permission-${code}`}>Gỡ</Button>
                     ]}
                   >
                     <List.Item.Meta title={code} />

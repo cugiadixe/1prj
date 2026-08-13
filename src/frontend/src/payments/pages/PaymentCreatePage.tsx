@@ -31,7 +31,7 @@ const PaymentCreatePage: React.FC = () => {
       return createDraft(payload);
     },
     onSuccess: (data) => {
-      message.success('Draft payment created successfully.');
+      message.success('Tạo thanh toán nháp thành công.');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       navigate(`/payments/${data.id}`);
     },
@@ -49,52 +49,52 @@ const PaymentCreatePage: React.FC = () => {
   return (
     <div data-testid="payment-create-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Create Draft Payment</Title>
+        <Title level={4} style={{ margin: 0 }}>Tạo thanh toán nháp</Title>
       </Space>
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        <Card title="General Information" style={{ marginBottom: 16 }}>
-          <Form.Item name="customerId" label="Customer ID" rules={[{ required: true }]}>
+        <Card title="Thông tin chung" style={{ marginBottom: 16 }}>
+          <Form.Item name="customerId" label="Mã khách hàng" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} data-testid="create-customer-id" />
           </Form.Item>
-          <Form.Item name="companyId" label="Company ID" rules={[{ required: true }]}>
+          <Form.Item name="companyId" label="Mã công ty" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} data-testid="create-company-id" />
           </Form.Item>
-          <Form.Item name="paymentMethod" label="Payment Method" rules={[{ required: true }]}>
+          <Form.Item name="paymentMethod" label="Phương thức thanh toán" rules={[{ required: true }]}>
             <Input style={{ width: '100%' }} data-testid="create-payment-method" />
           </Form.Item>
-          <Form.Item name="paymentDate" label="Payment Date" rules={[{ required: true }]}>
+          <Form.Item name="paymentDate" label="Ngày thanh toán" rules={[{ required: true }]}>
             <DatePicker style={{ width: '100%' }} data-testid="create-payment-date" />
           </Form.Item>
-          <Form.Item name="notes" label="Notes">
+          <Form.Item name="notes" label="Ghi chú">
             <Input.TextArea data-testid="create-notes" />
           </Form.Item>
         </Card>
 
-        <Card title="Payment Items" style={{ marginBottom: 16 }}>
+        <Card title="Các mục thanh toán" style={{ marginBottom: 16 }}>
           {items.map((item, index) => (
             <Space key={item.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-              <Form.Item name={`serviceId_${index}`} label="Service ID" rules={[{ required: true }]}>
+              <Form.Item name={`serviceId_${index}`} label="Mã dịch vụ" rules={[{ required: true }]}>
                 <InputNumber data-testid={`item-service-id-${index}`} />
               </Form.Item>
-              <Form.Item name={`amount_${index}`} label="Amount" rules={[{ required: true }]}>
+              <Form.Item name={`amount_${index}`} label="Số tiền" rules={[{ required: true }]}>
                 <InputNumber data-testid={`item-amount-${index}`} />
               </Form.Item>
-              <Form.Item name={`description_${index}`} label="Description">
+              <Form.Item name={`description_${index}`} label="Mô tả">
                 <Input data-testid={`item-desc-${index}`} />
               </Form.Item>
             </Space>
           ))}
           <Button type="dashed" onClick={addItem} data-testid="add-item-btn">
-            Add Item
+            Thêm mục
           </Button>
         </Card>
 
         <Space>
           <Button type="primary" htmlType="submit" loading={mutation.isPending} data-testid="submit-payment-btn">
-            Create
+            Tạo
           </Button>
-          <Button onClick={() => navigate('/payments')}>Cancel</Button>
+          <Button onClick={() => navigate('/payments')}>Hủy</Button>
         </Space>
       </Form>
     </div>

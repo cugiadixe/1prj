@@ -29,7 +29,7 @@ public class ServiceController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> List(
-        [FromQuery] long companyId,
+        [FromQuery] long? companyId = null,
         [FromQuery] long? customerId = null,
         [FromQuery] string? status = null,
         [FromQuery] int page = 1,
@@ -37,8 +37,18 @@ public class ServiceController : ControllerBase
         CancellationToken ct = default)
     {
         var userId = GetUserId();
-        if (!await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_VIEW", companyId, ct))
-            return Forbid();
+        if (companyId.HasValue)
+        {
+            if (!await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_VIEW", companyId.Value, ct))
+                return Forbid();
+        }
+        else
+        {
+            // Xem TẤT CẢ công ty: yêu cầu quyền SERVICE_VIEW ở phạm vi toàn cục (grant GLOBAL)
+            var globalPerms = await _permissionEvaluator.GetEffectivePermissionsAsync(userId, null, ct);
+            if (!globalPerms.Contains("SERVICE_VIEW"))
+                return Forbid();
+        }
 
         var result = await _serviceService.ListAsync(companyId, customerId, status, page, pageSize, ct);
         return Ok(result);

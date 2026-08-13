@@ -20,10 +20,10 @@ const CardReprintRequestDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
-  
+
   const requestId = parseInt(id || '0', 10);
   const { data, isLoading, error } = useCardReprintRequest(requestId);
-  
+
   const submitMutation = useSubmitCardReprintRequest();
   const approveMutation = useApproveCardReprintRequest();
   const rejectMutation = useRejectCardReprintRequest();
@@ -44,7 +44,7 @@ const CardReprintRequestDetailPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view this request."
+        message="Bạn không có quyền xem yêu cầu này."
         data-testid="permission-denied"
       />
     );
@@ -71,7 +71,7 @@ const CardReprintRequestDetailPage: React.FC = () => {
 
   const onSubmit = () => handleAction(
     () => submitMutation.mutateAsync({ id: requestId, data: { rowVersion: data.rowVersion } }),
-    'Request submitted'
+    'Đã gửi yêu cầu'
   );
 
   const onApprove = async () => {
@@ -80,7 +80,7 @@ const CardReprintRequestDetailPage: React.FC = () => {
         id: requestId,
         data: { stepId: data.workflowInstanceId || 0, targetVersion: 0, comment: approveComment }
       }),
-      'Request approved'
+      'Đã phê duyệt yêu cầu'
     );
     setIsApproveModalOpen(false);
   };
@@ -91,24 +91,24 @@ const CardReprintRequestDetailPage: React.FC = () => {
         id: requestId,
         data: { stepId: data.workflowInstanceId || 0, targetVersion: 0, reason: rejectReason }
       }),
-      'Request rejected'
+      'Đã từ chối yêu cầu'
     );
     setIsRejectModalOpen(false);
   };
 
   const onCreatePayment = () => handleAction(
     () => createPaymentMutation.mutateAsync({ id: requestId, data: { rowVersion: data.rowVersion } }),
-    'Payment draft created'
+    'Đã tạo thanh toán nháp'
   );
 
   const onMarkPrinted = () => handleAction(
     () => markPrintedMutation.mutateAsync({ id: requestId, data: { rowVersion: data.rowVersion } }),
-    'Card marked as printed'
+    'Đã đánh dấu thẻ đã in'
   );
 
   const onMarkReleased = () => handleAction(
     () => markReleasedMutation.mutateAsync({ id: requestId, data: { rowVersion: data.rowVersion } }),
-    'Card marked as released'
+    'Đã đánh dấu thẻ đã phát'
   );
 
   let statusColor = 'default';
@@ -129,8 +129,8 @@ const CardReprintRequestDetailPage: React.FC = () => {
   return (
     <div data-testid="card-reprint-detail-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Card Reprint Request #{data.id}</Title>
-        <Button onClick={() => navigate('/cards/reprints')}>Back to List</Button>
+        <Title level={4} style={{ margin: 0 }}>Yêu cầu in lại thẻ #{data.id}</Title>
+        <Button onClick={() => navigate('/cards/reprints')}>Quay lại danh sách</Button>
       </Space>
 
       {actionError && (
@@ -145,66 +145,66 @@ const CardReprintRequestDetailPage: React.FC = () => {
       <Space style={{ marginBottom: 16 }}>
         {canSubmit && (
           <Button type="primary" onClick={onSubmit} loading={submitMutation.isPending} data-testid="btn-submit">
-            Submit
+            Gửi
           </Button>
         )}
         {canApproveReject && (
           <>
             <Button type="primary" onClick={() => setIsApproveModalOpen(true)} data-testid="btn-approve">
-              Approve
+              Phê duyệt
             </Button>
             <Button danger onClick={() => setIsRejectModalOpen(true)} data-testid="btn-reject">
-              Reject
+              Từ chối
             </Button>
           </>
         )}
         {canCreatePayment && (
           <Button type="primary" onClick={onCreatePayment} loading={createPaymentMutation.isPending} data-testid="btn-create-payment">
-            Create Payment Draft
+            Tạo thanh toán nháp
           </Button>
         )}
         {canMarkPrinted && (
           <Button type="primary" onClick={onMarkPrinted} loading={markPrintedMutation.isPending} data-testid="btn-mark-printed">
-            Mark Printed
+            Đánh dấu đã in
           </Button>
         )}
         {canMarkReleased && (
           <Button type="primary" onClick={onMarkReleased} loading={markReleasedMutation.isPending} data-testid="btn-mark-released">
-            Mark Released
+            Đánh dấu đã phát
           </Button>
         )}
         {data.paymentTransactionId && (
           <Button type="link" onClick={() => navigate(`/payments/${data.paymentTransactionId}`)} data-testid="btn-view-payment">
-            View Payment
+            Xem thanh toán
           </Button>
         )}
       </Space>
 
       <Descriptions bordered column={2}>
-        <Descriptions.Item label="Status">
+        <Descriptions.Item label="Trạng thái">
           <Tag color={statusColor} data-testid="status-badge">{data.status}</Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Card ID">{data.cardId}</Descriptions.Item>
-        <Descriptions.Item label="Requester ID">{data.requesterId}</Descriptions.Item>
-        <Descriptions.Item label="Company ID">{data.companyId}</Descriptions.Item>
-        <Descriptions.Item label="Reprint Number">{data.reprintNumber}</Descriptions.Item>
-        <Descriptions.Item label="Request Type">{data.requestType}</Descriptions.Item>
-        <Descriptions.Item label="Reason Code">{data.reasonCode || '—'}</Descriptions.Item>
-        <Descriptions.Item label="Fee Amount">
+        <Descriptions.Item label="Mã thẻ">{data.cardId}</Descriptions.Item>
+        <Descriptions.Item label="Mã người yêu cầu">{data.requesterId}</Descriptions.Item>
+        <Descriptions.Item label="Mã công ty">{data.companyId}</Descriptions.Item>
+        <Descriptions.Item label="Số lần in lại">{data.reprintNumber}</Descriptions.Item>
+        <Descriptions.Item label="Loại yêu cầu">{data.requestType}</Descriptions.Item>
+        <Descriptions.Item label="Mã lý do">{data.reasonCode || '—'}</Descriptions.Item>
+        <Descriptions.Item label="Phí">
           {data.feeAmount != null ? `${data.feeAmount} ${data.feeCurrency}` : '—'}
         </Descriptions.Item>
-        <Descriptions.Item label="Notes" span={2}>{data.notes || '—'}</Descriptions.Item>
+        <Descriptions.Item label="Ghi chú" span={2}>{data.notes || '—'}</Descriptions.Item>
       </Descriptions>
 
       <Modal
-        title="Approve Request"
+        title="Phê duyệt yêu cầu"
         open={isApproveModalOpen}
         onOk={onApprove}
         onCancel={() => setIsApproveModalOpen(false)}
         confirmLoading={approveMutation.isPending}
       >
         <Input.TextArea
-          placeholder="Optional comment"
+          placeholder="Nhận xét (tùy chọn)"
           value={approveComment}
           onChange={(e) => setApproveComment(e.target.value)}
           data-testid="input-approve-comment"
@@ -212,14 +212,14 @@ const CardReprintRequestDetailPage: React.FC = () => {
       </Modal>
 
       <Modal
-        title="Reject Request"
+        title="Từ chối yêu cầu"
         open={isRejectModalOpen}
         onOk={onReject}
         onCancel={() => setIsRejectModalOpen(false)}
         confirmLoading={rejectMutation.isPending}
       >
         <Input.TextArea
-          placeholder="Reason for rejection"
+          placeholder="Lý do từ chối"
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
           data-testid="input-reject-reason"

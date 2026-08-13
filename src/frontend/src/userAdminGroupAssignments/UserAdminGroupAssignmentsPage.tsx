@@ -96,7 +96,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
     onError: (err: unknown) => {
       const errMessage = getErrorMessage(err);
       if (err instanceof Error && err.message === 'COMPANY_CONTEXT_REQUIRED') {
-        setActionError('A specific company must be selected to assign a COMPANY-scoped admin group.');
+        setActionError('Phải chọn một công ty cụ thể để phân công nhóm quản trị có phạm vi COMPANY.');
       } else {
         setActionError(errMessage);
       }
@@ -138,7 +138,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
     onError: (err: unknown) => {
       const errMessage = getErrorMessage(err);
       if (err instanceof Error && err.message === 'COMPANY_CONTEXT_REQUIRED') {
-        setActionError('A specific company must be selected to deactivate this COMPANY-scoped assignment.');
+        setActionError('Phải chọn một công ty cụ thể để hủy phân công có phạm vi COMPANY này.');
       } else {
         setActionError(errMessage);
       }
@@ -188,7 +188,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
 
   // Render logic
   if (isNaN(userIdNum)) {
-    return <Alert type="error" message="Invalid User ID." data-testid="invalid-user-id" />;
+    return <Alert type="error" message="Mã người dùng không hợp lệ." data-testid="invalid-user-id" />;
   }
 
   if (isAssignmentsError) {
@@ -203,7 +203,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Admin Group',
+      title: 'Nhóm quản trị',
       key: 'adminGroup',
       render: (record: UserAdminGroupAssignmentDto) => (
         <Space direction="vertical" size={0}>
@@ -213,7 +213,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Scope',
+      title: 'Phạm vi',
       key: 'scopeType',
       render: (record: UserAdminGroupAssignmentDto) => {
         const adminGroup = adminGroups.find(g => g.id === record.adminGroupId);
@@ -222,19 +222,19 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
       },
     },
     {
-      title: 'Effective From',
+      title: 'Hiệu lực từ',
       dataIndex: 'effectiveFrom',
       key: 'effectiveFrom',
-      render: (val: string) => new Date(val).toLocaleString(),
+      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
     },
     {
-      title: 'Effective To',
+      title: 'Hiệu lực đến',
       dataIndex: 'effectiveTo',
       key: 'effectiveTo',
-      render: (val: string | null) => (val ? new Date(val).toLocaleString() : '—'),
+      render: (val: string | null) => (val ? new Date(val).toLocaleString('vi-VN') : '—'),
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       key: 'status',
       render: (record: UserAdminGroupAssignmentDto) => {
         const isPastEffectiveTo = record.effectiveTo ? new Date(record.effectiveTo) < new Date() : false;
@@ -242,13 +242,13 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
         const effectivelyActive = record.assignmentStatus === 'Active' && !isPastEffectiveTo;
         return (
           <Tag color={effectivelyActive ? 'green' : 'default'} data-testid={`assignment-status-${record.id}`}>
-            {effectivelyActive ? 'ACTIVE' : 'INACTIVE'}
+            {effectivelyActive ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
           </Tag>
         );
       },
     },
     {
-      title: 'Action',
+      title: 'Hành động',
       key: 'action',
       render: (record: UserAdminGroupAssignmentDto) => (
         record.assignmentStatus === 'Active' && (
@@ -258,7 +258,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
             onClick={() => handleDeactivateClick(record)}
             data-testid={`deactivate-assignment-button-${record.id}`}
           >
-            Deactivate
+            Vô hiệu hóa
           </Button>
         )
       ),
@@ -270,8 +270,8 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div>
-            <Title level={3}>User Admin Group Memberships</Title>
-            <Text type="secondary" data-testid="user-id-display">User ID: {userIdNum}</Text>
+            <Title level={3}>Phân nhóm quản trị người dùng</Title>
+            <Text type="secondary" data-testid="user-id-display">Mã người dùng: {userIdNum}</Text>
           </div>
           <Space>
             <Button
@@ -279,7 +279,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
               onClick={handleAssignClick}
               data-testid="assign-admin-group-button"
             >
-              Assign Admin Group
+              Phân nhóm quản trị
             </Button>
           </Space>
         </div>
@@ -297,7 +297,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
       {/* Assign Admin Group Modal */}
       <Modal
         open={isAssignModalVisible}
-        title="Assign Admin Group"
+        title="Phân nhóm quản trị"
         onCancel={handleAssignCancel}
         onOk={handleAssignSubmit}
         confirmLoading={assignMutation.isPending}
@@ -307,12 +307,12 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="adminGroupId"
-            label="Admin Group"
-            rules={[{ required: true, message: 'Please select an admin group.' }]}
+            label="Nhóm quản trị"
+            rules={[{ required: true, message: 'Vui lòng chọn một nhóm quản trị.' }]}
           >
             <Select
               loading={isLoadingAdminGroups}
-              placeholder="Select an admin group"
+              placeholder="Chọn một nhóm quản trị"
               data-testid="assign-admin-group-select"
             >
               {activeAdminGroups.map(group => (
@@ -322,11 +322,11 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
               ))}
             </Select>
           </Form.Item>
-          
+
           <Form.Item
             name="effectiveFrom"
-            label="Effective From"
-            rules={[{ required: true, message: 'Effective From date is required.' }]}
+            label="Hiệu lực từ"
+            rules={[{ required: true, message: 'Ngày hiệu lực từ là bắt buộc.' }]}
             initialValue={dayjs()}
           >
             <DatePicker showTime style={{ width: '100%' }} data-testid="effective-from-picker" />
@@ -334,7 +334,7 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
 
           <Form.Item
             name="effectiveTo"
-            label="Effective To"
+            label="Hiệu lực đến"
           >
             <DatePicker showTime style={{ width: '100%' }} data-testid="effective-to-picker" />
           </Form.Item>
@@ -347,17 +347,17 @@ const UserAdminGroupAssignmentsPage: React.FC = () => {
       {/* Deactivate Assignment Modal */}
       <Modal
         open={!!deactivatingAssignment}
-        title="Deactivate Admin Group Assignment"
+        title="Vô hiệu hóa phân nhóm quản trị"
         onCancel={handleDeactivateCancel}
         onOk={handleDeactivateConfirm}
         confirmLoading={deactivateMutation.isPending}
         okButtonProps={{ danger: true }}
-        okText="Deactivate"
+        okText="Vô hiệu hóa"
         destroyOnClose
         data-testid="deactivate-assignment-modal"
       >
-        <p>Are you sure you want to deactivate the admin group assignment for <strong>{deactivatingAssignment?.groupName}</strong>?</p>
-        <Alert type="warning" message="This action will immediately revoke the admin group membership from the user." style={{ marginBottom: 16 }} />
+        <p>Bạn có chắc chắn muốn vô hiệu hóa phân nhóm quản trị cho <strong>{deactivatingAssignment?.groupName}</strong>?</p>
+        <Alert type="warning" message="Hành động này sẽ thu hồi ngay lập tức thành viên nhóm quản trị khỏi người dùng." style={{ marginBottom: 16 }} />
         {actionError && (
           <Alert type="error" message={actionError} data-testid="deactivate-error" />
         )}

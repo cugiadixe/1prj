@@ -21,8 +21,8 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: "Server=db;Database=${DB_NAME:-PTKD_PROD};User Id=sa;Password=${DB_SA_PASSWORD:-YourStr0ngP@ssword!};TrustServerCertificate=True"
     volumes:
-      - ./database/migrations:/migrations:ro
-      - ./database/rollbacks:/rollbacks:ro
+      - ./database/migrations:/app/database/migrations:ro
+      - ./database/rollbacks:/app/database/rollbacks:ro
     depends_on:
       db:
         condition: service_healthy

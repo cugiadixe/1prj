@@ -19,7 +19,7 @@ const CardReprintRequestsPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view card reprint requests."
+        message="Bạn không có quyền xem yêu cầu in lại thẻ."
         data-testid="permission-denied"
       />
     );
@@ -32,12 +32,12 @@ const CardReprintRequestsPage: React.FC = () => {
       key: 'id',
     },
     {
-      title: 'Card ID',
+      title: 'Mã thẻ',
       dataIndex: 'cardId',
       key: 'cardId',
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
@@ -54,21 +54,21 @@ const CardReprintRequestsPage: React.FC = () => {
       },
     },
     {
-      title: 'Created At',
+      title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (val: string) => new Date(val).toLocaleString(),
+      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
     }
   ];
 
   return (
     <div data-testid="card-reprint-requests-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Card Reprint Requests</Title>
+        <Title level={4} style={{ margin: 0 }}>Yêu cầu in lại thẻ</Title>
         <Space>
           {hasPermission('CARD_REPRINT_REQUEST_CREATE', 'GLOBAL') && (
             <Button type="primary" data-testid="create-card-reprint-btn">
-              <Link to="/cards/reprints/new">Create Request</Link>
+              <Link to="/cards/reprints/new">Tạo yêu cầu</Link>
             </Button>
           )}
         </Space>
@@ -76,7 +76,7 @@ const CardReprintRequestsPage: React.FC = () => {
 
       <Space style={{ marginBottom: 16 }}>
         <Select
-          placeholder="Filter by Status"
+          placeholder="Lọc theo trạng thái"
           allowClear
           style={{ width: 200 }}
           onChange={(val) => setStatusFilter(val)}
@@ -109,7 +109,7 @@ const CardReprintRequestsPage: React.FC = () => {
       {!isLoading && !error && data && data.items.length === 0 && (
         <Alert
           type="info"
-          message="No requests found."
+          message="Không tìm thấy yêu cầu nào."
           data-testid="card-reprint-list-empty"
         />
       )}

@@ -12,9 +12,10 @@ const { Title } = Typography;
 
 const ServiceListPage: React.FC = () => {
   const { hasPermission } = usePermissions();
-  const { currentCompanyId } = useCompany();
+  const { companies } = useCompany();
   const navigate = useNavigate();
 
+  const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [customerIdFilter, setCustomerIdFilter] = useState<number | undefined>(undefined);
   const [page, setPage] = useState(1);
@@ -23,32 +24,22 @@ const ServiceListPage: React.FC = () => {
   const hasViewPerm = hasPermission('SERVICE_VIEW', 'COMPANY');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['services', currentCompanyId, customerIdFilter, statusFilter, page, pageSize],
+    queryKey: ['services', companyFilter, customerIdFilter, statusFilter, page, pageSize],
     queryFn: () => searchServices({
-      companyId: currentCompanyId!,
+      companyId: companyFilter,
       customerId: customerIdFilter,
       status: statusFilter,
       page,
       pageSize,
     }),
-    enabled: !!currentCompanyId && hasViewPerm,
+    enabled: hasViewPerm,
   });
-
-  if (!currentCompanyId) {
-    return (
-      <Alert
-        type="warning"
-        message="Please select a company to view services."
-        data-testid="no-company-warning"
-      />
-    );
-  }
 
   if (!hasViewPerm || isPermissionDenied(error)) {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view services for this company."
+        message="Bạn không có quyền xem dịch vụ cho công ty này."
         data-testid="permission-denied"
       />
     );
@@ -56,69 +47,88 @@ const ServiceListPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Service Type',
+      title: 'Loại dịch vụ',
       dataIndex: 'serviceTypeName',
       key: 'serviceTypeName',
       render: (val: string | null, record: ServiceListItem) => val || record.serviceTypeCode || String(record.serviceTypeId),
     },
     {
-      title: 'Customer ID',
-      dataIndex: 'customerId',
-      key: 'customerId',
+      title: 'Khách hàng',
+      key: 'customer',
+      render: (_: unknown, r: ServiceListItem) =>
+        r.customerName ? `${r.customerName} (${r.customerCode ?? r.customerId})` : (r.customerCode ?? String(r.customerId)),
     },
     {
-      title: 'Status',
+      title: 'Công ty',
+      dataIndex: 'companyName',
+      key: 'companyName',
+      render: (v: string | null, r: ServiceListItem) => v ?? `Mã ${r.companyId}`,
+    },
+    {
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        let color = 'default';
-        if (status === 'ACTIVE') color = 'green';
-        if (status === 'EXPIRED') color = 'orange';
-        if (status === 'CANCELLED') color = 'red';
-        return <Tag color={color}>{status}</Tag>;
+        const map: Record<string, { c: string; t: string }> = {
+          ACTIVE: { c: 'green', t: 'Hoạt động' },
+          EXPIRED: { c: 'orange', t: 'Hết hạn' },
+          CANCELLED: { c: 'red', t: 'Đã hủy' },
+          PENDING_PRICE_OVERRIDE: { c: 'gold', t: 'Chờ duyệt giá' },
+        };
+        const m = map[status] ?? { c: 'default', t: status };
+        return <Tag color={m.c}>{m.t}</Tag>;
       },
     },
     {
-      title: 'Applied Price',
+      title: 'Giá áp dụng',
       dataIndex: 'appliedPrice',
       key: 'appliedPrice',
       render: (val: number, record: ServiceListItem) => (
         <Space>
-          {val.toLocaleString()}
+          {val.toLocaleString('vi-VN')}
           {record.isOverridePrice && <Tag color="blue" style={{ marginLeft: 8 }}>OVERRIDE</Tag>}
         </Space>
       ),
     },
     {
-      title: 'Valid From',
+      title: 'Hiệu lực từ',
       dataIndex: 'validFrom',
       key: 'validFrom',
-      render: (val: string) => new Date(val).toLocaleDateString(),
+      render: (val: string) => new Date(val).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Valid To',
+      title: 'Hiệu lực đến',
       dataIndex: 'validTo',
       key: 'validTo',
-      render: (val: string | null) => val ? new Date(val).toLocaleDateString() : '—',
+      render: (val: string | null) => val ? new Date(val).toLocaleDateString('vi-VN') : '—',
     },
   ];
 
   return (
     <div data-testid="services-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Services</Title>
+        <Title level={4} style={{ margin: 0 }}>Bảng tổng hợp dịch vụ</Title>
         <Space>
           {hasPermission('SERVICE_CREATE_STANDARD', 'COMPANY') && (
             <Button type="primary" data-testid="create-service-btn">
-              <Link to="/services/new">Create Service</Link>
+              <Link to="/services/new">Tạo dịch vụ</Link>
             </Button>
           )}
         </Space>
       </Space>
 
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Select
+          placeholder="Tất cả công ty"
+          allowClear
+          style={{ width: 200 }}
+          onChange={(val) => { setCompanyFilter(val); setPage(1); }}
+          value={companyFilter}
+          data-testid="service-company-filter"
+          options={companies.map((c) => ({ label: c.companyName, value: c.companyId }))}
+        />
         <Input
-          placeholder="Customer ID"
+          placeholder="Mã KH (số)"
           allowClear
           onChange={(e) => {
             const val = parseInt(e.target.value, 10);
@@ -129,16 +139,16 @@ const ServiceListPage: React.FC = () => {
           data-testid="service-customer-filter"
         />
         <Select
-          placeholder="Status"
+          placeholder="Trạng thái"
           allowClear
           style={{ width: 150 }}
           onChange={(val) => { setStatusFilter(val); setPage(1); }}
           value={statusFilter}
           data-testid="service-status-filter"
           options={[
-            { label: 'Active', value: 'ACTIVE' },
-            { label: 'Expired', value: 'EXPIRED' },
-            { label: 'Cancelled', value: 'CANCELLED' },
+            { label: 'Hoạt động', value: 'ACTIVE' },
+            { label: 'Hết hạn', value: 'EXPIRED' },
+            { label: 'Đã hủy', value: 'CANCELLED' },
           ]}
         />
       </Space>
@@ -157,7 +167,7 @@ const ServiceListPage: React.FC = () => {
       {!isLoading && !error && data && data.items.length === 0 && (
         <Alert
           type="info"
-          message="No services found."
+          message="Không tìm thấy dịch vụ."
           data-testid="service-list-empty"
         />
       )}

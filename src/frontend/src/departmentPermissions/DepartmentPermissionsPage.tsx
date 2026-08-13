@@ -73,7 +73,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Add Permissions to Department Baseline"
+      title="Thêm quyền vào chuẩn phòng ban"
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={isLoading}
@@ -84,7 +84,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
       <Select
         mode="multiple"
         style={{ width: '100%' }}
-        placeholder="Select permissions"
+        placeholder="Chọn quyền"
         value={selectedPermissions}
         onChange={setSelectedPermissions}
         data-testid="permissions-select"
@@ -159,22 +159,22 @@ const DepartmentPermissionsPage: React.FC = () => {
     onSuccess: () => {
       setShowPermissionsModal(false);
       setPermissionsFormError(null);
-      setSuccessMessage('Permissions added successfully.');
+      setSuccessMessage('Thêm quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['department-permissions', selectedDepartmentId] });
     },
     onError: (err: any) => {
-      setPermissionsFormError(getSanitizedErrorMessage(err, 'Failed to update department permissions.'));
+      setPermissionsFormError(getSanitizedErrorMessage(err, 'Không thể cập nhật quyền phòng ban.'));
     },
   });
 
   const removePermissionMutation = useMutation({
     mutationFn: (code: string) => departmentPermissionsApi.removeDepartmentPermission(selectedDepartmentId!, code),
     onSuccess: () => {
-      setSuccessMessage('Permission removed successfully.');
+      setSuccessMessage('Gỡ quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['department-permissions', selectedDepartmentId] });
     },
     onError: (err: any) => {
-      Modal.error({ title: 'Remove Failed', content: getSanitizedErrorMessage(err, 'Failed to remove permission.') });
+      Modal.error({ title: 'Gỡ quyền thất bại', content: getSanitizedErrorMessage(err, 'Không thể gỡ quyền.') });
     },
   });
 
@@ -189,7 +189,7 @@ const DepartmentPermissionsPage: React.FC = () => {
     const newPermDetails = catalog?.filter(p => newSelectedCodes.includes(p.permissionCode)) || [];
     const hasCompanyScope = newPermDetails.some(p => p.scope === 'COMPANY');
     if (hasCompanyScope && currentCompanyId === null) {
-      setPermissionsFormError('COMPANY scoped permissions require a selected company context.');
+      setPermissionsFormError('Quyền phạm vi COMPANY yêu cầu phải chọn ngữ cảnh công ty.');
       return;
     }
 
@@ -203,9 +203,9 @@ const DepartmentPermissionsPage: React.FC = () => {
 
   const handleRemovePermission = (code: string) => {
     Modal.confirm({
-      title: 'Remove Permission',
-      content: `Are you sure you want to remove ${code} from ${selectedDepartment?.departmentCode}?`,
-      okText: 'Remove',
+      title: 'Gỡ quyền',
+      content: `Bạn có chắc chắn muốn gỡ ${code} khỏi ${selectedDepartment?.departmentCode}?`,
+      okText: 'Gỡ',
       okType: 'danger',
       onOk: () => removePermissionMutation.mutate(code),
     });
@@ -216,7 +216,7 @@ const DepartmentPermissionsPage: React.FC = () => {
       <div data-testid="department-permissions-page">
         <Alert
           type="error"
-          message={isPermissionDenied(departmentsError) ? PERMISSION_DENIED_MSG : getSanitizedErrorMessage(departmentsError, 'Failed to fetch departments.')}
+          message={isPermissionDenied(departmentsError) ? PERMISSION_DENIED_MSG : getSanitizedErrorMessage(departmentsError, 'Không thể tải danh sách phòng ban.')}
           data-testid="departments-error"
         />
       </div>
@@ -226,10 +226,10 @@ const DepartmentPermissionsPage: React.FC = () => {
   return (
     <div data-testid="department-permissions-page">
       <Space style={{ marginBottom: 16 }}>
-        <Button onClick={() => navigate(-1)} data-testid="back-button">← Back</Button>
+        <Button onClick={() => navigate(-1)} data-testid="back-button">← Quay lại</Button>
       </Space>
 
-      <Title level={3}>Department Baseline Permissions</Title>
+      <Title level={3}>Quyền chuẩn phòng ban</Title>
 
       {successMessage && (
         <Alert
@@ -242,7 +242,7 @@ const DepartmentPermissionsPage: React.FC = () => {
         />
       )}
 
-      <Card title="Departments" style={{ marginBottom: 16 }} data-testid="departments-list-card">
+      <Card title="Phòng ban" style={{ marginBottom: 16 }} data-testid="departments-list-card">
         {isLoadingDepartments && <Spin data-testid="departments-loading" />}
         {!isLoadingDepartments && departments && (
           <List
@@ -253,11 +253,11 @@ const DepartmentPermissionsPage: React.FC = () => {
               <List.Item
                 key={d.id}
                 actions={[
-                  <Button key="select" type="link" onClick={() => { setSelectedDepartmentId(d.id); setSuccessMessage(null); }} data-testid={`select-department-${d.id}`}>Select</Button>
+                  <Button key="select" type="link" onClick={() => { setSelectedDepartmentId(d.id); setSuccessMessage(null); }} data-testid={`select-department-${d.id}`}>Chọn</Button>
                 ]}
               >
                 <List.Item.Meta
-                  title={<><Text strong>{d.departmentCode}</Text> {d.isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>}</>}
+                  title={<><Text strong>{d.departmentCode}</Text> {d.isActive ? <Tag color="green">Hoạt động</Tag> : <Tag color="red">Ngừng hoạt động</Tag>}</>}
                   description={d.name}
                 />
               </List.Item>
@@ -268,23 +268,23 @@ const DepartmentPermissionsPage: React.FC = () => {
 
       {selectedDepartment && (
         <Card
-          title={`Department Details: ${selectedDepartment.departmentCode}`}
+          title={`Chi tiết phòng ban: ${selectedDepartment.departmentCode}`}
           style={{ marginBottom: 16 }}
           data-testid="department-detail-card"
         >
           <Descriptions bordered size="small" column={1} style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Name">{selectedDepartment.name}</Descriptions.Item>
-            <Descriptions.Item label="Status">{selectedDepartment.isActive ? 'Active' : 'Inactive'}</Descriptions.Item>
+            <Descriptions.Item label="Tên">{selectedDepartment.name}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">{selectedDepartment.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}</Descriptions.Item>
           </Descriptions>
 
           <Card
             type="inner"
-            title="Baseline Permissions"
-            extra={<Button size="small" type="primary" onClick={handleOpenAddPermissions} disabled={!selectedDepartment.isActive} data-testid="add-permissions-btn">Add Permissions</Button>}
+            title="Quyền chuẩn"
+            extra={<Button size="small" type="primary" onClick={handleOpenAddPermissions} disabled={!selectedDepartment.isActive} data-testid="add-permissions-btn">Thêm quyền</Button>}
           >
             {isLoadingDeptPerms && <Spin data-testid="dept-perms-loading" />}
             {!isLoadingDeptPerms && departmentPermissions && departmentPermissions.length === 0 ? (
-              <Text type="secondary">No baseline permissions assigned.</Text>
+              <Text type="secondary">Chưa gán quyền chuẩn nào.</Text>
             ) : (
               !isLoadingDeptPerms && departmentPermissions && (
                 <List
@@ -294,7 +294,7 @@ const DepartmentPermissionsPage: React.FC = () => {
                     <List.Item
                       key={dp.permissionCode}
                       actions={[
-                        <Button key="remove" danger type="link" size="small" onClick={() => handleRemovePermission(dp.permissionCode)} disabled={!selectedDepartment.isActive} data-testid={`remove-permission-${dp.permissionCode}`}>Remove</Button>
+                        <Button key="remove" danger type="link" size="small" onClick={() => handleRemovePermission(dp.permissionCode)} disabled={!selectedDepartment.isActive} data-testid={`remove-permission-${dp.permissionCode}`}>Gỡ</Button>
                       ]}
                     >
                       <List.Item.Meta title={dp.permissionCode} />

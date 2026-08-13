@@ -24,7 +24,9 @@ import type {
   AccountSearchParams,
   AccountSummaryDto,
   AdminResetPasswordResponse,
+  CreateAccountRequest,
   PagedResult,
+  UserWithoutAccountDto,
 } from './types';
 
 const BASE = '/security/accounts';
@@ -63,6 +65,20 @@ export async function getAccountsByUserId(
   const { data } = await axiosClient.get<AccountSummaryDto[]>(
     `${BASE}/by-user/${userId}`,
   );
+  return data;
+}
+
+export async function getUsersWithoutAccount(): Promise<UserWithoutAccountDto[]> {
+  const { data } = await axiosClient.get<UserWithoutAccountDto[]>(
+    `${BASE}/users-without-account`,
+  );
+  return data;
+}
+
+export async function createAccount(
+  request: CreateAccountRequest,
+): Promise<AdminResetPasswordResponse> {
+  const { data } = await axiosClient.post<AdminResetPasswordResponse>(BASE, request);
   return data;
 }
 

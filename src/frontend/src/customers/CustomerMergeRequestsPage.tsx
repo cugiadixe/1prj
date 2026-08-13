@@ -34,17 +34,17 @@ const CustomerMergeRequestsPage: React.FC = () => {
       render: (text: string) => text.substring(0, 8) + '...',
     },
     {
-      title: 'Source Customer',
+      title: 'KH nguồn',
       dataIndex: 'sourceCustomerId',
       key: 'sourceCustomerId',
     },
     {
-      title: 'Target Customer',
+      title: 'KH đích',
       dataIndex: 'targetCustomerId',
       key: 'targetCustomerId',
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'requestStatus',
       key: 'requestStatus',
       render: (status: string) => (
@@ -54,20 +54,20 @@ const CustomerMergeRequestsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Created At',
+      title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => new Date(text).toLocaleString(),
+      render: (text: string) => new Date(text).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Action',
+      title: 'Thao tác',
       key: 'action',
       render: (_: unknown, record: CustomerMergeRequestDto) => (
         <Space size="middle">
-          <Link to={`/customers/merge-requests/${record.id}`}>View</Link>
+          <Link to={`/customers/merge-requests/${record.id}`}>Xem</Link>
           {record.workflowInstanceId && (
             <Link to={`/workflow/instances/${record.workflowInstanceId}`}>
-              Workflow
+              Quy trình
             </Link>
           )}
         </Space>
@@ -85,14 +85,14 @@ const CustomerMergeRequestsPage: React.FC = () => {
         }}
       >
         <Title level={4} style={{ margin: 0 }}>
-          Merge Requests
+          Yêu cầu gộp
         </Title>
         <Space>
           <Button type="primary">
-            <Link to="/customers/merge/search">Find Duplicates</Link>
+            <Link to="/customers/merge/search">Tìm trùng lặp</Link>
           </Button>
           <Button>
-            <Link to="/customers">Back to Customers</Link>
+            <Link to="/customers">Quay lại khách hàng</Link>
           </Button>
         </Space>
       </Space>

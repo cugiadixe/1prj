@@ -1,0 +1,197 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<meta name="Originator" content="Microsoft Word 15">
+<style>
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; margin: 2cm; }
+h1 { font-size: 20pt; color: #1a4480; border-bottom: 2px solid #1a4480; padding-bottom: 6pt; }
+h2 { font-size: 14pt; color: #2d6da4; margin-top: 18pt; }
+h3 { font-size: 12pt; color: #333; margin-top: 14pt; }
+table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+th { background-color: #1a4480; color: white; padding: 6pt 10pt; text-align: left; font-size: 10pt; }
+td { border: 1px solid #ccc; padding: 6pt 10pt; font-size: 10pt; }
+tr:nth-child(even) td { background-color: #f5f8fc; }
+code { font-family: Consolas, 'Courier New', monospace; background-color: #f0f0f0; padding: 1pt 4pt; font-size: 10pt; }
+pre { background-color: #1e1e1e; color: #d4d4d4; padding: 10pt 14pt; font-family: Consolas, monospace; font-size: 10pt; border-radius: 4pt; }
+.cmd { color: #9cdcfe; }
+.flag { color: #ce9178; }
+.note { background-color: #fff8e1; border-left: 4pt solid #ffc107; padding: 8pt 12pt; margin: 10pt 0; font-size: 10pt; }
+.important { background-color: #e3f2fd; border-left: 4pt solid #1a4480; padding: 8pt 12pt; margin: 10pt 0; font-size: 10pt; }
+.section { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>Huong dan Khoi dong &amp; Quan ly PTKD-ERP</h1>
+
+<p><b>Du an:</b> PTKD-ERP &nbsp;&nbsp; <b>Ngay tao:</b> 07/08/2026 &nbsp;&nbsp; <b>Nguoi tao:</b> Phong CNTT INDEVCO</p>
+
+<div class="important">
+<b>Thu muc du an:</b> <code>C:\Projects\PTKD-ERP</code><br>
+<b>Cac file script nam tai:</b> <code>C:\Projects\PTKD-ERP\start-server.ps1</code>, <code>stop-server.ps1</code>, <code>watch-access.ps1</code><br>
+Cac script da co san duong dan tuyet doi, co the chay tu bat ky thu muc nao.
+</div>
+
+<hr>
+
+<div class="section">
+<h2>1. Tong quan cac lenh</h2>
+
+<table>
+<tr><th>Lenh</th><th>Chuc nang</th></tr>
+<tr><td><code>C:\Projects\PTKD-ERP\start-server.ps1</code></td><td>Khoi dong DB + Backend + Frontend, hien thi URL truy cap</td></tr>
+<tr><td><code>C:\Projects\PTKD-ERP\stop-server.ps1</code></td><td>Dung tat ca dich vu</td></tr>
+<tr><td><code>C:\Projects\PTKD-ERP\watch-access.ps1</code></td><td>Xem realtime IP nao dang truy cap web</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>2. Dia chi truy cap web (URL)</h2>
+
+<div class="important">
+Sau khi khoi dong, truy cap web PTKD-ERP bang mot trong cac dia chi sau:
+</div>
+
+<table>
+<tr><th>Loai</th><th>Dia chi</th><th>Ghi chu</th></tr>
+<tr><td>Tu may chu</td><td><code>http://localhost</code></td><td>Chi truy cap duoc tren chinh may cai dat</td></tr>
+<tr><td>Tu may khac trong mang LAN</td><td><code>http://&lt;IP-may-chu&gt;</code></td><td>Thay &lt;IP-may-chu&gt; bang IP that cua may chu, vi du: <code>http://10.45.3.207</code></td></tr>
+<tr><td>Theo ten may</td><td><code>http://&lt;ten-may-chu&gt;</code></td><td>Vi du: <code>http://SERVER-PTKD</code> (neu DNS noi bo phan giai duoc)</td></tr>
+</table>
+
+<p><b>Cach xem IP may chu:</b></p>
+<pre>
+<span class="cmd">ipconfig</span>
+<span style="color:#6a9955">REM Tim dong "IPv4 Address" trong ket qua</span>
+</pre>
+
+<p><b>Cong mac dinh:</b> 80 (khong can go port). Neu doi cong, vi du 8080, thi truy cap <code>http://&lt;IP&gt;:8080</code></p>
+
+<div class="note">
+<b>Luu y:</b> Khi chay <code>start-server.ps1</code>, chuong trinh se tu dong hien thi tat ca dia chi IP co the truy cap. Chi can copy link do gui cho nguoi dung.
+</div>
+</div>
+
+<div class="section">
+<h2>3. Khoi dong dich vu</h2>
+
+<h3>3.1. Khoi dong binh thuong</h3>
+<p>Mo PowerShell va chay:</p>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\start-server.ps1</span>
+</pre>
+<p>Hoac neu da o trong thu muc du an:</p>
+<pre>
+<span class="cmd">cd C:\Projects\PTKD-ERP</span>
+<span class="cmd">.\start-server.ps1</span>
+</pre>
+
+<p>Lenh se thuc hien:</p>
+<ol>
+<li>Build Docker images (dung cache)</li>
+<li>Khoi dong 3 container: <code>db</code> (SQL Server), <code>backend</code> (API), <code>frontend</code> (Web)</li>
+<li>Kiem tra trang thai (running/healthy)</li>
+<li><b>Hien thi danh sach URL truy cap</b> (localhost + IP mang LAN + hostname)</li>
+</ol>
+
+<h3>3.2. Khoi dong voi rebuild (sau khi sua code)</h3>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\start-server.ps1</span> <span class="flag">-Rebuild</span>
+</pre>
+<p>Build lai image tu dau, khong dung cache. <b>Bat buoc</b> khi thay doi code frontend/backend.</p>
+
+<h3>3.3. Khoi dong voi migration (cap nhat database)</h3>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\start-server.ps1</span> <span class="flag">-Migrate</span>
+</pre>
+
+<h3>3.4. Ket hop ca hai</h3>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\start-server.ps1</span> <span class="flag">-Rebuild</span> <span class="flag">-Migrate</span>
+</pre>
+</div>
+
+<div class="section">
+<h2>4. Dung dich vu</h2>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\stop-server.ps1</span>
+</pre>
+<p>Dung tat ca container. Du lieu database van duoc giu trong Docker volume.</p>
+</div>
+
+<div class="section">
+<h2>5. Xem log truy cap (IP, ten may tinh)</h2>
+
+<h3>5.1. Xem realtime tat ca request</h3>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\watch-access.ps1</span>
+</pre>
+<p>Hien thi theo thoi gian thuc:</p>
+<ul>
+<li><b>Dia chi IP</b> cua may dang truy cap</li>
+<li>Thoi gian truy cap</li>
+<li>Phuong thuc (GET/POST/PUT/DELETE)</li>
+<li>Duong dan trang truy cap</li>
+<li>Ma trang thai (200 = OK, 404 = khong tim thay, 500 = loi)</li>
+</ul>
+<p>Nhan <code>Ctrl+C</code> de dung xem.</p>
+
+<h3>5.2. Chi xem API request (bo qua file tinh)</h3>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\watch-access.ps1</span> <span class="flag">-ApiOnly</span>
+</pre>
+
+<h3>5.3. Tong hop theo IP + ten may tinh</h3>
+<pre>
+<span class="cmd">C:\Projects\PTKD-ERP\watch-access.ps1</span> <span class="flag">-Summary</span>
+</pre>
+<p>Hien thi bang tong hop:</p>
+<table>
+<tr><th>IP</th><th>So request</th><th>Hostname (ten may)</th></tr>
+<tr><td>10.45.3.100</td><td>142</td><td>PC-KINHDO01</td></tr>
+<tr><td>10.45.3.105</td><td>89</td><td>PC-KETOAN03</td></tr>
+<tr><td>192.168.1.50</td><td>23</td><td>LAPTOP-GIAMDOC</td></tr>
+</table>
+<p><i>(Vi du minh hoa)</i></p>
+</div>
+
+<div class="section">
+<h2>6. Cac lenh Docker bo sung</h2>
+
+<p>Chay tu thu muc <code>C:\Projects\PTKD-ERP</code>:</p>
+<table>
+<tr><th>Lenh</th><th>Chuc nang</th></tr>
+<tr><td><code>docker compose ps</code></td><td>Xem trang thai cac container</td></tr>
+<tr><td><code>docker compose logs -f</code></td><td>Xem log tat ca dich vu</td></tr>
+<tr><td><code>docker compose logs -f backend</code></td><td>Xem log chi backend</td></tr>
+<tr><td><code>docker compose restart backend</code></td><td>Khoi dong lai backend</td></tr>
+<tr><td><code>docker compose restart frontend</code></td><td>Khoi dong lai frontend</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>7. Luu y</h2>
+
+<div class="note">
+<b>Lan dau tien</b> hoac sau khi cap nhat code, chay <code>start-server.ps1 -Rebuild</code> de build lai image.
+</div>
+
+<div class="note">
+<b>Yeu cau may chu:</b> Can cai dat Docker Desktop va PowerShell 5.1+.
+</div>
+
+<div class="note">
+<b>Cong mac dinh:</b> Frontend chay tren cong 80. Doi bang bien moi truong <code>$env:FRONTEND_PORT = '8080'</code> truoc khi chay start-server.
+</div>
+
+<div class="note">
+<b>Tuong lua (Firewall):</b> Neu may khac trong mang LAN khong truy cap duoc, kiem tra Windows Firewall da mo cong 80 (hoac cong da cau hinh) cho Inbound TCP.
+</div>
+</div>
+
+</body>
+</html>

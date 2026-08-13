@@ -11,6 +11,7 @@ public class ServiceTypeDto
     public decimal StandardPrice { get; set; }
     public string StandardPriceCurrency { get; set; } = null!;
     public int? CycleDurationMonths { get; set; }
+    public bool IsCarePackage { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -24,6 +25,7 @@ public class CreateServiceTypeRequest
     public string? Description { get; set; }
     public decimal StandardPrice { get; set; }
     public int? CycleDurationMonths { get; set; }
+    public bool IsCarePackage { get; set; }
 }
 
 public class UpdateServiceTypeRequest
@@ -31,6 +33,7 @@ public class UpdateServiceTypeRequest
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public int? CycleDurationMonths { get; set; }
+    public bool IsCarePackage { get; set; }
     public string RowVersion { get; set; } = null!;
 }
 
@@ -41,7 +44,10 @@ public class ServiceDto
     public string? ServiceTypeCode { get; set; }
     public string? ServiceTypeName { get; set; }
     public long CustomerId { get; set; }
+    public string? CustomerCode { get; set; }
+    public string? CustomerName { get; set; }
     public long CompanyId { get; set; }
+    public string? CompanyName { get; set; }
     public string Status { get; set; } = null!;
     public decimal AppliedPrice { get; set; }
     public decimal StandardPriceSnapshot { get; set; }

@@ -99,7 +99,7 @@ const AdminGroupFormModal: React.FC<AdminGroupFormModalProps> = ({
   return (
     <Modal
       open={open}
-      title={isUpdate ? 'Update Admin Group' : 'Create Admin Group'}
+      title={isUpdate ? 'Cập nhật nhóm quản trị' : 'Tạo nhóm quản trị'}
       onOk={handleOk}
       onCancel={onCancel}
       confirmLoading={isLoading}
@@ -110,27 +110,27 @@ const AdminGroupFormModal: React.FC<AdminGroupFormModalProps> = ({
         {!isUpdate && (
           <Form.Item
             name="groupCode"
-            label="Group Code"
-            rules={[{ required: true, message: 'Group code is required' }]}
+            label="Mã nhóm"
+            rules={[{ required: true, message: 'Mã nhóm là bắt buộc' }]}
           >
             <Input data-testid="admin-group-code-input" />
           </Form.Item>
         )}
         <Form.Item
           name="name"
-          label="Name"
-          rules={[{ required: true, message: 'Name is required' }]}
+          label="Tên"
+          rules={[{ required: true, message: 'Tên là bắt buộc' }]}
         >
           <Input data-testid="admin-group-name-input" />
         </Form.Item>
-        <Form.Item name="description" label="Description">
+        <Form.Item name="description" label="Mô tả">
           <Input.TextArea data-testid="admin-group-description-input" />
         </Form.Item>
         {!isUpdate && (
           <Form.Item
             name="scopeType"
-            label="Scope Type"
-            rules={[{ required: true, message: 'Scope type is required' }]}
+            label="Loại phạm vi"
+            rules={[{ required: true, message: 'Loại phạm vi là bắt buộc' }]}
           >
             <Select data-testid="admin-group-scope-input">
               <Option value="GLOBAL">GLOBAL</Option>
@@ -183,7 +183,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Add Permissions to Admin Group"
+      title="Thêm quyền vào nhóm quản trị"
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={isLoading}
@@ -194,7 +194,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
       <Select
         mode="multiple"
         style={{ width: '100%' }}
-        placeholder="Select permissions"
+        placeholder="Chọn quyền"
         value={selectedPermissions}
         onChange={setSelectedPermissions}
         data-testid="permissions-select"
@@ -261,7 +261,7 @@ const AdminGroupManagementPage: React.FC = () => {
     onSuccess: (newGroup) => {
       setShowAdminGroupModal(false);
       setAdminGroupFormError(null);
-      setSuccessMessage(`Admin Group ${newGroup.groupCode} created successfully.`);
+      setSuccessMessage(`Tạo nhóm quản trị ${newGroup.groupCode} thành công.`);
       void queryClient.invalidateQueries({ queryKey: ['adminGroups'] });
     },
     onError: (err: any) => {
@@ -274,7 +274,7 @@ const AdminGroupManagementPage: React.FC = () => {
     onSuccess: (updatedGroup) => {
       setShowAdminGroupModal(false);
       setAdminGroupFormError(null);
-      setSuccessMessage(`Admin Group ${updatedGroup.groupCode} updated successfully.`);
+      setSuccessMessage(`Cập nhật nhóm quản trị ${updatedGroup.groupCode} thành công.`);
       void queryClient.invalidateQueries({ queryKey: ['adminGroups'] });
     },
     onError: (err: any) => {
@@ -285,12 +285,12 @@ const AdminGroupManagementPage: React.FC = () => {
   const deactivateAdminGroupMutation = useMutation({
     mutationFn: (request: DeactivateAdminGroupRequest) => adminGroupManagementApi.deactivateAdminGroup(selectedAdminGroupId!, request),
     onSuccess: () => {
-      setSuccessMessage('Admin Group deactivated successfully.');
+      setSuccessMessage('Vô hiệu hóa nhóm quản trị thành công.');
       void queryClient.invalidateQueries({ queryKey: ['adminGroups'] });
       setSelectedAdminGroupId(null);
     },
     onError: (err: any) => {
-      Modal.error({ title: 'Deactivate Failed', content: err?.response?.data?.detail || ADMIN_GROUP_MANAGEMENT_ERRORS.DEACTIVATE_ADMIN_GROUP_FAILED });
+      Modal.error({ title: 'Vô hiệu hóa thất bại', content: err?.response?.data?.detail || ADMIN_GROUP_MANAGEMENT_ERRORS.DEACTIVATE_ADMIN_GROUP_FAILED });
     },
   });
 
@@ -299,7 +299,7 @@ const AdminGroupManagementPage: React.FC = () => {
     onSuccess: () => {
       setShowPermissionsModal(false);
       setPermissionsFormError(null);
-      setSuccessMessage('Permissions added successfully.');
+      setSuccessMessage('Thêm quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['adminGroups'] });
     },
     onError: (err: any) => {
@@ -310,11 +310,11 @@ const AdminGroupManagementPage: React.FC = () => {
   const removePermissionMutation = useMutation({
     mutationFn: (code: string) => adminGroupManagementApi.removeAdminGroupPermission(selectedAdminGroupId!, code),
     onSuccess: () => {
-      setSuccessMessage('Permission removed successfully.');
+      setSuccessMessage('Gỡ quyền thành công.');
       void queryClient.invalidateQueries({ queryKey: ['adminGroups'] });
     },
     onError: (err: any) => {
-      Modal.error({ title: 'Remove Failed', content: err?.response?.data?.detail || ADMIN_GROUP_MANAGEMENT_ERRORS.REMOVE_PERMISSION_FAILED });
+      Modal.error({ title: 'Gỡ quyền thất bại', content: err?.response?.data?.detail || ADMIN_GROUP_MANAGEMENT_ERRORS.REMOVE_PERMISSION_FAILED });
     },
   });
 
@@ -342,9 +342,9 @@ const AdminGroupManagementPage: React.FC = () => {
   const handleDeactivateAdminGroup = () => {
     if (!selectedAdminGroup) return;
     Modal.confirm({
-      title: 'Deactivate Admin Group',
-      content: `Are you sure you want to deactivate the admin group ${selectedAdminGroup.groupCode}?`,
-      okText: 'Deactivate',
+      title: 'Vô hiệu hóa nhóm quản trị',
+      content: `Bạn có chắc chắn muốn vô hiệu hóa nhóm quản trị ${selectedAdminGroup.groupCode}?`,
+      okText: 'Vô hiệu hóa',
       okType: 'danger',
       onOk: () => deactivateAdminGroupMutation.mutate({ rowVersion: selectedAdminGroup.rowVersion }),
     });
@@ -352,7 +352,7 @@ const AdminGroupManagementPage: React.FC = () => {
 
   const handleOpenAddPermissions = () => {
     if (selectedAdminGroup?.scopeType === 'COMPANY' && currentCompanyId === null) {
-      Modal.error({ title: 'Company Required', content: ADMIN_GROUP_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
+      Modal.error({ title: 'Cần chọn công ty', content: ADMIN_GROUP_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
       return;
     }
     setPermissionsFormError(null);
@@ -361,13 +361,13 @@ const AdminGroupManagementPage: React.FC = () => {
 
   const handleRemovePermission = (code: string) => {
     if (selectedAdminGroup?.scopeType === 'COMPANY' && currentCompanyId === null) {
-      Modal.error({ title: 'Company Required', content: ADMIN_GROUP_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
+      Modal.error({ title: 'Cần chọn công ty', content: ADMIN_GROUP_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED });
       return;
     }
     Modal.confirm({
-      title: 'Remove Permission',
-      content: `Are you sure you want to remove ${code} from ${selectedAdminGroup?.groupCode}?`,
-      okText: 'Remove',
+      title: 'Gỡ quyền',
+      content: `Bạn có chắc chắn muốn gỡ ${code} khỏi ${selectedAdminGroup?.groupCode}?`,
+      okText: 'Gỡ',
       okType: 'danger',
       onOk: () => removePermissionMutation.mutate(code),
     });
@@ -388,10 +388,10 @@ const AdminGroupManagementPage: React.FC = () => {
   return (
     <div data-testid="admin-group-management-page">
       <Space style={{ marginBottom: 16 }}>
-        <Button onClick={() => navigate(-1)} data-testid="back-button">← Back</Button>
+        <Button onClick={() => navigate(-1)} data-testid="back-button">← Quay lại</Button>
       </Space>
 
-      <Title level={3}>Admin Group Management</Title>
+      <Title level={3}>Quản lý nhóm quản trị</Title>
 
       {successMessage && (
         <Alert
@@ -404,7 +404,7 @@ const AdminGroupManagementPage: React.FC = () => {
         />
       )}
 
-      <Card title="Admin Groups" style={{ marginBottom: 16 }} extra={<Button type="primary" onClick={handleOpenCreateAdminGroup} data-testid="create-admin-group-btn">Create Admin Group</Button>} data-testid="admin-groups-list-card">
+      <Card title="Nhóm quản trị" style={{ marginBottom: 16 }} extra={<Button type="primary" onClick={handleOpenCreateAdminGroup} data-testid="create-admin-group-btn">Tạo nhóm quản trị</Button>} data-testid="admin-groups-list-card">
         {isLoadingAdminGroups && <Spin data-testid="admin-groups-loading" />}
         {!isLoadingAdminGroups && adminGroups && (
           <List
@@ -415,11 +415,11 @@ const AdminGroupManagementPage: React.FC = () => {
               <List.Item
                 key={g.id}
                 actions={[
-                  <Button key="select" type="link" onClick={() => { setSelectedAdminGroupId(g.id); setSuccessMessage(null); }} data-testid={`select-admin-group-${g.id}`}>Select</Button>
+                  <Button key="select" type="link" onClick={() => { setSelectedAdminGroupId(g.id); setSuccessMessage(null); }} data-testid={`select-admin-group-${g.id}`}>Chọn</Button>
                 ]}
               >
                 <List.Item.Meta
-                  title={<><Text strong>{g.groupCode}</Text> {g.isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>}</>}
+                  title={<><Text strong>{g.groupCode}</Text> {g.isActive ? <Tag color="green">Hoạt động</Tag> : <Tag color="red">Ngừng hoạt động</Tag>}</>}
                   description={`${g.name} (${g.scopeType})`}
                 />
               </List.Item>
@@ -430,33 +430,33 @@ const AdminGroupManagementPage: React.FC = () => {
 
       {selectedAdminGroup && (
         <Card
-          title={`Admin Group Details: ${selectedAdminGroup.groupCode}`}
+          title={`Chi tiết nhóm quản trị: ${selectedAdminGroup.groupCode}`}
           style={{ marginBottom: 16 }}
           data-testid="admin-group-detail-card"
           extra={
             <Space>
-              <Button onClick={handleOpenEditAdminGroup} data-testid="edit-admin-group-btn">Edit</Button>
-              <Button danger onClick={handleDeactivateAdminGroup} disabled={!selectedAdminGroup.isActive} data-testid="deactivate-admin-group-btn">Deactivate</Button>
+              <Button onClick={handleOpenEditAdminGroup} data-testid="edit-admin-group-btn">Sửa</Button>
+              <Button danger onClick={handleDeactivateAdminGroup} disabled={!selectedAdminGroup.isActive} data-testid="deactivate-admin-group-btn">Vô hiệu hóa</Button>
             </Space>
           }
         >
           <Descriptions bordered size="small" column={1} style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Name">{selectedAdminGroup.name}</Descriptions.Item>
-            <Descriptions.Item label="Description">{selectedAdminGroup.description || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Scope">{selectedAdminGroup.scopeType}</Descriptions.Item>
-            <Descriptions.Item label="Status">{selectedAdminGroup.isActive ? 'Active' : 'Inactive'}</Descriptions.Item>
+            <Descriptions.Item label="Tên">{selectedAdminGroup.name}</Descriptions.Item>
+            <Descriptions.Item label="Mô tả">{selectedAdminGroup.description || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Phạm vi">{selectedAdminGroup.scopeType}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">{selectedAdminGroup.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}</Descriptions.Item>
           </Descriptions>
 
           <Card
             type="inner"
-            title="Permissions"
-            extra={<Button size="small" type="primary" onClick={handleOpenAddPermissions} disabled={!selectedAdminGroup.isActive} data-testid="add-permissions-btn">Add Permissions</Button>}
+            title="Quyền"
+            extra={<Button size="small" type="primary" onClick={handleOpenAddPermissions} disabled={!selectedAdminGroup.isActive} data-testid="add-permissions-btn">Thêm quyền</Button>}
           >
             {selectedAdminGroup.scopeType === 'COMPANY' && currentCompanyId === null && (
               <Alert type="warning" message={ADMIN_GROUP_MANAGEMENT_ERRORS.COMPANY_CONTEXT_REQUIRED} style={{ marginBottom: 16 }} data-testid="company-required-warning" />
             )}
             {selectedAdminGroup.permissionCodes.length === 0 ? (
-              <Text type="secondary">No permissions assigned.</Text>
+              <Text type="secondary">Chưa gán quyền nào.</Text>
             ) : (
               <List
                 size="small"
@@ -465,7 +465,7 @@ const AdminGroupManagementPage: React.FC = () => {
                   <List.Item
                     key={code}
                     actions={[
-                      <Button key="remove" danger type="link" size="small" onClick={() => handleRemovePermission(code)} disabled={!selectedAdminGroup.isActive} data-testid={`remove-permission-${code}`}>Remove</Button>
+                      <Button key="remove" danger type="link" size="small" onClick={() => handleRemovePermission(code)} disabled={!selectedAdminGroup.isActive} data-testid={`remove-permission-${code}`}>Gỡ</Button>
                     ]}
                   >
                     <List.Item.Meta title={code} />

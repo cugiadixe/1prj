@@ -29,7 +29,7 @@ const CarePackageRequestsPage: React.FC = () => {
     return (
       <Alert
         type="error"
-        message="You do not have permission to view care package requests."
+        message="Bạn không có quyền xem yêu cầu gói chăm sóc."
         data-testid="permission-denied"
       />
     );
@@ -42,12 +42,20 @@ const CarePackageRequestsPage: React.FC = () => {
       key: 'id',
     },
     {
-      title: 'Customer ID',
-      dataIndex: 'customerId',
-      key: 'customerId',
+      title: 'Gói chăm sóc',
+      dataIndex: 'serviceName',
+      key: 'serviceName',
+      render: (val: string | null) => val ?? '—',
     },
     {
-      title: 'Status',
+      title: 'Khách hàng',
+      dataIndex: 'customerName',
+      key: 'customerName',
+      render: (val: string | null, record: CarePackageRequestDto) =>
+        val ? `${val}${record.customerCode ? ` (${record.customerCode})` : ''}` : `#${record.customerId}`,
+    },
+    {
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
@@ -55,33 +63,33 @@ const CarePackageRequestsPage: React.FC = () => {
       ),
     },
     {
-      title: 'Total Amount',
+      title: 'Tổng số tiền',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       render: (val: number) => val != null ? val.toLocaleString('vi-VN') + ' VND' : '—',
     },
     {
-      title: 'Sale Date',
+      title: 'Ngày bán',
       dataIndex: 'saleDate',
       key: 'saleDate',
-      render: (val: string) => new Date(val).toLocaleDateString(),
+      render: (val: string) => new Date(val).toLocaleDateString('vi-VN'),
     },
     {
-      title: 'Created At',
+      title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (val: string) => new Date(val).toLocaleString(),
+      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
     },
   ];
 
   return (
     <div data-testid="care-package-requests-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Care Package Requests</Title>
+        <Title level={4} style={{ margin: 0 }}>Yêu cầu gói chăm sóc</Title>
         <Space>
           {hasPermission('CARE_PACKAGE_CREATE', 'COMPANY') && (
             <Button type="primary" data-testid="create-care-package-btn">
-              <Link to="/care-packages/new">Create Request</Link>
+              <Link to="/care-packages/new">Tạo yêu cầu</Link>
             </Button>
           )}
         </Space>
@@ -89,7 +97,7 @@ const CarePackageRequestsPage: React.FC = () => {
 
       <Space style={{ marginBottom: 16 }}>
         <Select
-          placeholder="Filter by Status"
+          placeholder="Lọc theo trạng thái"
           allowClear
           style={{ width: 200 }}
           onChange={(val) => setStatusFilter(val)}
@@ -121,7 +129,7 @@ const CarePackageRequestsPage: React.FC = () => {
       {!isLoading && !error && data && data.items.length === 0 && (
         <Alert
           type="info"
-          message="No care package requests found."
+          message="Không tìm thấy yêu cầu gói chăm sóc nào."
           data-testid="care-package-list-empty"
         />
       )}

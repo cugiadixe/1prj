@@ -1,3 +1,19 @@
+export const CUSTOMER_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: 'Đang hoạt động',
+  INACTIVE: 'Ngừng giao dịch',
+  MERGED: 'Đã gộp',
+  DECEASED: 'Đã mất',
+};
+
+export const CUSTOMER_STATUS_COLORS: Record<string, string> = {
+  ACTIVE: 'green',
+  INACTIVE: 'red',
+  MERGED: 'default',
+  DECEASED: 'volcano',
+};
+
+export type { Tag } from '../tags/types';
+
 export interface CustomerListItem {
   id: number;
   customerCode: string;
@@ -6,6 +22,7 @@ export interface CustomerListItem {
   phone: string | null;
   customerStatus: string;
   createdAt: string;
+  tags?: import('../tags/types').Tag[];
 }
 
 export interface ProfileInfo {
@@ -38,13 +55,16 @@ export interface CustomerDetail {
   createdAt: string;
   updatedAt: string | null;
   profile: ProfileInfo;
+  tags?: import('../tags/types').Tag[];
 }
 
 export interface CustomerCompanyContext {
   id: number;
   customerId: number;
   companyId: number;
+  companyName: string | null;
   assignedStaffId: number | null;
+  assignedStaffName: string | null;
   relationshipStatus: string;
   internalNotes: string | null;
   firstInteractionAt: string | null;
@@ -126,8 +146,22 @@ export interface DuplicateCheckResult {
 export interface CustomerSearchParams {
   search?: string;
   customerStatus?: string;
+  companyId?: number;
+  assignedStaffId?: number;
+  unassignedStaff?: boolean;
+  tagIds?: number[];
   page?: number;
   pageSize?: number;
+}
+
+export interface CompanyLookup {
+  id: number;
+  name: string;
+}
+
+export interface StaffLookup {
+  id: number;
+  fullName: string;
 }
 
 export interface PagedResult<T> {
