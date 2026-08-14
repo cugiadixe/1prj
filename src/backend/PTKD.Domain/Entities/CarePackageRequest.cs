@@ -104,13 +104,20 @@ public class CarePackageRequest
         TotalAmount = SubtotalAmount - DiscountAmount;
     }
 
-    public void EvaluateApprovalRequirement()
+    /// <summary>
+    /// Xác định yêu cầu này có phải qua phê duyệt không.
+    /// </summary>
+    /// <param name="configuredDecision">
+    /// Kết luận từ CẤU HÌNH quy trình (liên kết + điều kiện đã khai báo). Truyền <c>null</c> khi
+    /// quy trình chưa được cấu hình — lúc đó lùi về luật mặc định "có giảm giá thì phải duyệt"
+    /// làm lưới an toàn, để không có hồ sơ nào âm thầm thoát phê duyệt trong lúc chưa khai báo.
+    /// </param>
+    public void EvaluateApprovalRequirement(bool? configuredDecision = null)
     {
         if (Status != StatusDraft)
             throw new InvalidOperationException("Can only evaluate approval requirement on draft requests.");
 
-        RequiresApproval = DiscountAmount > 0;
-        // B1: More complex rules for changed-price renewal or overrides can be added here later
+        RequiresApproval = configuredDecision ?? DiscountAmount > 0;
     }
 
     public void SetPaymentEligible()

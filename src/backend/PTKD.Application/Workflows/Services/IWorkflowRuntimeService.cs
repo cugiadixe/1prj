@@ -25,4 +25,14 @@ public interface IWorkflowRuntimeService
     /// nếu đã biết ID, nên hồ sơ Thất bại nằm im không ai thấy để chạy lại.
     /// </summary>
     Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Hồ sơ với dữ liệu này có phải qua phê duyệt không — trả lời bằng CẤU HÌNH (liên kết +
+    /// điều kiện) chứ không phải luật cứng trong code. Chỉ đọc, không tạo gì.
+    ///
+    /// Trả về <c>null</c> khi quy trình CHƯA có liên kết nào: lúc đó engine không có cơ sở để
+    /// kết luận, module gọi phải tự quyết (thường là giữ luật cũ làm lưới an toàn) — tuyệt đối
+    /// không được hiểu "không có liên kết" thành "không cần duyệt".
+    /// </summary>
+    Task<bool?> IsApprovalRequiredAsync(string processCode, long? companyId, string? payloadJson, CancellationToken ct = default);
 }

@@ -732,6 +732,41 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         };
     }
 
+    public async Task<bool?> IsApprovalRequiredAsync(string processCode, long? companyId, string? payloadJson, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var now = DateTime.UtcNow;
+
+        var candidates = await context.WorkflowBindings
+            .AsNoTracking()
+            .Where(b => b.IsActive
+                && b.ProcessCode == processCode
+                && b.EffectiveFrom <= now
+                && (b.EffectiveTo == null || b.EffectiveTo > now))
+            .Where(b => (b.ScopeType == "COMPANY" && b.CompanyId == companyId) || b.ScopeType == "GLOBAL")
+            .ToListAsync(ct);
+
+        // Chưa cấu hình gì → engine không có cơ sở kết luận. KHÔNG được trả false,
+        // vì như thế là âm thầm cho hồ sơ thoát phê duyệt.
+        if (candidates.Count == 0) return null;
+
+        var versionIds = candidates.Select(b => b.WorkflowVersionId).Distinct().ToList();
+        var conditionsByVersion = (await context.WorkflowConditions
+                .AsNoTracking()
+                .Where(c => versionIds.Contains(c.WorkflowVersionId))
+                .ToListAsync(ct))
+            .GroupBy(c => c.WorkflowVersionId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyCollection<ConditionCheck>)g
+                    .Select(c => new ConditionCheck(c.FieldCode, c.Operator, c.Value)).ToList());
+
+        // Cần duyệt khi có ít nhất một liên kết mà điều kiện của phiên bản KHỚP dữ liệu hồ sơ.
+        return candidates.Any(b => WorkflowConditionEvaluator.Matches(
+            conditionsByVersion.TryGetValue(b.WorkflowVersionId, out var cs) ? cs : [],
+            payloadJson));
+    }
+
     public async Task<WorkflowActionDto[]> GetInstanceActionsAsync(long instanceId, long userId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();

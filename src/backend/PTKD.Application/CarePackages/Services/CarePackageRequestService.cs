@@ -46,9 +46,24 @@ public interface ICarePackageRequestService
 
 public class CarePackageRequestService : ICarePackageRequestService
 {
+    private const string SellProcessCode = "SELL_CARE_PACKAGE";
+
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly IWorkflowRuntimeService _workflowRuntimeService;
     private readonly IPaymentTransactionService _paymentTransactionService;
+
+    /// <summary>
+    /// Dữ liệu hồ sơ dùng để đánh giá điều kiện quy trình. Các khoá ở đây phải khớp field_code
+    /// đã khai báo trong Workflow_Condition_Fields cho SELL_CARE_PACKAGE.
+    /// </summary>
+    private static string BuildApprovalPayload(CarePackageRequest request) =>
+        JsonSerializer.Serialize(new
+        {
+            request.CustomerId,
+            request.ServiceId,
+            request.TotalAmount,
+            request.DiscountAmount,
+        });
 
     public CarePackageRequestService(
         IOrganizationDbContextFactory dbContextFactory,
@@ -176,7 +191,13 @@ public class CarePackageRequestService : ICarePackageRequestService
             draft.SetDiscount(request.DiscountAmount, request.DiscountReason);
         }
 
-        draft.EvaluateApprovalRequirement();
+        // Luật "khi nào cần duyệt" nay lấy từ CẤU HÌNH quy trình (liên kết + điều kiện) thay vì
+        // nằm cứng trong thực thể. Chưa cấu hình thì trả về null và thực thể lùi về luật cũ
+        // (có giảm giá thì phải duyệt) làm lưới an toàn — không hồ sơ nào thoát duyệt âm thầm.
+        var approvalDecision = await _workflowRuntimeService.IsApprovalRequiredAsync(
+            SellProcessCode, companyId, BuildApprovalPayload(draft), ct);
+
+        draft.EvaluateApprovalRequirement(approvalDecision);
 
         if (!draft.RequiresApproval)
         {
@@ -198,11 +219,13 @@ public class CarePackageRequestService : ICarePackageRequestService
 
         var workflowRequest = new CreateWorkflowInstanceRequest
         {
-            ProcessCode = "SELL_CARE_PACKAGE",
+            ProcessCode = SellProcessCode,
             BusinessEntityType = "CarePackageRequest",
             BusinessEntityId = request.Id,
             CompanyId = companyId,
-            PayloadJson = JsonSerializer.Serialize(new { CustomerId = request.CustomerId, ServiceId = request.ServiceId, TotalAmount = request.TotalAmount })
+            // Dùng CHUNG một hàm dựng payload với lúc tạo, để điều kiện được đánh giá trên
+            // đúng bộ dữ liệu ở cả hai thời điểm.
+            PayloadJson = BuildApprovalPayload(request)
         };
 
         var instance = await _workflowRuntimeService.CreateInstanceAsync(workflowRequest, actorUserId, ct);
