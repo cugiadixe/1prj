@@ -1,5 +1,4 @@
-using System;
-using System.Text.Json;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -11,110 +10,43 @@ using PTKD.Domain.Entities;
 namespace PTKD.Application.CustomerCarePackages.Handlers;
 
 /// <summary>
-/// Bộ xử lý khi quy trình "Gán gói dịch vụ cho khách" (ASSIGN_CARE_PACKAGE) được duyệt xong.
-/// Chuyển gói từ PENDING_APPROVAL sang PENDING_GRAVE — lúc này gói mới thực sự hiện cho khách
-/// để gán vào mộ (luồng c của yêu cầu).
+/// Quy trình "Gán gói dịch vụ cho khách" (ASSIGN_CARE_PACKAGE).
+/// Duyệt xong: PENDING_APPROVAL → PENDING_GRAVE, lúc này gói mới hiện ra để gán vào mộ.
+/// Bị từ chối: đưa gói ra khỏi trạng thái chờ duyệt, nếu không gói kẹt "Chờ duyệt" vĩnh viễn.
 /// </summary>
-public class AssignCarePackageExecutionHandler : IWorkflowExecutionHandler
+public class AssignCarePackageExecutionHandler : StatusTransitionExecutionHandler<CustomerCarePackage>
 {
-    private readonly IOrganizationDbContextFactory _dbContextFactory;
-    private readonly ITransactionalAuditWriter _auditWriter;
-
-    public string ProcessCode => "ASSIGN_CARE_PACKAGE";
-
     public AssignCarePackageExecutionHandler(
         IOrganizationDbContextFactory dbContextFactory,
         ITransactionalAuditWriter auditWriter)
-    {
-        _dbContextFactory = dbContextFactory;
-        _auditWriter = auditWriter;
-    }
+        : base(dbContextFactory, auditWriter) { }
 
-    public async Task ExecuteAsync(WorkflowInstance instance, CancellationToken ct = default)
-    {
-        if (instance.BusinessEntityType != "CustomerCarePackage")
-            throw new InvalidOperationException("Invalid business entity type for this handler.");
+    public override string ProcessCode => "ASSIGN_CARE_PACKAGE";
+    protected override string BusinessEntityType => "CustomerCarePackage";
+    protected override string RequiredStatus => CustomerCarePackage.StatusPendingApproval;
 
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var package = await dbContext.CustomerCarePackages
-            .FirstOrDefaultAsync(p => p.Id == instance.BusinessEntityId, ct);
+    // Mọi trạng thái khác PENDING_APPROVAL đều coi là đã xử lý xong — giữ đúng hành vi khoan dung
+    // trước đây (gói bị huỷ/từ chối trong lúc chờ thì bỏ qua êm, không đánh dấu hồ sơ Thất bại).
+    protected override IReadOnlyCollection<string> AlreadyDoneStatuses =>
+    [
+        CustomerCarePackage.StatusPendingGrave,
+        CustomerCarePackage.StatusActive,
+        CustomerCarePackage.StatusExpired,
+        CustomerCarePackage.StatusCancelled,
+    ];
 
-        if (package == null)
-            throw new InvalidOperationException("Customer care package not found.");
+    protected override string ExecutedAuditEventCode => "CARE_PACKAGE_APPROVAL_EXECUTED";
+    protected override string? RejectedAuditEventCode => "CARE_PACKAGE_APPROVAL_REJECTED";
 
-        // Idempotency: đã qua PENDING_APPROVAL thì thôi.
-        if (package.Status != CustomerCarePackage.StatusPendingApproval)
-            return;
+    protected override Task<CustomerCarePackage?> LoadAsync(IOrganizationDbContext db, long entityId, CancellationToken ct)
+        => db.CustomerCarePackages.FirstOrDefaultAsync(p => p.Id == entityId, ct);
 
-        // Người duyệt = người đóng bước cuối; ở đây dùng requester làm actor ghi nhận thay đổi
-        // trạng thái (WorkflowAction đã ghi ai thực sự duyệt).
-        package.MarkApproved(instance.RequesterId);
+    protected override string GetStatus(CustomerCarePackage entity) => entity.Status;
+    protected override long GetEntityId(CustomerCarePackage entity) => entity.Id;
 
-        await using var transaction = await dbContext.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-        await dbContext.SaveChangesAsync(ct);
+    protected override void ApplyApproved(CustomerCarePackage entity, WorkflowInstance instance)
+        => entity.MarkApproved(instance.RequesterId);
 
-        var audit = new SecurityAuditEventRecord
-        {
-            EventCode = "CARE_PACKAGE_APPROVAL_EXECUTED",
-            EntityType = "CustomerCarePackage",
-            EntityId = package.Id.ToString(),
-            Outcome = "SUCCESS",
-            CorrelationId = instance.CorrelationId,
-            ActorUserId = instance.RequesterId,
-            AfterStateJson = JsonSerializer.Serialize(new { PackageId = package.Id, Status = package.Status, InstanceId = instance.Id })
-        };
-        audit.ThrowIfContainsSensitiveData();
-        await _auditWriter.WriteAsync(audit, dbContext.GetDbConnection(), dbContext.GetCurrentDbTransaction()!, ct);
-
-        await transaction.CommitAsync(ct);
-    }
-
-    /// <summary>
-    /// Trưởng phòng TỪ CHỐI: đưa gói ra khỏi trạng thái chờ duyệt (nếu không, gói kẹt
-    /// "Chờ duyệt" vĩnh viễn — khách không dùng được mà cũng không ai xử lý được).
-    /// </summary>
-    public async Task OnRejectedAsync(WorkflowInstance instance, CancellationToken ct = default)
-    {
-        if (instance.BusinessEntityType != "CustomerCarePackage")
-            return;
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var package = await dbContext.CustomerCarePackages
-            .FirstOrDefaultAsync(p => p.Id == instance.BusinessEntityId, ct);
-
-        // Idempotency: gói đã rời trạng thái chờ duyệt thì thôi.
-        if (package == null || package.Status != CustomerCarePackage.StatusPendingApproval)
-            return;
-
-        // Lấy cả LÝ DO và NGƯỜI thực sự từ chối — ghi người đề xuất vào đây là sai lịch sử,
-        // người đọc nhật ký sẽ tưởng nhân viên tự hủy yêu cầu của mình.
-        var rejectAction = await dbContext.WorkflowActions.AsNoTracking()
-            .Where(a => a.WorkflowInstanceId == instance.Id && a.ActionType == "REJECT")
-            .OrderByDescending(a => a.Id)
-            .Select(a => new { a.Reason, a.ActedBy })
-            .FirstOrDefaultAsync(ct);
-
-        var reason = rejectAction?.Reason;
-        var rejectedByUserId = rejectAction?.ActedBy ?? instance.RequesterId;
-
-        package.MarkRejected(rejectedByUserId, reason);
-
-        await using var transaction = await dbContext.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-        await dbContext.SaveChangesAsync(ct);
-
-        var audit = new SecurityAuditEventRecord
-        {
-            EventCode = "CARE_PACKAGE_APPROVAL_REJECTED",
-            EntityType = "CustomerCarePackage",
-            EntityId = package.Id.ToString(),
-            Outcome = "SUCCESS",
-            CorrelationId = instance.CorrelationId,
-            ActorUserId = rejectedByUserId,
-            AfterStateJson = JsonSerializer.Serialize(new { PackageId = package.Id, Status = package.Status, InstanceId = instance.Id })
-        };
-        audit.ThrowIfContainsSensitiveData();
-        await _auditWriter.WriteAsync(audit, dbContext.GetDbConnection(), dbContext.GetCurrentDbTransaction()!, ct);
-
-        await transaction.CommitAsync(ct);
-    }
+    protected override void ApplyRejected(CustomerCarePackage entity, WorkflowInstance instance, string? reason, long rejectedByUserId)
+        => entity.MarkRejected(rejectedByUserId, reason);
 }

@@ -1,74 +1,46 @@
-using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PTKD.Application.Common.Interfaces;
+using PTKD.Application.Security.Audit;
 using PTKD.Application.Workflows.Services;
 using PTKD.Domain.Entities;
-using PTKD.Application.Security.Audit;
-using System.Text.Json;
 
 namespace PTKD.Application.CarePackages.Handlers;
 
-public class CarePackageExecutionHandler : IWorkflowExecutionHandler
+/// <summary>
+/// Duyệt xong yêu cầu bán gói chăm sóc → ĐÃ DUYỆT, rồi mở luôn điều kiện thu tiền
+/// (theo quy tắc B2: đủ điều kiện thanh toán khi không cần duyệt, hoặc cần duyệt và đã duyệt).
+///
+/// Không khai báo hoàn tác khi từ chối: CarePackageRequestService.RejectStepAsync đã tự xử lý
+/// ở tầng service.
+/// </summary>
+public class CarePackageExecutionHandler : StatusTransitionExecutionHandler<CarePackageRequest>
 {
-    private readonly IOrganizationDbContextFactory _dbContextFactory;
-    private readonly ITransactionalAuditWriter _auditWriter;
-
-    public string ProcessCode => "SELL_CARE_PACKAGE";
-
     public CarePackageExecutionHandler(
         IOrganizationDbContextFactory dbContextFactory,
         ITransactionalAuditWriter auditWriter)
+        : base(dbContextFactory, auditWriter) { }
+
+    public override string ProcessCode => "SELL_CARE_PACKAGE";
+    protected override string BusinessEntityType => "CarePackageRequest";
+    protected override string RequiredStatus => CarePackageRequest.StatusPendingApproval;
+
+    protected override IReadOnlyCollection<string> AlreadyDoneStatuses =>
+        [CarePackageRequest.StatusApproved, CarePackageRequest.StatusPaymentEligible];
+
+    protected override string ExecutedAuditEventCode => "SELL_CARE_PACKAGE_WORKFLOW_EXECUTED";
+
+    protected override Task<CarePackageRequest?> LoadAsync(IOrganizationDbContext db, long entityId, CancellationToken ct)
+        => db.CarePackageRequests.FirstOrDefaultAsync(c => c.Id == entityId, ct);
+
+    protected override string GetStatus(CarePackageRequest entity) => entity.Status;
+    protected override long GetEntityId(CarePackageRequest entity) => entity.Id;
+
+    protected override void ApplyApproved(CarePackageRequest entity, WorkflowInstance instance)
     {
-        _dbContextFactory = dbContextFactory;
-        _auditWriter = auditWriter;
-    }
-
-    public async Task ExecuteAsync(WorkflowInstance instance, CancellationToken ct = default)
-    {
-        if (instance.BusinessEntityType != "CarePackageRequest")
-            throw new InvalidOperationException("Invalid business entity type for this handler.");
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var request = await dbContext.CarePackageRequests.FirstOrDefaultAsync(c => c.Id == instance.BusinessEntityId, ct);
-
-        if (request == null) throw new InvalidOperationException("Care package request not found.");
-
-        if (request.Status == CarePackageRequest.StatusApproved || request.Status == CarePackageRequest.StatusPaymentEligible)
-            return; // Idempotency check
-
-        if (request.Status != CarePackageRequest.StatusPendingApproval)
-            throw new InvalidOperationException($"Cannot execute request in state {request.Status}.");
-
-        request.SetApproved();
-        // Since B2 requirements say "payment eligibility guard: no approval required and valid configured price, or approval required and approved",
-        // we can set it to PaymentEligible after it's approved.
-        request.SetPaymentEligible();
-
-        try
-        {
-            await using var transaction = await dbContext.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-            await dbContext.SaveChangesAsync(ct);
-
-            var audit = new SecurityAuditEventRecord
-            {
-                EventCode = "SELL_CARE_PACKAGE_WORKFLOW_EXECUTED",
-                EntityType = "CarePackageRequest",
-                EntityId = request.Id.ToString(),
-                Outcome = "SUCCESS",
-                CorrelationId = Guid.NewGuid(),
-                ActorUserId = 0, // Fallback actor
-                AfterStateJson = JsonSerializer.Serialize(new { RequestId = request.Id, Status = request.Status })
-            };
-            audit.ThrowIfContainsSensitiveData();
-            await _auditWriter.WriteAsync(audit, dbContext.GetDbConnection(), dbContext.GetCurrentDbTransaction()!, ct);
-
-            await transaction.CommitAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new InvalidOperationException("Concurrency conflict during execution.");
-        }
+        entity.SetApproved();
+        entity.SetPaymentEligible();
     }
 }
