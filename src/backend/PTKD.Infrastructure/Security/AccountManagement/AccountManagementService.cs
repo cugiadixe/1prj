@@ -164,6 +164,16 @@ public sealed class AccountManagementService : IAccountManagementService
             .OrderBy(x => x.AccountId)
             .ToListAsync(cancellationToken);
 
+        // Công ty/phòng ban chính là theo NGƯỜI (không theo account) — điền cho mọi account của user.
+        if (accounts.Count > 0)
+        {
+            var (companyName, departmentName) = await GetPrimaryOrgNamesAsync(userId, cancellationToken);
+            for (var i = 0; i < accounts.Count; i++)
+            {
+                accounts[i] = accounts[i] with { CompanyName = companyName, DepartmentName = departmentName };
+            }
+        }
+
         return (accounts, true);
     }
 

@@ -147,3 +147,59 @@ export async function apiFetchMyCompanies(): Promise<UserCompaniesResponse> {
   const { data } = await axiosClient.get<UserCompaniesResponse>('/auth/me/companies');
   return data;
 }
+
+export interface MyProfileDto {
+  userId: number;
+  username: string | null;
+  fullName: string | null;
+  employeeCode: string | null;
+  companyName: string | null;
+  departmentName: string | null;
+}
+
+/**
+ * GET /api/v2/auth/me/profile
+ * Retrieves the current user's own profile (name, company, department).
+ */
+export async function apiFetchMyProfile(): Promise<MyProfileDto> {
+  const { data } = await axiosClient.get<MyProfileDto>('/auth/me/profile');
+  return data;
+}
+
+export interface MyActivityEventDto {
+  id: number;
+  actorUserId: number | null;
+  actingAsUserId: number | null;
+  targetUserId: number | null;
+  companyId: number | null;
+  eventCode: string;
+  entityType: string;
+  entityId: string | null;
+  entityLabel: string | null;
+  reason: string | null;
+  correlationId: string;
+  outcome: string;
+  policyVersion: number | null;
+  createdAt: string;
+}
+
+export interface MyActivityResponse {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  items: MyActivityEventDto[];
+}
+
+/**
+ * GET /api/v2/auth/me/activity
+ * Retrieves the current user's own recent activity (audit) events.
+ */
+export async function apiFetchMyActivity(
+  page = 1,
+  pageSize = 20,
+): Promise<MyActivityResponse> {
+  const { data } = await axiosClient.get<MyActivityResponse>('/auth/me/activity', {
+    params: { page, pageSize },
+  });
+  return data;
+}

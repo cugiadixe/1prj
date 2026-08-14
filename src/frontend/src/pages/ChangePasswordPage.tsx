@@ -21,7 +21,7 @@ interface ChangePasswordFormValues {
 }
 
 const ChangePasswordPage: React.FC = () => {
-  const { isAuthenticated, mustChangePassword, onPasswordChanged, isBootstrapping } = useAuth();
+  const { isAuthenticated, onPasswordChanged, isBootstrapping } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -31,9 +31,6 @@ const ChangePasswordPage: React.FC = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-  if (!mustChangePassword) {
-    return <Navigate to="/" replace />;
   }
 
   const onFinish = async (values: ChangePasswordFormValues) => {
@@ -81,7 +78,7 @@ const ChangePasswordPage: React.FC = () => {
             Đổi mật khẩu
           </Title>
           <Typography.Text type="secondary">
-            Tài khoản của bạn yêu cầu đổi mật khẩu trước khi tiếp tục sử dụng.
+            Nhập mật khẩu hiện tại và mật khẩu mới. Sau khi đổi, bạn cần đăng nhập lại.
           </Typography.Text>
         </div>
 

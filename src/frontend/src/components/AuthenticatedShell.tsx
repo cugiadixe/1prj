@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Button, Layout, Menu, Typography, Select, Avatar, Dropdown, theme } from 'antd';
+import { Badge, Button, Layout, Menu, Typography, Select, Avatar, Dropdown, theme } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { getMyApprovals } from '../workflow/workflowRuntimeApi';
 import {
   HomeOutlined,
   TeamOutlined,
@@ -26,6 +28,7 @@ import {
   ReconciliationOutlined,
   EnvironmentOutlined,
   TagsOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import { useCompany } from '../auth/CompanyProvider';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -42,6 +45,16 @@ const AuthenticatedShell: React.FC = () => {
   const { companies, currentCompanyId, switchCompany } = useCompany();
   const [collapsed, setCollapsed] = useState(false);
   const { token } = theme.useToken();
+
+  // Đếm việc chờ duyệt cho chuông thông báo. Tự làm mới định kỳ + khi quay lại cửa sổ.
+  const { data: pendingApprovals } = useQuery({
+    queryKey: ['header-pending-approvals'],
+    queryFn: getMyApprovals,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
+  });
+  const pendingCount = pendingApprovals?.length ?? 0;
 
   const handleLogout = async () => {
     await logout();
@@ -274,6 +287,19 @@ const AuthenticatedShell: React.FC = () => {
     },
     { type: 'divider' },
     {
+      key: 'profile',
+      icon: <IdcardOutlined />,
+      label: 'Trang cá nhân',
+      onClick: () => navigate('/profile'),
+    },
+    {
+      key: 'change-password',
+      icon: <KeyOutlined />,
+      label: 'Đổi mật khẩu',
+      onClick: () => navigate('/change-password'),
+    },
+    { type: 'divider' },
+    {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Đăng xuất',
@@ -352,6 +378,15 @@ const AuthenticatedShell: React.FC = () => {
                 variant="borderless"
               />
             )}
+            <Badge count={pendingCount} size="small" overflowCount={99}>
+              <Button
+                type="text"
+                icon={<BellOutlined style={{ fontSize: 18 }} />}
+                onClick={() => navigate('/workflow/my-approvals')}
+                title="Việc chờ duyệt"
+                data-testid="notification-bell"
+              />
+            </Badge>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Avatar icon={<UserOutlined />} style={{ backgroundColor: token.colorPrimary }} />

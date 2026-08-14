@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using PTKD.Api.Auth.Models;
 using PTKD.Api.Security;
 using PTKD.Application.Security.Authentication.Interfaces;
@@ -26,19 +27,28 @@ public sealed class AuthController : ControllerBase
     private readonly CsrfTokenService _csrfService;
     private readonly IPermissionEvaluator _permissionEvaluator;
     private readonly ISecurityAdminService _securityAdminService;
+    private readonly PTKD.Application.Security.Audit.ISecurityAuditQueryService _auditQueryService;
+    private readonly PTKD.Application.Security.AccountManagement.IAccountManagementService _accountManagementService;
+    private readonly PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory _orgContextFactory;
 
     public AuthController(
         IAuthenticationAccountService authService,
         ITokenSessionLifecycleService sessionService,
         CsrfTokenService csrfService,
         IPermissionEvaluator permissionEvaluator,
-        ISecurityAdminService securityAdminService)
+        ISecurityAdminService securityAdminService,
+        PTKD.Application.Security.Audit.ISecurityAuditQueryService auditQueryService,
+        PTKD.Application.Security.AccountManagement.IAccountManagementService accountManagementService,
+        PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory orgContextFactory)
     {
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
         _csrfService = csrfService ?? throw new ArgumentNullException(nameof(csrfService));
         _permissionEvaluator = permissionEvaluator ?? throw new ArgumentNullException(nameof(permissionEvaluator));
         _securityAdminService = securityAdminService ?? throw new ArgumentNullException(nameof(securityAdminService));
+        _auditQueryService = auditQueryService ?? throw new ArgumentNullException(nameof(auditQueryService));
+        _accountManagementService = accountManagementService ?? throw new ArgumentNullException(nameof(accountManagementService));
+        _orgContextFactory = orgContextFactory ?? throw new ArgumentNullException(nameof(orgContextFactory));
     }
 
     /// <summary>
@@ -353,6 +363,181 @@ public sealed class AuthController : ControllerBase
 
         var response = await _securityAdminService.GetSelectableCompaniesAsync(userId, cancellationToken);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// GET /api/v2/auth/me/profile
+    /// Thông tin cá nhân của chính người đang đăng nhập: họ tên, tài khoản, mã NV,
+    /// công ty và phòng ban chính. Dữ liệu của bản thân, không cần quyền quản trị.
+    /// </summary>
+    [HttpGet("me/profile")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
+    {
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !long.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized(BuildGenericAuthProblem());
+        }
+
+        var (accounts, _) = await _accountManagementService.GetAccountsByUserIdAsync(userId, cancellationToken);
+        var summary = accounts.FirstOrDefault();
+
+        return Ok(new
+        {
+            userId,
+            username = summary?.Username,
+            fullName = summary?.FullName,
+            employeeCode = summary?.EmployeeCode,
+            companyName = summary?.CompanyName,
+            departmentName = summary?.DepartmentName
+        });
+    }
+
+    /// <summary>
+    /// GET /api/v2/auth/me/activity
+    /// Trả về lịch sử thao tác gần đây của CHÍNH người đang đăng nhập (dữ liệu của bản thân,
+    /// không cần quyền quản trị). Lọc theo actor_user_id = user hiện tại.
+    /// </summary>
+    [HttpGet("me/activity")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [ProducesResponseType(typeof(PTKD.Application.Common.Models.PagedResult<PTKD.Application.Security.Audit.DTOs.SecurityAuditEventDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyActivity(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !long.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized(BuildGenericAuthProblem());
+        }
+
+        var parameters = new PTKD.Application.Security.Audit.DTOs.SecurityAuditQueryParameters
+        {
+            ActorUserId = userId,
+            Page = page < 1 ? 1 : page,
+            PageSize = pageSize < 1 ? 20 : (pageSize > 50 ? 50 : pageSize)
+        };
+
+        var result = await _auditQueryService.GetAuditEventsAsync(parameters, cancellationToken);
+
+        // Diễn giải "đối tượng" sang tên dễ đọc (thay vì chỉ #id).
+        var labels = await ResolveActivityEntityLabelsAsync(result.Items, cancellationToken);
+
+        var items = result.Items.Select(e => new
+        {
+            e.Id,
+            e.ActorUserId,
+            e.ActingAsUserId,
+            e.TargetUserId,
+            e.CompanyId,
+            e.EventCode,
+            e.EntityType,
+            e.EntityId,
+            EntityLabel = labels.TryGetValue((e.EntityType, e.EntityId), out var lbl) ? lbl : null,
+            e.Reason,
+            e.CorrelationId,
+            e.Outcome,
+            e.PolicyVersion,
+            e.CreatedAt
+        }).ToList();
+
+        return Ok(new
+        {
+            result.Page,
+            result.PageSize,
+            result.TotalCount,
+            Items = items
+        });
+    }
+
+    /// <summary>
+    /// Diễn giải đối tượng audit sang nhãn người-đọc-được.
+    /// - CustomerCarePackage #id → "Tên gói — Tên khách (mã KH)".
+    /// - WorkflowInstance #id → nhãn của gói dịch vụ mà quy trình đang xử lý (nếu là CustomerCarePackage).
+    /// Khóa dictionary = (entityType, entityId đúng như trong audit).
+    /// </summary>
+    private async Task<Dictionary<(string, string?), string>> ResolveActivityEntityLabelsAsync(
+        IEnumerable<PTKD.Application.Security.Audit.DTOs.SecurityAuditEventDto> events,
+        CancellationToken ct)
+    {
+        var result = new Dictionary<(string, string?), string>();
+
+        long ParseId(string? s) => long.TryParse(s, out var v) ? v : 0;
+
+        var carePkgIds = events
+            .Where(e => e.EntityType == "CustomerCarePackage")
+            .Select(e => ParseId(e.EntityId))
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        var workflowIds = events
+            .Where(e => e.EntityType == "WorkflowInstance")
+            .Select(e => ParseId(e.EntityId))
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        if (carePkgIds.Count == 0 && workflowIds.Count == 0)
+            return result;
+
+        await using var org = _orgContextFactory.CreateDbContext();
+
+        // WorkflowInstance → gói dịch vụ mà nó đang xử lý.
+        var wfToPkg = new Dictionary<long, long>();
+        if (workflowIds.Count > 0)
+        {
+            var wfRows = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                org.WorkflowInstances.AsNoTracking()
+                    .Where(w => workflowIds.Contains(w.Id) && w.BusinessEntityType == "CustomerCarePackage")
+                    .Select(w => new { w.Id, w.BusinessEntityId }),
+                ct);
+            foreach (var r in wfRows)
+            {
+                wfToPkg[r.Id] = r.BusinessEntityId;
+                if (r.BusinessEntityId > 0) carePkgIds.Add(r.BusinessEntityId);
+            }
+            carePkgIds = carePkgIds.Distinct().ToList();
+        }
+
+        // Nhãn gói dịch vụ: "Tên gói — Tên khách (mã KH)".
+        var pkgLabels = new Dictionary<long, string>();
+        if (carePkgIds.Count > 0)
+        {
+            var rows = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                from p in org.CustomerCarePackages.AsNoTracking()
+                where carePkgIds.Contains(p.Id)
+                join st in org.ServiceTypes on p.ServiceTypeId equals st.Id
+                join c in org.Customers on p.CustomerId equals c.Id
+                join pr in org.Profiles on c.ProfileId equals pr.Id
+                select new { p.Id, ServiceName = st.Name, CustomerName = pr.FullName, c.CustomerCode },
+                ct);
+            foreach (var r in rows)
+                pkgLabels[r.Id] = $"{r.ServiceName} — {r.CustomerName} ({r.CustomerCode})";
+        }
+
+        // Gán nhãn cho từng sự kiện.
+        foreach (var id in carePkgIds)
+        {
+            if (pkgLabels.TryGetValue(id, out var lbl))
+                result[("CustomerCarePackage", id.ToString())] = lbl;
+        }
+        foreach (var (wfId, pkgId) in wfToPkg)
+        {
+            if (pkgLabels.TryGetValue(pkgId, out var lbl))
+                result[("WorkflowInstance", wfId.ToString())] = lbl;
+        }
+
+        return result;
     }
 
     // ── Cookie helpers ────────────────────────────────────────────────────

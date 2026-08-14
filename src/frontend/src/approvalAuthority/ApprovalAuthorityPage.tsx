@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Alert, Button, Card, DatePicker, Form, Input, InputNumber, Modal, Popconfirm,
+  Alert, Button, Card, DatePicker, Form, Input, Modal, Popconfirm,
   Select, Space, Switch, Table, Tag, Typography, message,
 } from 'antd';
 import { PlusOutlined, SafetyCertificateOutlined } from '@ant-design/icons';

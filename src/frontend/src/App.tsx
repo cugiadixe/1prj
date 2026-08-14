@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthenticatedShell from './components/AuthenticatedShell';
 import LoginPage from './pages/LoginPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import ProfilePage from './pages/ProfilePage';
 import Home from './pages/Home';
 import SystemHealth from './pages/SystemHealth';
 import AccountManagementPage from './pages/AccountManagementPage';
@@ -77,7 +78,8 @@ const ChangePasswordGuard: React.FC = () => {
 
   if (isBootstrapping) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!mustChangePassword) return <Navigate to="/" replace />;
+  // Cho phép truy cập cả khi tự nguyện đổi (từ menu avatar), không chỉ khi bị bắt buộc.
+  void mustChangePassword;
 
   return <ChangePasswordPage />;
 };
@@ -102,6 +104,7 @@ const App: React.FC = () => {
               }
             >
               <Route index element={<Home />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="system-health" element={<SystemHealth />} />
               {/* Phase 1B.1-K — Account Management UI */}
               <Route path="security/accounts" element={<AccountManagementPage />} />
