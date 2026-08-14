@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 
 export interface AdminGroupDto {
   id: number;
@@ -46,43 +46,43 @@ export interface PermissionDto {
   description: string | null;
 }
 
-const BASE_URL = '/api/v2/security';
+const BASE_URL = '/security';
 
 export const adminGroupManagementApi = {
   getAdminGroups: async (): Promise<AdminGroupDto[]> => {
-    const response = await axios.get<AdminGroupDto[]>(`${BASE_URL}/admin-groups`);
+    const response = await axiosClient.get<AdminGroupDto[]>(`${BASE_URL}/admin-groups`);
     return response.data;
   },
 
   getAdminGroup: async (id: number): Promise<AdminGroupDto> => {
-    const response = await axios.get<AdminGroupDto>(`${BASE_URL}/admin-groups/${id}`);
+    const response = await axiosClient.get<AdminGroupDto>(`${BASE_URL}/admin-groups/${id}`);
     return response.data;
   },
 
   createAdminGroup: async (request: CreateAdminGroupRequest): Promise<AdminGroupDto> => {
-    const response = await axios.post<AdminGroupDto>(`${BASE_URL}/admin-groups`, request);
+    const response = await axiosClient.post<AdminGroupDto>(`${BASE_URL}/admin-groups`, request);
     return response.data;
   },
 
   updateAdminGroup: async (id: number, request: UpdateAdminGroupRequest): Promise<AdminGroupDto> => {
-    const response = await axios.put<AdminGroupDto>(`${BASE_URL}/admin-groups/${id}`, request);
+    const response = await axiosClient.put<AdminGroupDto>(`${BASE_URL}/admin-groups/${id}`, request);
     return response.data;
   },
 
   deactivateAdminGroup: async (id: number, request: DeactivateAdminGroupRequest): Promise<void> => {
-    await axios.delete(`${BASE_URL}/admin-groups/${id}`, { data: request });
+    await axiosClient.delete(`${BASE_URL}/admin-groups/${id}`, { data: request });
   },
 
   addAdminGroupPermissions: async (id: number, request: AddAdminGroupPermissionsRequest): Promise<void> => {
-    await axios.post(`${BASE_URL}/admin-groups/${id}/permissions`, request);
+    await axiosClient.post(`${BASE_URL}/admin-groups/${id}/permissions`, request);
   },
 
   removeAdminGroupPermission: async (id: number, code: string): Promise<void> => {
-    await axios.delete(`${BASE_URL}/admin-groups/${id}/permissions/${encodeURIComponent(code)}`);
+    await axiosClient.delete(`${BASE_URL}/admin-groups/${id}/permissions/${encodeURIComponent(code)}`);
   },
 
   getPermissions: async (): Promise<PermissionDto[]> => {
-    const response = await axios.get<PermissionDto[]>(`${BASE_URL}/permissions`);
+    const response = await axiosClient.get<PermissionDto[]>(`${BASE_URL}/permissions`);
     return response.data;
   },
 };

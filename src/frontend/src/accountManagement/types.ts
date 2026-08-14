@@ -16,6 +16,8 @@ export interface AccountSummaryDto {
   employeeCode: string;
   fullName: string;
   employmentStatus: string;
+  companyName: string | null;
+  departmentName: string | null;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -34,6 +36,8 @@ export interface AccountDetailDto {
   lockoutEnd: string | null;
   mustChangePassword: boolean;
   temporaryPasswordExpiresAt: string | null;
+  companyName: string | null;
+  departmentName: string | null;
   createdAt: string;
   updatedAt: string | null;
 }

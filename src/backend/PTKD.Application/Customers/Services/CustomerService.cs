@@ -219,10 +219,10 @@ public class CustomerService : ICustomerService
 
             if (looksLikeCode)
             {
-                // LIKE 'KH0098943%' → SEEK trên IX_Customers_customer_code_search (dùng EF.Functions.Like
-                // để chắc chắn ra dạng prefix sargable, escape wildcard bằng [].)
-                var prefix = LikePrefix(term);
-                query = query.Where(c => EF.Functions.Like(c.CustomerCode, prefix));
+                // Tìm "chứa" trên đúng MỘT cột customer_code (không phải 4 cột) để "H0098948" vẫn
+                // ra "KH0098948". .Contains → LIKE '%term%' (EF tự escape wildcard). Chấp nhận scan
+                // 1 cột thay vì seek prefix, đổi lại tìm gần đúng theo yêu cầu.
+                query = query.Where(c => c.CustomerCode.Contains(term));
             }
             else if (allDigits)
                 query = query.Where(c =>

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 
 export interface SecurityAuditEventDto {
   id: number;
@@ -39,7 +39,7 @@ export interface PagedResult<T> {
 export const getAuditEvents = async (
   params: SecurityAuditQueryParameters
 ): Promise<PagedResult<SecurityAuditEventDto>> => {
-  const response = await axios.get('/api/v2/security/audit-events', {
+  const response = await axiosClient.get('/security/audit-events', {
     params: {
       fromUtc: params.fromUtc,
       toUtc: params.toUtc,

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Common.Models;
 using PTKD.Application.Security.AccountManagement;
 using PTKD.Application.Security.AccountManagement.DTOs;
@@ -21,6 +22,7 @@ public sealed class AccountManagementService : IAccountManagementService
     private const string OutcomeFailure = "FAILURE";
 
     private readonly IAuthenticationDbContextFactory _dbContextFactory;
+    private readonly IOrganizationDbContextFactory _orgContextFactory;
     private readonly IPasswordHashService _passwordHashService;
     private readonly ISessionInvalidationService _sessionInvalidationService;
     private readonly ITransactionalAuditWriter _transactionalAuditWriter;
@@ -29,6 +31,7 @@ public sealed class AccountManagementService : IAccountManagementService
 
     public AccountManagementService(
         IAuthenticationDbContextFactory dbContextFactory,
+        IOrganizationDbContextFactory orgContextFactory,
         IPasswordHashService passwordHashService,
         ISessionInvalidationService sessionInvalidationService,
         ITransactionalAuditWriter transactionalAuditWriter,
@@ -36,6 +39,7 @@ public sealed class AccountManagementService : IAccountManagementService
         AuthenticationAccountPolicy policy)
     {
         _dbContextFactory = dbContextFactory ?? throw new ArgumentNullException(nameof(dbContextFactory));
+        _orgContextFactory = orgContextFactory ?? throw new ArgumentNullException(nameof(orgContextFactory));
         _passwordHashService = passwordHashService ?? throw new ArgumentNullException(nameof(passwordHashService));
         _sessionInvalidationService = sessionInvalidationService ?? throw new ArgumentNullException(nameof(sessionInvalidationService));
         _transactionalAuditWriter = transactionalAuditWriter ?? throw new ArgumentNullException(nameof(transactionalAuditWriter));
@@ -93,6 +97,31 @@ public sealed class AccountManagementService : IAccountManagementService
             })
             .ToListAsync(cancellationToken);
 
+        // Bơm công ty/phòng ban chính cho các dòng của trang hiện tại (một truy vấn cho cả tập).
+        var userIds = items.Select(i => i.UserId).Distinct().ToList();
+        if (userIds.Count > 0)
+        {
+            await using var orgContext = _orgContextFactory.CreateDbContext();
+
+            var companyByUser = (await orgContext.UserCompanyAssignments.AsNoTracking()
+                .Where(uca => userIds.Contains(uca.UserId) && uca.AssignmentStatus == "ACTIVE" && uca.IsPrimary)
+                .Join(orgContext.Companies, uca => uca.CompanyId, c => c.Id, (uca, c) => new { uca.UserId, c.Name })
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.UserId).ToDictionary(g => g.Key, g => g.First().Name);
+
+            var deptByUser = (await orgContext.UserDepartmentAssignments.AsNoTracking()
+                .Where(uda => userIds.Contains(uda.UserId) && uda.AssignmentStatus == "ACTIVE" && uda.IsPrimaryForCompany)
+                .Join(orgContext.Departments, uda => uda.DepartmentId, d => d.Id, (uda, d) => new { uda.UserId, d.Name })
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.UserId).ToDictionary(g => g.Key, g => g.First().Name);
+
+            items = items.Select(i => i with
+            {
+                CompanyName = companyByUser.GetValueOrDefault(i.UserId),
+                DepartmentName = deptByUser.GetValueOrDefault(i.UserId)
+            }).ToList();
+        }
+
         return new PagedResult<AccountSummaryDto>
         {
             Page = page,
@@ -149,6 +178,8 @@ public sealed class AccountManagementService : IAccountManagementService
 
         if (account is null) return null;
 
+        var (companyName, departmentName) = await GetPrimaryOrgNamesAsync(account.UserId, cancellationToken);
+
         return new AccountDetailDto
         {
             Id = account.Id,
@@ -163,8 +194,28 @@ public sealed class AccountManagementService : IAccountManagementService
             MustChangePassword = account.MustChangePassword,
             TemporaryPasswordExpiresAt = account.TemporaryPasswordExpiresAt,
             CreatedAt = account.CreatedAt,
-            UpdatedAt = account.UpdatedAt
+            UpdatedAt = account.UpdatedAt,
+            CompanyName = companyName,
+            DepartmentName = departmentName
         };
+    }
+
+    // Công ty + phòng ban chính đang hiệu lực của một nhân viên (NULL nếu chưa phân công).
+    private async Task<(string? CompanyName, string? DepartmentName)> GetPrimaryOrgNamesAsync(long userId, CancellationToken cancellationToken)
+    {
+        await using var orgContext = _orgContextFactory.CreateDbContext();
+
+        var companyName = await orgContext.UserCompanyAssignments.AsNoTracking()
+            .Where(uca => uca.UserId == userId && uca.AssignmentStatus == "ACTIVE" && uca.IsPrimary)
+            .Join(orgContext.Companies, uca => uca.CompanyId, c => c.Id, (uca, c) => c.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var departmentName = await orgContext.UserDepartmentAssignments.AsNoTracking()
+            .Where(uda => uda.UserId == userId && uda.AssignmentStatus == "ACTIVE" && uda.IsPrimaryForCompany)
+            .Join(orgContext.Departments, uda => uda.DepartmentId, d => d.Id, (uda, d) => d.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return (companyName, departmentName);
     }
 
     public async Task<AccountManagementResult> ActivateAccountAsync(

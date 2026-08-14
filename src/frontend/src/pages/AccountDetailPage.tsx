@@ -451,6 +451,12 @@ const AccountDetailPage: React.FC = () => {
         <Descriptions.Item label="Loại xác thực" data-testid="field-provider-type">
           {account.providerType}
         </Descriptions.Item>
+        <Descriptions.Item label="Công ty" data-testid="field-company">
+          {account.companyName ?? '—'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Phòng ban" data-testid="field-department">
+          {account.departmentName ?? '—'}
+        </Descriptions.Item>
         <Descriptions.Item label="Số lần thất bại" data-testid="field-failed-attempts">
           {account.failedAttemptCount}
         </Descriptions.Item>

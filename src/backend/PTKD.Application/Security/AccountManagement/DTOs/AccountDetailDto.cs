@@ -17,4 +17,7 @@ public sealed record AccountDetailDto
     public DateTime? TemporaryPasswordExpiresAt { get; init; }
     public required DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
+    // Công ty/phòng ban chính của nhân viên (đồng bộ với danh sách). NULL nếu chưa phân công.
+    public string? CompanyName { get; init; }
+    public string? DepartmentName { get; init; }
 }

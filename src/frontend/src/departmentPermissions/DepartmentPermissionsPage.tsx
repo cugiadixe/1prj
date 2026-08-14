@@ -68,7 +68,7 @@ const AddPermissionsModal: React.FC<AddPermissionsModalProps> = ({
     onCancel();
   };
 
-  const activePermissions = permissions.filter(p => p.isActive && p.scope !== 'ENTITY');
+  const activePermissions = (Array.isArray(permissions) ? permissions : []).filter(p => p.isActive && p.scope !== 'ENTITY');
 
   return (
     <Modal
@@ -151,7 +151,10 @@ const DepartmentPermissionsPage: React.FC = () => {
     retry: false,
   });
 
-  const selectedDepartment = departments?.find(d => d.id === selectedDepartmentId);
+  // Bảo vệ: chỉ .find khi departments THỰC SỰ là mảng (tránh crash trắng trang khi API trả
+  // về giá trị bất thường — ví dụ phiên hết hạn khiến response không phải mảng).
+  const departmentList: DepartmentDto[] = Array.isArray(departments) ? departments : [];
+  const selectedDepartment = departmentList.find(d => d.id === selectedDepartmentId);
 
   // Mutations
   const setPermissionsMutation = useMutation({
@@ -186,7 +189,7 @@ const DepartmentPermissionsPage: React.FC = () => {
 
   const handleAddPermissionsSubmit = (newSelectedCodes: string[]) => {
     // Determine context requirement: if any of the new permissions are COMPANY scoped, require currentCompanyId
-    const newPermDetails = catalog?.filter(p => newSelectedCodes.includes(p.permissionCode)) || [];
+    const newPermDetails = (Array.isArray(catalog) ? catalog : []).filter(p => newSelectedCodes.includes(p.permissionCode));
     const hasCompanyScope = newPermDetails.some(p => p.scope === 'COMPANY');
     if (hasCompanyScope && currentCompanyId === null) {
       setPermissionsFormError('Quyền phạm vi COMPANY yêu cầu phải chọn ngữ cảnh công ty.');
@@ -194,7 +197,7 @@ const DepartmentPermissionsPage: React.FC = () => {
     }
 
     // PUT replaces the full baseline set. Append to existing intended permissions.
-    const existingCodes = departmentPermissions?.map(p => p.permissionCode) || [];
+    const existingCodes = (Array.isArray(departmentPermissions) ? departmentPermissions : []).map(p => p.permissionCode);
     // Distinct merge
     const finalCodes = Array.from(new Set([...existingCodes, ...newSelectedCodes]));
 
@@ -243,11 +246,21 @@ const DepartmentPermissionsPage: React.FC = () => {
       )}
 
       <Card title="Phòng ban" style={{ marginBottom: 16 }} data-testid="departments-list-card">
+        {currentCompanyId === null && (
+          <Alert
+            type="info"
+            showIcon
+            message="Vui lòng chọn công ty ở thanh trên để xem danh sách phòng ban."
+          />
+        )}
         {isLoadingDepartments && <Spin data-testid="departments-loading" />}
-        {!isLoadingDepartments && departments && (
+        {currentCompanyId !== null && !isLoadingDepartments && departmentList.length === 0 && (
+          <Text type="secondary">Công ty này chưa có phòng ban.</Text>
+        )}
+        {!isLoadingDepartments && departmentList.length > 0 && (
           <List
             size="small"
-            dataSource={departments}
+            dataSource={departmentList}
             data-testid="departments-list"
             renderItem={(d: DepartmentDto) => (
               <List.Item

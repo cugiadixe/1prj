@@ -143,6 +143,18 @@ const AccountManagementPage: React.FC = () => {
       key: 'employeeCode',
     },
     {
+      title: 'Công ty',
+      dataIndex: 'companyName',
+      key: 'companyName',
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Phòng ban',
+      dataIndex: 'departmentName',
+      key: 'departmentName',
+      render: (v: string | null) => v ?? '—',
+    },
+    {
       title: 'Loại xác thực',
       dataIndex: 'providerType',
       key: 'providerType',
