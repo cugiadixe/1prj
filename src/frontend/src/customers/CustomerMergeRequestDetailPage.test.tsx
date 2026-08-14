@@ -110,7 +110,7 @@ describe('CustomerMergeRequestDetailPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('View Workflow')).toHaveAttribute(
+      expect(screen.getByText('Xem quy trình')).toHaveAttribute(
         'href',
         '/workflow/instances/200',
       );

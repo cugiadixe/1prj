@@ -3,6 +3,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkflowInstanceDetailPage from './WorkflowInstanceDetailPage';
+import { formatUtcDateTime } from '../utils/datetime';
 
 let mockHasPermission = vi.fn();
 const mockUseAuth = vi.fn();
@@ -118,7 +119,11 @@ describe('WorkflowInstanceDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('instance-metadata')).toBeInTheDocument();
       expect(screen.getByText('CUST')).toBeInTheDocument();
-      expect(screen.getByText('Customer')).toBeInTheDocument();
+      // businessEntityLabel null → hiển thị dạng "<Loại> #<Id>".
+      expect(screen.getByText('Customer #100')).toBeInTheDocument();
+      expect(screen.getByText('Người đề xuất')).toBeInTheDocument();
+      // Thời gian tạo format qua chính hàm của ứng dụng (không hard-code theo múi giờ).
+      expect(screen.getByText(formatUtcDateTime(mockInstance.createdAt))).toBeInTheDocument();
     });
   });
 
@@ -300,7 +305,20 @@ describe('WorkflowInstanceDetailPage', () => {
     });
   });
 
-  it('hides retry button when instance is not FAILED', async () => {
+  // Nút "Chạy lại" nay bật cho cả hồ sơ kẹt ở PENDING_EXECUTION / EXECUTING, không chỉ FAILED.
+  it.each(['PENDING_EXECUTION', 'EXECUTING'])(
+    'shows retry button when instance is %s and user has WORKFLOW_RETRY_EXECUTION',
+    async (status) => {
+      mockGetInstance.mockResolvedValue({ ...mockInstance, instanceStatus: status, steps: [] });
+      mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_RETRY_EXECUTION');
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('retry-execution-btn')).toBeInTheDocument();
+      });
+    },
+  );
+
+  it('hides retry button when instance is PENDING_APPROVAL', async () => {
     mockGetInstance.mockResolvedValue(mockInstance);
     mockHasPermission.mockImplementation((p: string) => p === 'WORKFLOW_RETRY_EXECUTION');
     renderPage();

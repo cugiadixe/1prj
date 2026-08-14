@@ -103,13 +103,13 @@ describe('UserAdminGroupAssignmentsPage', () => {
   it('renders user ID and admin group assignments table', async () => {
     renderComponent('1');
 
-    expect(await screen.findByTestId('user-id-display')).toHaveTextContent('User ID: 1');
+    expect(await screen.findByTestId('user-id-display')).toHaveTextContent('Mã người dùng: 1');
     expect(await screen.findByTestId('assignments-table')).toBeInTheDocument();
     
     await waitFor(() => {
       expect(screen.getByTestId('assignment-group-name-101')).toHaveTextContent('Administrators Group');
       expect(screen.getByTestId('assignment-scope-GLOBAL')).toBeInTheDocument();
-      expect(screen.getByTestId('assignment-status-101')).toHaveTextContent('ACTIVE');
+      expect(screen.getByTestId('assignment-status-101')).toHaveTextContent(/^HOẠT ĐỘNG$/);
     });
   });
 
@@ -180,7 +180,7 @@ describe('UserAdminGroupAssignmentsPage', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId('assign-error')).toHaveTextContent('A specific company must be selected to assign a COMPANY-scoped admin group.');
+      expect(screen.getByTestId('assign-error')).toHaveTextContent('Phải chọn một công ty cụ thể để phân công nhóm quản trị có phạm vi COMPANY.');
     });
     
     expect(mockedUserAdminGroupAssignmentsApi.assignAdminGroupToUser).not.toHaveBeenCalled();
@@ -200,7 +200,7 @@ describe('UserAdminGroupAssignmentsPage', () => {
 
     mockedUserAdminGroupAssignmentsApi.deactivateUserAdminGroupAssignment.mockResolvedValue(undefined);
 
-    const submitBtn = within(modal).getByRole('button', { name: /deactivate/i });
+    const submitBtn = within(modal).getByRole('button', { name: /vô hiệu hóa/i });
     await user.click(submitBtn);
 
     await waitFor(() => {

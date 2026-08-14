@@ -43,6 +43,8 @@ const MOCK_ACTIVE_ACCOUNT = {
   lockoutEnd: null,
   mustChangePassword: false,
   temporaryPasswordExpiresAt: null,
+  companyName: 'Công ty A',
+  departmentName: 'Phòng CNTT',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: null,
 };
@@ -157,7 +159,7 @@ describe('AccountDetailPage', () => {
 
     // Modal content is rendered into a portal — check by modal title text
     await waitFor(() =>
-      expect(screen.getByText('Disable Account')).toBeInTheDocument()
+      expect(screen.getByText('Vô hiệu hóa tài khoản')).toBeInTheDocument()
     );
   });
 
@@ -172,11 +174,11 @@ describe('AccountDetailPage', () => {
     await user.click(screen.getByTestId('disable-button'));
 
     // Modal should be open — find Confirm button within modal context
-    await waitFor(() => screen.getByText('Disable Account'));
-    const confirmBtn = screen.getByRole('button', { name: /^confirm$/i });
+    await waitFor(() => screen.getByText('Vô hiệu hóa tài khoản'));
+    const confirmBtn = screen.getByRole('button', { name: /^xác nhận$/i });
     await user.click(confirmBtn);
 
-    expect(screen.getByText('A reason is required.')).toBeInTheDocument();
+    expect(screen.getByText('Vui lòng nhập lý do.')).toBeInTheDocument();
     expect(api.disableAccount).not.toHaveBeenCalled();
   });
 
@@ -193,7 +195,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'Policy violation');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.disableAccount).toHaveBeenCalledWith(42, 'Policy violation')
@@ -210,10 +212,10 @@ describe('AccountDetailPage', () => {
     await waitFor(() => screen.getByTestId('lock-button'));
     await user.click(screen.getByTestId('lock-button'));
 
-    await waitFor(() => screen.getByText('Lock Account'));
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() => screen.getByText('Khóa tài khoản'));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
-    expect(screen.getByText('A reason is required.')).toBeInTheDocument();
+    expect(screen.getByText('Vui lòng nhập lý do.')).toBeInTheDocument();
     expect(api.lockAccount).not.toHaveBeenCalled();
   });
 
@@ -230,7 +232,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'Suspicious activity');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.lockAccount).toHaveBeenCalledWith(42, 'Suspicious activity')
@@ -247,8 +249,8 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('unlock-button'));
     await user.click(screen.getByTestId('unlock-button'));
-    await waitFor(() => screen.getByText('Unlock Account'));
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() => screen.getByText('Mở khóa tài khoản'));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.unlockAccount).toHaveBeenCalledWith(42)
@@ -265,8 +267,8 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('activate-button'));
     await user.click(screen.getByTestId('activate-button'));
-    await waitFor(() => screen.getByText('Activate Account'));
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() => screen.getByText('Kích hoạt tài khoản'));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.activateAccount).toHaveBeenCalledWith(42)
@@ -285,9 +287,9 @@ describe('AccountDetailPage', () => {
 
     // Wait for the reason-input to appear (modal is open)
     await waitFor(() => screen.getByTestId('reason-input'));
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
-    expect(screen.getByText('A reason is required.')).toBeInTheDocument();
+    expect(screen.getByText('Vui lòng nhập lý do.')).toBeInTheDocument();
     expect(api.resetPassword).not.toHaveBeenCalled();
   });
 
@@ -306,7 +308,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'User request');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.resetPassword).toHaveBeenCalledWith(42, 'User request')
@@ -328,7 +330,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'User request');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(screen.getByTestId('temp-password-display')).toBeInTheDocument()
@@ -350,7 +352,7 @@ describe('AccountDetailPage', () => {
     await user.click(screen.getByTestId('reset-password-button'));
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'User request');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() => screen.getByTestId('dismiss-temp-password-button'));
     await user.click(screen.getByTestId('dismiss-temp-password-button'));
@@ -374,7 +376,7 @@ describe('AccountDetailPage', () => {
     await user.click(screen.getByTestId('reset-password-button'));
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'User request');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() => screen.getByTestId('temp-password-display'));
 
@@ -402,7 +404,7 @@ describe('AccountDetailPage', () => {
     await user.click(screen.getByTestId('reset-password-button'));
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'User request');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() => screen.getByTestId('temp-password-display'));
 
@@ -433,7 +435,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'User request');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() => screen.getByTestId('temp-password-display'));
 
@@ -463,10 +465,10 @@ describe('AccountDetailPage', () => {
     await waitFor(() => screen.getByTestId('revoke-sessions-button'));
     await user.click(screen.getByTestId('revoke-sessions-button'));
 
-    await waitFor(() => screen.getByText('Revoke All Sessions'));
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() => screen.getByText('Thu hồi phiên đăng nhập'));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
-    expect(screen.getByText('A reason is required.')).toBeInTheDocument();
+    expect(screen.getByText('Vui lòng nhập lý do.')).toBeInTheDocument();
     expect(api.revokeSessions).not.toHaveBeenCalled();
   });
 
@@ -483,7 +485,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'Suspicious login');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.revokeSessions).toHaveBeenCalledWith(42, 'Suspicious login')
@@ -542,7 +544,7 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('reason-input'));
     await user.type(screen.getByTestId('reason-input'), 'Test reason');
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(screen.getByTestId('action-error-message')).toBeInTheDocument()
@@ -602,7 +604,9 @@ describe('AccountDetailPage', () => {
     await user.click(screen.getByTestId('revoke-sessions-button'));
 
     await waitFor(() =>
-      expect(screen.getByText(/revoke all active sessions/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/thu hồi tất cả phiên đăng nhập của người dùng/i)
+      ).toBeInTheDocument()
     );
   });
 
@@ -617,7 +621,9 @@ describe('AccountDetailPage', () => {
     await user.click(screen.getByTestId('reset-password-button'));
 
     await waitFor(() =>
-      expect(screen.getByText(/generate a new temporary password/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/tạo mật khẩu tạm thời mới và thu hồi tất cả phiên đăng nhập/i)
+      ).toBeInTheDocument()
     );
   });
 
@@ -633,8 +639,8 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('activate-button'));
     await user.click(screen.getByTestId('activate-button'));
-    await waitFor(() => screen.getByText('Activate Account'));
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() => screen.getByText('Kích hoạt tài khoản'));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() => {
       expect(api.getAccountDetail).toHaveBeenCalledTimes(2);
@@ -651,19 +657,23 @@ describe('AccountDetailPage', () => {
 
     await waitFor(() => screen.getByTestId('account-detail-page'));
     // Descriptions labels
-    expect(screen.getByText('Account ID')).toBeInTheDocument();
-    expect(screen.getByText('User ID')).toBeInTheDocument();
-    expect(screen.getByText('Username')).toBeInTheDocument();
-    expect(screen.getByText('Provider Type')).toBeInTheDocument();
-    expect(screen.getByText('Failed Attempts')).toBeInTheDocument();
-    expect(screen.getByText('Manual Lock')).toBeInTheDocument();
-    expect(screen.getByText('Created At')).toBeInTheDocument();
-    expect(screen.getByText('Updated At')).toBeInTheDocument();
+    expect(screen.getByText('ID tài khoản')).toBeInTheDocument();
+    expect(screen.getByText('ID người dùng')).toBeInTheDocument();
+    expect(screen.getByText('Tên đăng nhập')).toBeInTheDocument();
+    expect(screen.getByText('Loại xác thực')).toBeInTheDocument();
+    expect(screen.getByText('Công ty')).toBeInTheDocument();
+    expect(screen.getByText('Phòng ban')).toBeInTheDocument();
+    expect(screen.getByText('Số lần thất bại')).toBeInTheDocument();
+    expect(screen.getByText('Khóa thủ công')).toBeInTheDocument();
+    expect(screen.getByText('Ngày tạo')).toBeInTheDocument();
+    expect(screen.getByText('Cập nhật lúc')).toBeInTheDocument();
     // Values from mock data
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('alice')).toBeInTheDocument();
     expect(screen.getByText('INTERNAL')).toBeInTheDocument();
+    expect(screen.getByText('Công ty A')).toBeInTheDocument();
+    expect(screen.getByText('Phòng CNTT')).toBeInTheDocument();
   });
 
   // Test 33: No console logging of secrets during full action flow
@@ -682,7 +692,7 @@ describe('AccountDetailPage', () => {
     await waitFor(() => screen.getByTestId('reason-input'));
     const reasonText = 'Routine security revocation';
     await user.type(screen.getByTestId('reason-input'), reasonText);
-    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await user.click(screen.getByRole('button', { name: /^xác nhận$/i }));
 
     await waitFor(() =>
       expect(api.revokeSessions).toHaveBeenCalled()

@@ -51,7 +51,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('Please enter your username.'),
+        screen.getByText('Vui lòng nhập tên đăng nhập.'),
       ).toBeInTheDocument();
     });
   });

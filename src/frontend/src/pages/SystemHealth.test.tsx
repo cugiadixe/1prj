@@ -48,7 +48,9 @@ describe('SystemHealth Component', () => {
       </QueryClientProvider>
     );
 
-    const statusElement = await screen.findByText('Overall Status:');
+    // Khớp CHÍNH XÁC được: testing-library chỉ lấy text node con trực tiếp, chữ trong <Tag>
+    // không bị gộp vào. Nới thành exact:false sẽ đậu cả khi nhãn bị cắt cụt còn "Trạng thái".
+    const statusElement = await screen.findByText('Trạng thái tổng:', { selector: 'p' });
     expect(statusElement).toBeInTheDocument();
     const healthyTags = screen.getAllByText('Healthy');
     expect(healthyTags.length).toBeGreaterThanOrEqual(1);
@@ -63,7 +65,7 @@ describe('SystemHealth Component', () => {
       </QueryClientProvider>
     );
 
-    const errorElement = await screen.findByText(/System Offline or Error/i);
+    const errorElement = await screen.findByText('Hệ thống ngoại tuyến hoặc lỗi');
     expect(errorElement).toBeInTheDocument();
   });
 });

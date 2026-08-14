@@ -124,7 +124,7 @@ describe('DepartmentPermissionsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('department-detail-card')).toBeInTheDocument();
-      expect(screen.getByText('Department Details: DEPT_IT')).toBeInTheDocument();
+      expect(screen.getByText('Chi tiết phòng ban: DEPT_IT')).toBeInTheDocument();
       expect(screen.getByText('TEST_PERM_GLOBAL')).toBeInTheDocument();
     });
   });
@@ -142,7 +142,7 @@ describe('DepartmentPermissionsPage', () => {
     fireEvent.click(screen.getByTestId('add-permissions-btn'));
 
     await waitFor(() => {
-      expect(screen.getByText('Add Permissions to Department Baseline')).toBeInTheDocument();
+      expect(screen.getByText('Thêm quyền vào chuẩn phòng ban')).toBeInTheDocument();
     });
   });
 
@@ -153,7 +153,7 @@ describe('DepartmentPermissionsPage', () => {
     await waitFor(() => { expect(screen.getByTestId('add-permissions-btn')).toBeInTheDocument(); }); fireEvent.click(screen.getByTestId('add-permissions-btn'));
 
     await waitFor(() => {
-      expect(screen.getByText('Add Permissions to Department Baseline')).toBeInTheDocument();
+      expect(screen.getByText('Thêm quyền vào chuẩn phòng ban')).toBeInTheDocument();
     });
     
     await new Promise(r => setTimeout(r, 100));
@@ -176,7 +176,7 @@ describe('DepartmentPermissionsPage', () => {
     await waitFor(() => { expect(screen.getByTestId('add-permissions-btn')).toBeInTheDocument(); }); fireEvent.click(screen.getByTestId('add-permissions-btn'));
 
     await waitFor(() => {
-      expect(screen.getByText('Add Permissions to Department Baseline')).toBeInTheDocument();
+      expect(screen.getByText('Thêm quyền vào chuẩn phòng ban')).toBeInTheDocument();
     });
   });
 
@@ -200,8 +200,8 @@ describe('DepartmentPermissionsPage', () => {
 
     await waitFor(() => {
       expect(confirmSpy).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Remove Permission',
-        okText: 'Remove',
+        title: 'Gỡ quyền',
+        okText: 'Gỡ',
       }));
       expect(mockedApi.removeDepartmentPermission).toHaveBeenCalledWith(1, 'TEST_PERM_GLOBAL');
     });

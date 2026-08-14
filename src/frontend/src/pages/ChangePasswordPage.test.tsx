@@ -19,6 +19,17 @@ const mockRefreshWithMustChange = () =>
     mustChangePassword: true,
   });
 
+// Đổi mật khẩu nay là tự nguyện: người dùng đã đăng nhập bình thường vẫn vào được.
+const mockRefreshWithoutMustChange = () =>
+  vi.spyOn(authApi, 'apiRefresh').mockResolvedValue({
+    accessToken: 'tok',
+    tokenType: 'Bearer',
+    expiresIn: 900,
+    expiresAtUtc: new Date().toISOString(),
+    user: { userId: 1, username: 'u', displayName: null },
+    mustChangePassword: false,
+  });
+
 const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -51,6 +62,19 @@ describe('ChangePasswordPage', () => {
     expect(screen.getByTestId('change-confirm-password')).toBeInTheDocument();
   });
 
+  it('renders change password form for a voluntary change (mustChangePassword=false)', async () => {
+    mockRefreshWithoutMustChange();
+
+    render(<ChangePasswordPage />, { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('change-password-submit'),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('change-current-password')).toBeInTheDocument();
+  });
+
   it('validates required fields', async () => {
     mockRefreshWithMustChange();
 
@@ -66,7 +90,7 @@ describe('ChangePasswordPage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('Please enter your current password.'),
+        screen.getByText('Vui lòng nhập mật khẩu hiện tại.'),
       ).toBeInTheDocument();
     });
   });
@@ -89,7 +113,7 @@ describe('ChangePasswordPage', () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText('New passwords do not match.'),
+        screen.getByText('Mật khẩu mới không khớp.'),
       ).toBeInTheDocument(),
     );
   });

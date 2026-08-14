@@ -104,13 +104,13 @@ describe('UserRoleAssignmentsPage', () => {
   it('renders user ID and role assignments table', async () => {
     renderComponent('1');
 
-    expect(await screen.findByTestId('user-id-display')).toHaveTextContent('User ID: 1');
+    expect(await screen.findByTestId('user-id-display')).toHaveTextContent('Mã người dùng: 1');
     expect(await screen.findByTestId('assignments-table')).toBeInTheDocument();
     
     await waitFor(() => {
       expect(screen.getByTestId('assignment-role-name-101')).toHaveTextContent('Administrator');
       expect(screen.getByTestId('assignment-scope-GLOBAL')).toBeInTheDocument();
-      expect(screen.getByTestId('assignment-status-101')).toHaveTextContent('ACTIVE');
+      expect(screen.getByTestId('assignment-status-101')).toHaveTextContent(/^HOẠT ĐỘNG$/);
     });
   });
 
@@ -183,7 +183,7 @@ describe('UserRoleAssignmentsPage', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId('assign-error')).toHaveTextContent('A specific company must be selected to assign a COMPANY-scoped role.');
+      expect(screen.getByTestId('assign-error')).toHaveTextContent('Phải chọn một công ty cụ thể để phân công vai trò có phạm vi COMPANY.');
     });
     
     expect(mockedUserRoleAssignmentsApi.assignRoleToUser).not.toHaveBeenCalled();
@@ -203,7 +203,7 @@ describe('UserRoleAssignmentsPage', () => {
 
     mockedUserRoleAssignmentsApi.deactivateUserRoleAssignment.mockResolvedValue(undefined);
 
-    const submitBtn = within(modal).getByRole('button', { name: /deactivate/i });
+    const submitBtn = within(modal).getByRole('button', { name: /vô hiệu hóa/i });
     await user.click(submitBtn);
 
     await waitFor(() => {

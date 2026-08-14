@@ -118,7 +118,7 @@ describe('AdminGroupManagementPage', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('admin-group-detail-card')).toBeInTheDocument();
-      expect(screen.getByText('Admin Group Details: TEST_GLOBAL')).toBeInTheDocument();
+      expect(screen.getByText('Chi tiết nhóm quản trị: TEST_GLOBAL')).toBeInTheDocument();
       expect(screen.getByText('TEST_PERM_1')).toBeInTheDocument();
     });
   });

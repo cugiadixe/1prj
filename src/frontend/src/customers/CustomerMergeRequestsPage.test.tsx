@@ -34,7 +34,7 @@ describe('CustomerMergeRequestsPage', () => {
       () => new Promise(() => {}),
     );
     renderPage();
-    expect(screen.getByText('Merge Requests')).toBeInTheDocument();
+    expect(screen.getByText('Yêu cầu gộp')).toBeInTheDocument();
   });
 
   it('renders error state', async () => {
@@ -76,11 +76,11 @@ describe('CustomerMergeRequestsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('SUBMITTED')).toBeInTheDocument();
-      expect(screen.getByText('View')).toHaveAttribute(
+      expect(screen.getByText('Xem')).toHaveAttribute(
         'href',
         '/customers/merge-requests/abcdef12-3456-7890-abcd-ef1234567890',
       );
-      expect(screen.getByText('Workflow')).toHaveAttribute(
+      expect(screen.getByText('Quy trình')).toHaveAttribute(
         'href',
         '/workflow/instances/100',
       );

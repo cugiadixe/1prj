@@ -118,7 +118,7 @@ describe('RoleManagementPage', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('role-detail-card')).toBeInTheDocument();
-      expect(screen.getByText('Role Details: TEST_GLOBAL')).toBeInTheDocument();
+      expect(screen.getByText('Chi tiết vai trò: TEST_GLOBAL')).toBeInTheDocument();
       expect(screen.getByText('TEST_PERM_1')).toBeInTheDocument();
     });
   });

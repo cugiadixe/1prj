@@ -66,7 +66,7 @@ describe('PaymentListPage', () => {
     });
 
     expect(screen.getByText('BILL-123')).toBeInTheDocument();
-    expect(screen.getByText('100,000 VND')).toBeInTheDocument();
+    expect(screen.getByText('100.000 VND')).toBeInTheDocument();
   });
 
   it('handles permission denied error (403) safely', async () => {

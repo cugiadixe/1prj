@@ -12,7 +12,8 @@ describe('WorkflowRejectDialog', () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.getByText('Reject Step')).toBeInTheDocument();
+    // Tiêu đề hộp thoại đã Việt hoá.
+    expect(screen.getByText('Từ chối bước')).toBeInTheDocument();
     expect(screen.getByTestId('reject-warning')).toBeInTheDocument();
     expect(screen.getByTestId('reject-reason')).toBeInTheDocument();
     expect(screen.getByTestId('reject-comment')).toBeInTheDocument();
@@ -27,7 +28,8 @@ describe('WorkflowRejectDialog', () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.queryByText('Reject Step')).not.toBeInTheDocument();
+    expect(screen.queryByText('Từ chối bước')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('reject-warning')).not.toBeInTheDocument();
   });
 
   it('shows permanent warning text', () => {
@@ -39,6 +41,7 @@ describe('WorkflowRejectDialog', () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.getByText(/This action is permanent/)).toBeInTheDocument();
+    // Cảnh báo "không thể hoàn tác" nay bằng tiếng Việt.
+    expect(screen.getByText(/Thao tác này là vĩnh viễn/)).toBeInTheDocument();
   });
 });

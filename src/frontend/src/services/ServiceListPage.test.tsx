@@ -13,6 +13,7 @@ vi.mock('../auth/AuthProvider', () => ({
 vi.mock('../auth/CompanyProvider', () => ({
   useCompany: () => ({
     currentCompanyId: mockCurrentCompanyId,
+    companies: mockCompanies,
   }),
 }));
 
@@ -22,6 +23,7 @@ vi.mock('./servicesApi', () => ({
 
 let mockHasPermission = vi.fn();
 let mockCurrentCompanyId: number | null = 1;
+let mockCompanies: { companyId: number; companyName: string }[] = [];
 import { searchServices } from './servicesApi';
 const mockSearchServices = vi.mocked(searchServices);
 
@@ -42,6 +44,7 @@ describe('ServiceListPage', () => {
     queryClient.clear();
     mockHasPermission = vi.fn().mockReturnValue(true);
     mockCurrentCompanyId = 1;
+    mockCompanies = [{ companyId: 1, companyName: 'Công ty 1' }];
   });
 
   it('renders empty state', async () => {
@@ -52,12 +55,20 @@ describe('ServiceListPage', () => {
     });
   });
 
-  it('renders warning if no company context', async () => {
+  // Trang nay liệt kê chéo công ty: không còn chặn khi thiếu ngữ cảnh công ty,
+  // mà truy vấn toàn bộ và để người dùng tự lọc bằng bộ lọc công ty.
+  it('queries across all companies when there is no company context', async () => {
     mockCurrentCompanyId = null;
+    mockCompanies = [];
+    mockSearchServices.mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('no-company-warning')).toBeInTheDocument();
+      expect(screen.getByTestId('services-page')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('service-company-filter')).toBeInTheDocument();
+    expect(mockSearchServices).toHaveBeenCalledWith(
+      expect.objectContaining({ companyId: undefined }),
+    );
   });
 
   it('shows permission denied on 403', async () => {

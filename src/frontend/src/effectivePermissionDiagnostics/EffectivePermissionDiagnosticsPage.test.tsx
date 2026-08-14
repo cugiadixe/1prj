@@ -136,7 +136,7 @@ describe('EffectivePermissionDiagnosticsPage', () => {
     renderComponent();
     fireEvent.click(screen.getByTestId('lookup-button'));
     expect(screen.getByTestId('validation-error')).toBeInTheDocument();
-    expect(screen.getByText('User ID is required.')).toBeInTheDocument();
+    expect(screen.getByText('Mã người dùng là bắt buộc.')).toBeInTheDocument();
   });
 
   it('validates non-integer user ID', () => {
@@ -144,14 +144,14 @@ describe('EffectivePermissionDiagnosticsPage', () => {
     fireEvent.change(screen.getByTestId('user-id-input'), { target: { value: 'abc' } });
     fireEvent.click(screen.getByTestId('lookup-button'));
     expect(screen.getByTestId('validation-error')).toBeInTheDocument();
-    expect(screen.getByText('User ID must be a positive integer.')).toBeInTheDocument();
+    expect(screen.getByText('Mã người dùng phải là số nguyên dương.')).toBeInTheDocument();
   });
 
   it('validates negative user ID', () => {
     renderComponent();
     fireEvent.change(screen.getByTestId('user-id-input'), { target: { value: '-5' } });
     fireEvent.click(screen.getByTestId('lookup-button'));
-    expect(screen.getByText('User ID must be a positive integer.')).toBeInTheDocument();
+    expect(screen.getByText('Mã người dùng phải là số nguyên dương.')).toBeInTheDocument();
   });
 
   it('fetches effective permissions from existing endpoint', async () => {
@@ -171,7 +171,7 @@ describe('EffectivePermissionDiagnosticsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('effective-permissions-card')).toBeInTheDocument();
-      expect(screen.getByText('Backend-Authoritative Effective Permissions')).toBeInTheDocument();
+      expect(screen.getByText('Quyền hiệu lực do Backend xác định')).toBeInTheDocument();
       expect(screen.getByText('SECURITY_ADMIN_MANAGE')).toBeInTheDocument();
       expect(screen.getByText('ORGANIZATION_USER_MANAGE')).toBeInTheDocument();
     });
@@ -288,7 +288,8 @@ describe('EffectivePermissionDiagnosticsPage', () => {
     mockCompanyId = 100;
     renderComponent();
     expect(screen.getByTestId('company-context-indicator')).toBeInTheDocument();
-    expect(screen.getByText('Company context: 100')).toBeInTheDocument();
+    // Neo đầu/cuối: regex không neo sẽ đậu cả với "…: 1000" hay "…: 100 (sai)".
+    expect(screen.getByText(/^Bối cảnh công ty:\s*100$/)).toBeInTheDocument();
   });
 
   it('does not show source attribution as authoritative', async () => {
@@ -299,7 +300,7 @@ describe('EffectivePermissionDiagnosticsPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('contextual-sections-card')).toBeInTheDocument();
       expect(screen.getByTestId('context-disclaimer')).toBeInTheDocument();
-      expect(screen.getByTestId('page-description')).toHaveTextContent('Source-level attribution is not available.');
+      expect(screen.getByTestId('page-description')).toHaveTextContent('Không có thông tin phân bổ theo nguồn.');
     });
   });
 

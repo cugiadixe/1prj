@@ -63,7 +63,7 @@ describe('CustomerProposalDetailPage', () => {
 
     expect(screen.getByText('CUST-001')).toBeInTheDocument();
     expect(screen.getByText('Safe Customer Name')).toBeInTheDocument();
-    expect(screen.getByText('View Workflow')).toBeInTheDocument();
+    expect(screen.getByText('Xem quy trình')).toBeInTheDocument();
     
     // Ensure sensitive fields do not render (these aren't even typed in the mock)
     expect(screen.queryByText(/cccd/i)).not.toBeInTheDocument();

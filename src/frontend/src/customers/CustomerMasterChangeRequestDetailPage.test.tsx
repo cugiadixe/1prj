@@ -93,13 +93,13 @@ describe('CustomerMasterChangeRequestDetailPage', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Change Request 456')).toBeInTheDocument();
+      expect(screen.getByText('Yêu cầu thay đổi 456')).toBeInTheDocument();
       expect(screen.getByText('Draft')).toBeInTheDocument();
       expect(screen.getByText('123')).toBeInTheDocument();
       expect(screen.getByText('Fix name')).toBeInTheDocument();
       expect(screen.getByText('Correct Name')).toBeInTheDocument();
-      expect(screen.getByText('View Workflow')).toHaveAttribute('href', '/workflow/instances/999');
-      expect(screen.getByText('View Target Customer')).toHaveAttribute('href', '/customers/123');
+      expect(screen.getByText('Xem quy trình')).toHaveAttribute('href', '/workflow/instances/999');
+      expect(screen.getByText('Xem khách hàng đích')).toHaveAttribute('href', '/customers/123');
     });
   });
 });

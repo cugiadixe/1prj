@@ -70,7 +70,7 @@ describe('CustomerMasterChangeRequestForm', () => {
 
   it('renders correctly with customer name', () => {
     renderComponent();
-    expect(screen.getByText('Request Change for Customer: John Doe')).toBeInTheDocument();
+    expect(screen.getByText('Yêu cầu thay đổi cho khách hàng: John Doe')).toBeInTheDocument();
     expect(screen.getByTestId('input-reason')).toBeInTheDocument();
     expect(screen.getByTestId('input-fullName')).toBeInTheDocument();
   });
@@ -81,7 +81,7 @@ describe('CustomerMasterChangeRequestForm', () => {
     await userEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Reason is required')).toBeInTheDocument();
+      expect(screen.getByText('Lý do là bắt buộc')).toBeInTheDocument();
     });
     expect(createCustomerMasterChangeRequest).not.toHaveBeenCalled();
   });

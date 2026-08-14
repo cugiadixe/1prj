@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkflowActionHistoryPanel from './WorkflowActionHistoryPanel';
+import { formatUtcDateTime } from '../utils/datetime';
 
 vi.mock('./workflowRuntimeApi', () => ({
   getInstanceActions: vi.fn(),
@@ -23,7 +24,8 @@ const mockAction = {
   id: 1,
   workflowInstanceStepId: 10,
   workflowInstanceId: 1,
-  actionType: 'APPROVED',
+  // Backend ghi ActionType ở thì hiện tại ('APPROVE'), không phải 'APPROVED'.
+  actionType: 'APPROVE',
   actedBy: 5,
   actedByName: null,
   onBehalfOf: null,
@@ -45,9 +47,12 @@ describe('WorkflowActionHistoryPanel', () => {
     await waitFor(() => {
       expect(screen.getByTestId('action-history')).toBeInTheDocument();
       expect(screen.getByTestId('action-history-table')).toBeInTheDocument();
-      expect(screen.getByText('APPROVED')).toBeInTheDocument();
-      expect(screen.getByText('User 5')).toBeInTheDocument();
+      // Loại hành động và người thực hiện nay hiển thị nhãn tiếng Việt.
+      expect(screen.getByText('Duyệt')).toBeInTheDocument();
+      expect(screen.getByText('Người dùng 5')).toBeInTheDocument();
       expect(screen.getByText('Looks good')).toBeInTheDocument();
+      // Thời gian format qua chính hàm của ứng dụng để không phụ thuộc múi giờ máy chạy test.
+      expect(screen.getByText(formatUtcDateTime(mockAction.createdAt))).toBeInTheDocument();
     });
   });
 

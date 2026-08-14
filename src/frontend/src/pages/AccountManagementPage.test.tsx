@@ -18,6 +18,8 @@ vi.mock('../accountManagement/accountManagementApi', () => ({
   unlockAccount: vi.fn(),
   resetPassword: vi.fn(),
   revokeSessions: vi.fn(),
+  getUsersWithoutAccount: vi.fn(),
+  createAccount: vi.fn(),
 }));
 
 const MOCK_ACCOUNT = {
@@ -30,6 +32,8 @@ const MOCK_ACCOUNT = {
   employeeCode: 'EMP001',
   fullName: 'Alice Smith',
   employmentStatus: 'ACTIVE',
+  companyName: 'Công ty A',
+  departmentName: 'Phòng CNTT',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: null,
 };
@@ -105,6 +109,8 @@ describe('AccountManagementPage', () => {
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
     expect(screen.getByText('EMP001')).toBeInTheDocument();
     expect(screen.getByText('INTERNAL')).toBeInTheDocument();
+    expect(screen.getByText('Công ty A')).toBeInTheDocument();
+    expect(screen.getByText('Phòng CNTT')).toBeInTheDocument();
   });
 
   // Test 5: shows status badge for ACTIVE account
@@ -130,7 +136,7 @@ describe('AccountManagementPage', () => {
     render(<AccountManagementPage />, { wrapper: makeWrapper() });
 
     await waitFor(() =>
-      expect(screen.getByText('No accounts found.')).toBeInTheDocument()
+      expect(screen.getByText('Không tìm thấy tài khoản nào.')).toBeInTheDocument()
     );
   });
 
@@ -143,7 +149,7 @@ describe('AccountManagementPage', () => {
 
     await waitFor(() => expect(api.searchAccounts).toHaveBeenCalledTimes(1));
 
-    const searchInput = screen.getByRole('searchbox', { name: /search accounts/i });
+    const searchInput = screen.getByRole('searchbox', { name: /tìm kiếm tài khoản/i });
     await user.type(searchInput, 'alice');
     await user.keyboard('{Enter}');
 

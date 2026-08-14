@@ -6,7 +6,8 @@ describe('WorkflowRetryExecutionButton', () => {
   it('renders retry button', () => {
     render(<WorkflowRetryExecutionButton loading={false} onRetry={vi.fn()} />);
     expect(screen.getByTestId('retry-execution-btn')).toBeInTheDocument();
-    expect(screen.getByText('Retry Execution')).toBeInTheDocument();
+    // Nhãn nút đã Việt hoá.
+    expect(screen.getByText('Thử lại thực thi')).toBeInTheDocument();
   });
 
   it('shows loading state when loading', () => {

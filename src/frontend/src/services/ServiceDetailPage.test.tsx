@@ -59,14 +59,17 @@ describe('ServiceDetailPage', () => {
     });
   });
 
-  it('shows mismatch warning if company differs', async () => {
+  // Xem chéo công ty là hành vi có chủ đích: backend đã kiểm quyền SERVICE_VIEW
+  // theo công ty của dịch vụ, nên frontend không chặn mà vẫn hiển thị chi tiết.
+  it('renders a service belonging to another company', async () => {
     mockGetServiceById.mockResolvedValue({
-      id: 1, companyId: 2, status: 'ACTIVE'
-    } as any);
+      id: 1, serviceTypeId: 1, serviceTypeCode: 'T1', serviceTypeName: 'Type 1', customerId: 1, customerCode: 'KH0001', customerName: 'Khách hàng 1', companyId: 2, companyName: 'Công ty 2', status: 'ACTIVE', appliedPrice: 1000, standardPriceSnapshot: 1000, isOverridePrice: false, overrideApprovalRequestId: null, validFrom: '2026-01-01', validTo: null, cycleNumber: 1, previousServiceId: null, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1'
+    });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('service-company-mismatch')).toBeInTheDocument();
+      expect(screen.getByTestId('service-detail-page')).toBeInTheDocument();
     });
+    expect(screen.getByText('Công ty 2')).toBeInTheDocument();
   });
 
   it('shows permission denied on 403', async () => {

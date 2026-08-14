@@ -51,7 +51,8 @@ describe('WorkflowMyRequestsPage', () => {
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('my-requests-page')).toBeInTheDocument();
-      expect(screen.getByText('My Requests')).toBeInTheDocument();
+      // Tiêu đề trang đã Việt hoá.
+      expect(screen.getByText('Yêu cầu của tôi')).toBeInTheDocument();
     });
   });
 

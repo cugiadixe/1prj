@@ -31,6 +31,8 @@ describe('customersApi', () => {
     const result = await searchCustomers({ search: 'test', page: 2 });
     expect(mockAxios.get).toHaveBeenCalledWith('/customers', {
       params: { search: 'test', customerStatus: undefined, page: 2, pageSize: 20 },
+      // tagIds là mảng nên phải serialize không kèm chỉ số (tagIds=1&tagIds=2)
+      paramsSerializer: { indexes: null },
     });
     expect(result.items).toEqual([]);
   });
@@ -45,9 +47,11 @@ describe('customersApi', () => {
         companyId: 3,
         assignedStaffId: 7,
         unassignedStaff: undefined,
+        tagIds: undefined,
         page: 1,
         pageSize: 20,
       },
+      paramsSerializer: { indexes: null },
     });
   });
 
@@ -56,6 +60,7 @@ describe('customersApi', () => {
     await searchCustomers({ unassignedStaff: true });
     expect(mockAxios.get).toHaveBeenCalledWith('/customers', {
       params: expect.objectContaining({ unassignedStaff: true }),
+      paramsSerializer: { indexes: null },
     });
   });
 

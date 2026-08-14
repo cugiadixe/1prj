@@ -32,7 +32,7 @@ describe('CustomerMergeDuplicateSearchPage', () => {
   it('renders search form', () => {
     renderPage();
     expect(
-      screen.getByText('Find Duplicate Customers'),
+      screen.getByText('Tìm khách hàng trùng lặp'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('duplicate-search-form')).toBeInTheDocument();
   });

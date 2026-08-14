@@ -35,7 +35,7 @@ describe('CustomerMasterChangeRequestsPage', () => {
       () => new Promise(() => {})
     );
     renderComponent();
-    expect(screen.getByText('My Customer Change Requests')).toBeInTheDocument();
+    expect(screen.getByText('Yêu cầu thay đổi khách hàng của tôi')).toBeInTheDocument();
   });
 
   it('renders error state', async () => {
@@ -73,8 +73,8 @@ describe('CustomerMasterChangeRequestsPage', () => {
       expect(screen.getByText('101')).toBeInTheDocument();
       expect(screen.getByText('123')).toBeInTheDocument();
       expect(screen.getByText('Draft')).toBeInTheDocument();
-      expect(screen.getByText('View Status')).toHaveAttribute('href', '/customers/change-requests/101');
-      expect(screen.getByText('View Workflow')).toHaveAttribute('href', '/workflow/instances/999');
+      expect(screen.getByText('Xem trạng thái')).toHaveAttribute('href', '/customers/change-requests/101');
+      expect(screen.getByText('Xem quy trình')).toHaveAttribute('href', '/workflow/instances/999');
     });
   });
 });

@@ -10,6 +10,16 @@ vi.mock('../auth/AuthProvider', () => ({
   }),
 }));
 
+// Trang chi tiết nhúng CustomerCarePackagesSection — phần này cần CompanyProvider.
+vi.mock('../auth/CompanyProvider', () => ({
+  useCompany: () => ({
+    companies: [],
+    currentCompanyId: 1,
+    isLoading: false,
+    switchCompany: vi.fn(),
+  }),
+}));
+
 vi.mock('./customersApi', () => ({
   getCustomerById: vi.fn(),
   getCompanyContexts: vi.fn(),
@@ -62,6 +72,7 @@ const mockCustomer = {
     isActive: true,
     rowVersion: 'BBBB',
   },
+  tags: [],
 };
 
 describe('CustomerDetailPage', () => {
@@ -88,7 +99,7 @@ describe('CustomerDetailPage', () => {
     await waitFor(() => {
       const cccd = screen.getByTestId('profile-cccd');
       expect(cccd.textContent).toContain('****1234');
-      expect(cccd.textContent).toContain('masked');
+      expect(cccd.textContent).toContain('ẩn');
     });
   });
 

@@ -102,7 +102,7 @@ describe('AuditViewerPage', () => {
 
     render(<AuditViewerPage />, { wrapper: makeWrapper() });
 
-    await waitFor(() => expect(screen.getByText('No audit events found.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Không có sự kiện kiểm toán.')).toBeInTheDocument());
   });
 
   it('updates request parameters when filters are changed', async () => {
