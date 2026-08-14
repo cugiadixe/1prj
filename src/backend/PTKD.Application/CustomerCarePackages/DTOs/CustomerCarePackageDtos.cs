@@ -20,9 +20,12 @@ public class CustomerCarePackageDto
     public DateTime? EndDate { get; set; }
     public string Status { get; set; } = null!;
     public string? Notes { get; set; }
+    public long? WorkflowInstanceId { get; set; }
     public string RowVersion { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+    public long? CreatedByUserId { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public long? UpdatedByUserId { get; set; }
 }
 
 public class CreateCustomerCarePackageRequest

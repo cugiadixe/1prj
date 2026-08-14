@@ -6,6 +6,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { usePermissions } from '../auth/AuthProvider';
+import { useCompany } from '../auth/CompanyProvider';
 import { assignGrave, cancelPackage, createPackage, getCcpErrorMessage, listByCustomer } from './api';
 import { CCP_STATUS_COLORS, CCP_STATUS_LABELS, type CustomerCarePackage } from './types';
 import { searchServiceTypes } from '../services/serviceTypesApi';
@@ -21,6 +22,7 @@ interface Props {
 
 const CustomerCarePackagesSection: React.FC<Props> = ({ customerId }) => {
   const { hasPermission } = usePermissions();
+  const { currentCompanyId } = useCompany();
   const canManage = hasPermission('CUSTOMER_CARE_PACKAGE_MANAGE', 'GLOBAL');
   const canView = hasPermission('CUSTOMER_CARE_PACKAGE_VIEW', 'GLOBAL');
   const queryClient = useQueryClient();
@@ -76,8 +78,16 @@ const CustomerCarePackagesSection: React.FC<Props> = ({ customerId }) => {
       cotCount: Number(v.cotCount),
       startDate: (v.startDate as dayjs.Dayjs).format('YYYY-MM-DD'),
       notes: (v.notes as string) || null,
-    }),
-    onSuccess: () => { message.success('Đã gán gói cho khách'); setAddOpen(false); invalidate(); },
+    }, currentCompanyId),
+    onSuccess: (pkg) => {
+      message.success(
+        pkg.status === 'PENDING_APPROVAL'
+          ? 'Đã gửi duyệt — chờ trưởng phòng phê duyệt'
+          : 'Đã gán gói cho khách',
+      );
+      setAddOpen(false);
+      invalidate();
+    },
     onError: (e) => message.error(getCcpErrorMessage(e)),
   });
 
@@ -121,12 +131,13 @@ const CustomerCarePackagesSection: React.FC<Props> = ({ customerId }) => {
       key: 'actions',
       render: (_: unknown, r: CustomerCarePackage) => (
         <Space>
-          {r.status !== 'CANCELLED' && (
+          {r.status === 'PENDING_APPROVAL' && <Text type="secondary">Chờ duyệt</Text>}
+          {(r.status === 'PENDING_GRAVE' || r.status === 'ACTIVE') && (
             <Button size="small" type="link" onClick={() => setAssignTarget(r)} data-testid={`assign-grave-${r.id}`}>
               {r.graveId ? 'Đổi mộ' : 'Gán vào mộ'}
             </Button>
           )}
-          {r.status !== 'CANCELLED' && (
+          {r.status !== 'CANCELLED' && r.status !== 'EXPIRED' && (
             <Popconfirm title="Hủy gói này?" okText="Hủy gói" cancelText="Không" onConfirm={() => cancelMut.mutate(r.id)}>
               <Button size="small" type="link" danger>Hủy</Button>
             </Popconfirm>

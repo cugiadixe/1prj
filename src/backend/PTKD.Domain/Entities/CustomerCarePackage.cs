@@ -4,6 +4,7 @@ namespace PTKD.Domain.Entities;
 
 public class CustomerCarePackage
 {
+    public const string StatusPendingApproval = "PENDING_APPROVAL"; // chờ trưởng phòng duyệt (Nhóm C)
     public const string StatusPendingGrave = "PENDING_GRAVE"; // đã gán khách, chờ gán mộ
     public const string StatusActive = "ACTIVE";              // đã gán mộ, hiệu lực
     public const string StatusExpired = "EXPIRED";            // hết hạn
@@ -20,6 +21,8 @@ public class CustomerCarePackage
     public DateTime? EndDate { get; private set; }
     public string Status { get; private set; } = null!;
     public string? Notes { get; private set; }
+    /// <summary>Hồ sơ quy trình phê duyệt gắn với gói (khi qua duyệt); NULL nếu gán thẳng.</summary>
+    public long? WorkflowInstanceId { get; private set; }
     public byte[] RowVersion { get; private set; } = null!;
 
     public DateTime CreatedAt { get; private set; }
@@ -32,7 +35,7 @@ public class CustomerCarePackage
     public static CustomerCarePackage Create(
         long customerId, long serviceTypeId,
         int cotCount, decimal unitPrice, DateTime startDate, DateTime? endDate,
-        string? notes, long createdByUserId)
+        string? notes, long createdByUserId, bool requiresApproval = false)
     {
         if (cotCount <= 0)
             throw new ArgumentException("Cot count must be positive.", nameof(cotCount));
@@ -49,15 +52,40 @@ public class CustomerCarePackage
             TotalPrice = unitPrice * cotCount,
             StartDate = startDate,
             EndDate = endDate,
-            Status = StatusPendingGrave,
+            // Có quy trình phê duyệt → chờ duyệt; không thì sẵn sàng gán mộ như cũ.
+            Status = requiresApproval ? StatusPendingApproval : StatusPendingGrave,
             Notes = notes,
             CreatedByUserId = createdByUserId,
             CreatedAt = DateTime.UtcNow
         };
     }
 
+    /// <summary>Gắn hồ sơ quy trình phê duyệt vừa sinh cho gói.</summary>
+    public void SetWorkflowInstance(long workflowInstanceId, long updatedByUserId)
+    {
+        WorkflowInstanceId = workflowInstanceId;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedByUserId = updatedByUserId;
+    }
+
+    /// <summary>
+    /// Duyệt xong (trưởng phòng duyệt hoặc tự động duyệt): chuyển từ chờ duyệt sang chờ gán mộ.
+    /// Lúc này gói mới thực sự hiện cho khách để gán vào mộ (luồng c).
+    /// </summary>
+    public void MarkApproved(long updatedByUserId)
+    {
+        if (Status != StatusPendingApproval)
+            throw new InvalidOperationException($"Only a package pending approval can be approved (current: {Status}).");
+
+        Status = StatusPendingGrave;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedByUserId = updatedByUserId;
+    }
+
     public void AssignGrave(long graveId, long updatedByUserId)
     {
+        if (Status == StatusPendingApproval)
+            throw new InvalidOperationException("Gói đang chờ duyệt, chưa thể gán vào mộ.");
         if (Status == StatusCancelled)
             throw new InvalidOperationException("Cannot assign a grave to a cancelled package.");
 

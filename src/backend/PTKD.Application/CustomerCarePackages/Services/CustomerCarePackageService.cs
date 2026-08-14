@@ -9,19 +9,28 @@ using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.CustomerCarePackages.DTOs;
 using PTKD.Application.Security.Audit;
+using PTKD.Application.Workflows.DTOs;
+using PTKD.Application.Workflows.Services;
 using PTKD.Domain.Entities;
 
 namespace PTKD.Application.CustomerCarePackages.Services;
 
 public class CustomerCarePackageService : ICustomerCarePackageService
 {
+    private const string AssignProcessCode = "ASSIGN_CARE_PACKAGE";
+
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
+    private readonly IWorkflowRuntimeService _workflowRuntimeService;
 
-    public CustomerCarePackageService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter)
+    public CustomerCarePackageService(
+        IOrganizationDbContextFactory dbContextFactory,
+        ITransactionalAuditWriter auditWriter,
+        IWorkflowRuntimeService workflowRuntimeService)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
+        _workflowRuntimeService = workflowRuntimeService;
     }
 
     public async Task<CustomerCarePackageDto[]> ListByCustomerAsync(long customerId, CancellationToken ct = default)
@@ -50,45 +59,131 @@ public class CustomerCarePackageService : ICustomerCarePackageService
         return items;
     }
 
-    public async Task<CustomerCarePackageDto> CreateAsync(CreateCustomerCarePackageRequest request, long actorUserId, CancellationToken ct = default)
+    public async Task<CustomerCarePackageDto> CreateAsync(long? companyId, CreateCustomerCarePackageRequest request, long actorUserId, CancellationToken ct = default)
     {
         if (request.CotCount <= 0)
             throw new BusinessRuleValidationException("CCP_INVALID_COT_COUNT", "Số cốt phải lớn hơn 0.");
 
+        // Có phê duyệt hay không: chỉ khi có công ty VÀ đã cấu hình quy trình (binding) đang hiệu lực
+        // cho ASSIGN_CARE_PACKAGE. Chưa cấu hình → gán thẳng như hành vi cũ (tương thích ngược).
+        bool requiresApproval = companyId is > 0 && await HasActiveAssignBindingAsync(companyId.Value, ct);
+
+        long packageId;
+        await using (var tempContext = _dbContextFactory.CreateDbContext())
+        {
+            var strategy = tempContext.CreateExecutionStrategy();
+            packageId = await strategy.ExecuteAsync(async () =>
+            {
+                await using var context = _dbContextFactory.CreateDbContext();
+                await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+                if (!await context.Customers.AnyAsync(c => c.Id == request.CustomerId, ct))
+                    throw new EntityNotFoundException("CCP_CUSTOMER_NOT_FOUND", "Không tìm thấy khách hàng.");
+
+                var serviceType = await context.ServiceTypes
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Id == request.ServiceTypeId, ct);
+                if (serviceType == null || !serviceType.IsActive)
+                    throw new EntityNotFoundException("CCP_SERVICE_TYPE_NOT_FOUND", "Không tìm thấy gói chăm sóc (hoặc đã ngừng).");
+
+                var unitPrice = serviceType.StandardPrice;
+                DateTime? endDate = serviceType.CycleDurationMonths.HasValue
+                    ? request.StartDate.AddMonths(serviceType.CycleDurationMonths.Value).AddDays(-1)
+                    : (DateTime?)null;
+
+                var entity = CustomerCarePackage.Create(
+                    request.CustomerId, request.ServiceTypeId, request.CotCount,
+                    unitPrice, request.StartDate, endDate, request.Notes, actorUserId, requiresApproval);
+                context.CustomerCarePackages.Add(entity);
+                await context.SaveChangesAsync(ct);
+
+                var eventCode = requiresApproval ? "CARE_PACKAGE_SUBMIT_APPROVAL" : "CARE_PACKAGE_ASSIGN_CUSTOMER";
+                await WriteAuditAsync(context, eventCode, entity.Id, actorUserId,
+                    new { entity.CustomerId, entity.ServiceTypeId, entity.CotCount, entity.TotalPrice, requiresApproval }, ct);
+
+                await transaction.CommitAsync(ct);
+                return entity.Id;
+            });
+        }
+
+        // Không phê duyệt → gói đã ở PENDING_GRAVE, xong.
+        if (!requiresApproval)
+            return (await GetByIdEnrichedAsync(packageId, ct))!;
+
+        // Có phê duyệt → sinh hồ sơ quy trình. Mirror CarePackageRequestService.SubmitAsync:
+        // không bọc trong transaction ngoài vì CreateInstanceAsync tự quản transaction riêng.
+        var workflowRequest = new CreateWorkflowInstanceRequest
+        {
+            ProcessCode = AssignProcessCode,
+            BusinessEntityType = "CustomerCarePackage",
+            BusinessEntityId = packageId,
+            CompanyId = companyId,
+            PayloadJson = JsonSerializer.Serialize(new { request.CustomerId, request.ServiceTypeId, request.CotCount })
+        };
+
+        try
+        {
+            var instance = await _workflowRuntimeService.CreateInstanceAsync(workflowRequest, actorUserId, ct);
+            await LinkWorkflowInstanceAsync(packageId, instance.Id, actorUserId, ct);
+        }
+        catch (BusinessRuleValidationException ex) when (
+            ex.ErrorCode == "WF_NO_ASSIGNEE_FOR_STEP" || ex.ErrorCode == "WF_NO_VALID_BINDING")
+        {
+            // Không có ai duyệt ngoài chính người tạo (VD trưởng phòng tự tạo — Q6),
+            // hoặc binding vừa bị gỡ: TỰ ĐỘNG DUYỆT có ghi dấu, chuyển thẳng sang chờ gán mộ.
+            await AutoApproveAsync(packageId, actorUserId, ex.ErrorCode, ct);
+        }
+
+        return (await GetByIdEnrichedAsync(packageId, ct))!;
+    }
+
+    private async Task<bool> HasActiveAssignBindingAsync(long companyId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        await using var context = _dbContextFactory.CreateDbContext();
+        return await context.WorkflowBindings
+            .AsNoTracking()
+            .AnyAsync(b => b.IsActive
+                && b.ProcessCode == AssignProcessCode
+                && b.EffectiveFrom <= now
+                && (b.EffectiveTo == null || b.EffectiveTo > now)
+                && ((b.ScopeType == "COMPANY" && b.CompanyId == companyId) || b.ScopeType == "GLOBAL"), ct);
+    }
+
+    private async Task LinkWorkflowInstanceAsync(long packageId, long instanceId, long actorUserId, CancellationToken ct)
+    {
         await using var tempContext = _dbContextFactory.CreateDbContext();
         var strategy = tempContext.CreateExecutionStrategy();
-
-        return await strategy.ExecuteAsync(async () =>
+        await strategy.ExecuteAsync(async () =>
         {
             await using var context = _dbContextFactory.CreateDbContext();
             await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-
-            if (!await context.Customers.AnyAsync(c => c.Id == request.CustomerId, ct))
-                throw new EntityNotFoundException("CCP_CUSTOMER_NOT_FOUND", "Không tìm thấy khách hàng.");
-
-            var serviceType = await context.ServiceTypes
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == request.ServiceTypeId, ct);
-            if (serviceType == null || !serviceType.IsActive)
-                throw new EntityNotFoundException("CCP_SERVICE_TYPE_NOT_FOUND", "Không tìm thấy gói chăm sóc (hoặc đã ngừng).");
-
-            var unitPrice = serviceType.StandardPrice;
-            DateTime? endDate = serviceType.CycleDurationMonths.HasValue
-                ? request.StartDate.AddMonths(serviceType.CycleDurationMonths.Value).AddDays(-1)
-                : (DateTime?)null;
-
-            var entity = CustomerCarePackage.Create(
-                request.CustomerId, request.ServiceTypeId, request.CotCount,
-                unitPrice, request.StartDate, endDate, request.Notes, actorUserId);
-            context.CustomerCarePackages.Add(entity);
+            var package = await context.CustomerCarePackages.FirstAsync(p => p.Id == packageId, ct);
+            package.SetWorkflowInstance(instanceId, actorUserId);
             await context.SaveChangesAsync(ct);
-
-            await WriteAuditAsync(context, "CARE_PACKAGE_ASSIGN_CUSTOMER", entity.Id, actorUserId,
-                new { entity.CustomerId, entity.ServiceTypeId, entity.CotCount, entity.TotalPrice }, ct);
-
             await transaction.CommitAsync(ct);
+        });
+    }
 
-            return (await GetByIdEnrichedAsync(entity.Id, ct))!;
+    private async Task AutoApproveAsync(long packageId, long actorUserId, string reasonCode, CancellationToken ct)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+            var package = await context.CustomerCarePackages.FirstAsync(p => p.Id == packageId, ct);
+            if (package.Status == CustomerCarePackage.StatusPendingApproval)
+            {
+                package.MarkApproved(actorUserId);
+                await context.SaveChangesAsync(ct);
+                await WriteAuditAsync(context, "CARE_PACKAGE_AUTO_APPROVED", package.Id, actorUserId,
+                    new { package.Id, reason = reasonCode == "WF_NO_ASSIGNEE_FOR_STEP"
+                        ? "Người đề xuất là người duyệt duy nhất — tự động duyệt."
+                        : "Chưa có quy trình phê duyệt hiệu lực — gán thẳng." }, ct);
+            }
+            await transaction.CommitAsync(ct);
         });
     }
 
@@ -214,9 +309,12 @@ public class CustomerCarePackageService : ICustomerCarePackageService
             EndDate = p.EndDate,
             Status = p.Status,
             Notes = p.Notes,
+            WorkflowInstanceId = p.WorkflowInstanceId,
             RowVersion = Convert.ToBase64String(p.RowVersion),
             CreatedAt = p.CreatedAt,
-            UpdatedAt = p.UpdatedAt
+            CreatedByUserId = p.CreatedByUserId,
+            UpdatedAt = p.UpdatedAt,
+            UpdatedByUserId = p.UpdatedByUserId
         };
     }
 

@@ -36,9 +36,12 @@ public class CustomerCarePackagesController : ControllerBase
 
     [HttpPost]
     [RequirePermission(PermissionCodes.CustomerCarePackageManage, PermissionScope.Global)]
-    public async Task<IActionResult> Create([FromBody] CreateCustomerCarePackageRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create(
+        [FromHeader(Name = "X-Company-Id")] long? companyId,
+        [FromBody] CreateCustomerCarePackageRequest request,
+        CancellationToken ct)
     {
-        var dto = await _service.CreateAsync(request, GetActorUserId(), ct);
+        var dto = await _service.CreateAsync(companyId, request, GetActorUserId(), ct);
         return Ok(dto);
     }
 

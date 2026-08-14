@@ -15,6 +15,7 @@ export interface CustomerCarePackage {
   endDate: string | null;
   status: string;
   notes: string | null;
+  workflowInstanceId: number | null;
   rowVersion: string;
   createdAt: string;
   updatedAt: string | null;
@@ -29,6 +30,7 @@ export interface CreateCustomerCarePackageRequest {
 }
 
 export const CCP_STATUS_LABELS: Record<string, string> = {
+  PENDING_APPROVAL: 'Chờ duyệt',
   PENDING_GRAVE: 'Chờ gán mộ',
   ACTIVE: 'Đang hiệu lực',
   EXPIRED: 'Hết hạn',
@@ -36,6 +38,7 @@ export const CCP_STATUS_LABELS: Record<string, string> = {
 };
 
 export const CCP_STATUS_COLORS: Record<string, string> = {
+  PENDING_APPROVAL: 'gold',
   PENDING_GRAVE: 'orange',
   ACTIVE: 'green',
   EXPIRED: 'default',

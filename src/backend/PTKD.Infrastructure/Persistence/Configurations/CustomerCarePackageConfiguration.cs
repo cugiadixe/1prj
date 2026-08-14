@@ -22,6 +22,7 @@ public class CustomerCarePackageConfiguration : IEntityTypeConfiguration<Custome
         builder.Property(c => c.EndDate).HasColumnName("end_date");
         builder.Property(c => c.Status).HasColumnName("status").HasMaxLength(20);
         builder.Property(c => c.Notes).HasColumnName("notes").HasMaxLength(2000);
+        builder.Property(c => c.WorkflowInstanceId).HasColumnName("workflow_instance_id");
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.CreatedByUserId).HasColumnName("created_by_user_id");
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");

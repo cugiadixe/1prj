@@ -13,8 +13,13 @@ export async function listByGrave(graveId: number): Promise<CustomerCarePackage[
   return data;
 }
 
-export async function createPackage(request: CreateCustomerCarePackageRequest): Promise<CustomerCarePackage> {
-  const { data } = await axiosClient.post<CustomerCarePackage>(BASE, request);
+export async function createPackage(
+  request: CreateCustomerCarePackageRequest,
+  companyId?: number | null,
+): Promise<CustomerCarePackage> {
+  // X-Company-Id để backend biết công ty nào — quyết định có chạy quy trình phê duyệt hay không.
+  const headers = companyId != null ? { 'X-Company-Id': String(companyId) } : undefined;
+  const { data } = await axiosClient.post<CustomerCarePackage>(BASE, request, { headers });
   return data;
 }
 
