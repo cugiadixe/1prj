@@ -182,6 +182,7 @@ public class WorkflowInstanceDto
     public string? RequesterName { get; set; }
     public string BusinessEntityType { get; set; } = null!;
     public long BusinessEntityId { get; set; }
+    public string? BusinessEntityLabel { get; set; }
     public string InstanceStatus { get; set; } = null!;
     public int RoundNo { get; set; }
     public string RowVersion { get; set; } = null!;
@@ -243,6 +244,7 @@ public class MyApprovalItemDto
     public string ProcessCode { get; set; } = null!;
     public string BusinessEntityType { get; set; } = null!;
     public long BusinessEntityId { get; set; }
+    public string? BusinessEntityLabel { get; set; }
     public string StepName { get; set; } = null!;
     public string InstanceStatus { get; set; } = null!;
     public DateTime? AssignedAt { get; set; }

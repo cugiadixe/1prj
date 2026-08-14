@@ -360,8 +360,9 @@ const WorkflowInstanceDetailPage: React.FC = () => {
 
       <Descriptions bordered column={2} style={{ marginBottom: 16 }} data-testid="instance-metadata">
         <Descriptions.Item label="Mã quy trình">{instance.processCode}</Descriptions.Item>
-        <Descriptions.Item label="Loại đối tượng">{instance.businessEntityType}</Descriptions.Item>
-        <Descriptions.Item label="ID đối tượng">{instance.businessEntityId}</Descriptions.Item>
+        <Descriptions.Item label="Đối tượng">
+          {instance.businessEntityLabel ?? `${instance.businessEntityType} #${instance.businessEntityId}`}
+        </Descriptions.Item>
         <Descriptions.Item label="ID công ty">{instance.companyId ?? '—'}</Descriptions.Item>
         <Descriptions.Item label="Người yêu cầu">{instance.requesterName ?? `Người dùng ${instance.requesterId}`}</Descriptions.Item>
         <Descriptions.Item label="Vòng">{instance.roundNo}</Descriptions.Item>

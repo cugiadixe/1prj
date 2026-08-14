@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import {
   closeAuthority, createAuthority, getApprovalAuthorityErrorMessage,
-  listAuthorities, listCompanies, listDepartments,
+  listApproverOptions, listAuthorities, listCompanies, listDepartments,
 } from './api';
 import type { ApprovalAuthority, CreateApprovalAuthorityRequest } from './types';
 import { AA_STATUS_COLORS, AA_STATUS_LABELS, AUTHORITY_LEVEL_LABELS } from './types';
@@ -26,6 +26,7 @@ const ApprovalAuthorityPage: React.FC = () => {
   const [includeClosed, setIncludeClosed] = useState(false);
 
   const formCompanyId = Form.useWatch('companyId', form);
+  const formDepartmentId = Form.useWatch('departmentId', form);
 
   const { data: companies } = useQuery({
     queryKey: ['org-companies'],
@@ -43,6 +44,17 @@ const ApprovalAuthorityPage: React.FC = () => {
     queryFn: () => listDepartments(formCompanyId),
     enabled: modalOpen && formCompanyId != null,
   });
+
+  // Danh sách người duyệt để chọn theo tên — lọc theo công ty (và phòng ban nếu đã chọn).
+  const { data: approverOptions, isFetching: approverLoading } = useQuery({
+    queryKey: ['approver-options', formCompanyId, formDepartmentId],
+    queryFn: () => listApproverOptions(formCompanyId, formDepartmentId),
+    enabled: modalOpen && formCompanyId != null,
+  });
+  const approverSelectOptions = (approverOptions ?? []).map((u) => ({
+    value: u.id,
+    label: `${u.fullName} (${u.employeeCode})`,
+  }));
 
   const { data: authorities, isLoading } = useQuery({
     queryKey: ['approval-authorities', filterCompanyId, includeClosed],
@@ -238,11 +250,19 @@ const ApprovalAuthorityPage: React.FC = () => {
 
           <Form.Item
             name="approverUserId"
-            label="ID người duyệt"
-            tooltip="Giai đoạn thử nghiệm nhập ID người dùng. Bản sau sẽ chọn theo tên."
-            rules={[{ required: true, message: 'Nhập ID người duyệt' }]}
+            label="Người duyệt"
+            tooltip="Tìm theo tên hoặc mã nhân viên. Danh sách lọc theo công ty (và phòng ban nếu đã chọn)."
+            rules={[{ required: true, message: 'Chọn người duyệt' }]}
           >
-            <InputNumber style={{ width: '100%' }} min={1} placeholder="Ví dụ: 12" />
+            <Select
+              showSearch
+              placeholder={formCompanyId ? 'Tìm theo tên hoặc mã nhân viên' : 'Chọn công ty trước'}
+              disabled={!formCompanyId}
+              loading={approverLoading}
+              options={approverSelectOptions}
+              optionFilterProp="label"
+              notFoundContent={approverLoading ? 'Đang tải...' : 'Không có người phù hợp trong công ty/phòng đã chọn'}
+            />
           </Form.Item>
 
           <Form.Item
@@ -276,10 +296,18 @@ const ApprovalAuthorityPage: React.FC = () => {
 
           <Form.Item
             name="delegatedFromUserId"
-            label="Uỷ quyền thay ai (ID) — chỉ khi là dòng uỷ quyền nghỉ phép"
-            tooltip="Nếu điền, dòng này thay hẳn người uỷ quyền trong thời gian hiệu lực."
+            label="Uỷ quyền thay ai — chỉ khi là dòng uỷ quyền nghỉ phép"
+            tooltip="Nếu chọn, dòng này thay hẳn người được uỷ quyền trong thời gian hiệu lực."
           >
-            <InputNumber style={{ width: '100%' }} min={1} placeholder="Để trống nếu là thẩm quyền thường" />
+            <Select
+              allowClear
+              showSearch
+              placeholder="Để trống nếu là thẩm quyền thường"
+              disabled={!formCompanyId}
+              loading={approverLoading}
+              options={approverSelectOptions}
+              optionFilterProp="label"
+            />
           </Form.Item>
 
           <Form.Item name="notes" label="Ghi chú">

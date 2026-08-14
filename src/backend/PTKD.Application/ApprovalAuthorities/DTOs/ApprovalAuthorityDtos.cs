@@ -48,3 +48,11 @@ public class CloseApprovalAuthorityRequest
 {
     public DateTime EffectiveTo { get; set; }
 }
+
+/// <summary>Người có thể chọn làm người duyệt — tra theo công ty (và tuỳ chọn phòng ban).</summary>
+public class ApproverOptionDto
+{
+    public long Id { get; set; }
+    public string FullName { get; set; } = null!;
+    public string EmployeeCode { get; set; } = null!;
+}

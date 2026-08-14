@@ -137,6 +137,41 @@ public class ApprovalAuthorityService : IApprovalAuthorityService
         });
     }
 
+    public async Task<ApproverOptionDto[]> ListApproverOptionsAsync(long companyId, long? departmentId, string? search, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        // Người đang được phân vào công ty này (active) + tài khoản còn hoạt động.
+        var query =
+            from uca in context.UserCompanyAssignments.AsNoTracking()
+            where uca.CompanyId == companyId && uca.AssignmentStatus == "ACTIVE"
+            join u in context.Users.AsNoTracking() on uca.UserId equals u.Id
+            where u.AccountStatus == "ACTIVE"
+            select new { u.Id, u.FullName, u.EmployeeCode };
+
+        // Tuỳ chọn thu hẹp theo phòng ban đã chọn (người duyệt thường thuộc chính phòng đó).
+        if (departmentId.HasValue)
+        {
+            var inDept = context.UserDepartmentAssignments.AsNoTracking()
+                .Where(uda => uda.DepartmentId == departmentId.Value && uda.AssignmentStatus == "ACTIVE")
+                .Select(uda => uda.UserId);
+            query = query.Where(x => inDept.Contains(x.Id));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            query = query.Where(x => x.FullName.Contains(s) || x.EmployeeCode.Contains(s));
+        }
+
+        return await query
+            .Distinct()
+            .OrderBy(x => x.FullName)
+            .Take(50)
+            .Select(x => new ApproverOptionDto { Id = x.Id, FullName = x.FullName, EmployeeCode = x.EmployeeCode })
+            .ToArrayAsync(ct);
+    }
+
     private async Task<ApprovalAuthorityDto?> GetByIdEnrichedAsync(long id, CancellationToken ct)
     {
         await using var context = _dbContextFactory.CreateDbContext();

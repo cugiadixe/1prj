@@ -46,6 +46,12 @@ export interface OrgDepartment {
   companyId: number;
 }
 
+export interface ApproverOption {
+  id: number;
+  fullName: string;
+  employeeCode: string;
+}
+
 export const AA_STATUS_LABELS: Record<string, string> = {
   ACTIVE: 'Đang hiệu lực',
   CLOSED: 'Đã đóng',

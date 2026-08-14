@@ -34,6 +34,18 @@ public class ApprovalAuthoritiesController : ControllerBase
         return Ok(await _service.ListAsync(companyId, departmentId, includeClosed, ct));
     }
 
+    [HttpGet("approver-options")]
+    public async Task<IActionResult> ApproverOptions(
+        [FromQuery] long companyId,
+        [FromQuery] long? departmentId,
+        [FromQuery] string? search,
+        CancellationToken ct)
+    {
+        if (companyId <= 0)
+            return Ok(System.Array.Empty<ApproverOptionDto>());
+        return Ok(await _service.ListApproverOptionsAsync(companyId, departmentId, search, ct));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApprovalAuthorityRequest request, CancellationToken ct)
     {

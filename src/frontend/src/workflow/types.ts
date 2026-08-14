@@ -166,6 +166,7 @@ export interface MyApprovalItem {
   assignedAt: string | null;
   requesterId: number;
   requesterName: string | null;
+  businessEntityLabel: string | null;
 }
 
 export interface WorkflowInstance {
@@ -175,6 +176,7 @@ export interface WorkflowInstance {
   companyId: number | null;
   requesterId: number;
   requesterName: string | null;
+  businessEntityLabel: string | null;
   businessEntityType: string;
   businessEntityId: number;
   instanceStatus: string;

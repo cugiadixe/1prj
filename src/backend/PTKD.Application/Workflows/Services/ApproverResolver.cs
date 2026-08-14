@@ -18,7 +18,7 @@ public class ApproverResolver : IApproverResolver
         _timeProvider = timeProvider;
     }
 
-    public async Task<long[]> ResolveApproversAsync(string approverSourceType, string approverSourceValue, long requesterId, long? companyId, CancellationToken ct = default)
+    public async Task<long[]> ResolveApproversAsync(string approverSourceType, string approverSourceValue, long requesterId, long? companyId, string? processCode = null, CancellationToken ct = default)
     {
         var userIds = approverSourceType switch
         {
@@ -29,7 +29,7 @@ public class ApproverResolver : IApproverResolver
                 ? await ResolveByDepartmentAsync(deptId, ct)
                 : [],
             "PERMISSION" => await ResolveByPermissionAsync(approverSourceValue, ct),
-            "APPROVAL_AUTHORITY" => await ResolveByApprovalAuthorityAsync(approverSourceValue, requesterId, companyId, ct),
+            "APPROVAL_AUTHORITY" => await ResolveByApprovalAuthorityAsync(approverSourceValue, requesterId, companyId, processCode, ct),
             _ => []
         };
 
@@ -100,11 +100,11 @@ public class ApproverResolver : IApproverResolver
     /// cùng phòng, cùng cấp, đang trong hạn hiệu lực. Nếu có dòng uỷ quyền (delegated_from_user_id)
     /// thì CHỈ dùng dòng uỷ quyền (ngữ nghĩa THAY THẾ — D10): người được uỷ quyền thay hẳn.
     ///
-    /// Giới hạn có chủ đích ở bản pilot: chỉ khớp dòng process_code = NULL (áp mọi quy trình) và
-    /// KHÔNG lọc theo ngưỡng tiền — vì chữ ký resolver hiện chưa mang mã quy trình lẫn số tiền của
-    /// hồ sơ. Khi nối đa cấp (Giám đốc theo ngưỡng tiền — D7), cần bổ sung 2 tham số này vào chữ ký.
+    /// Khớp dòng thẩm quyền có process_code TRỐNG (áp mọi quy trình) HOẶC đúng bằng mã quy trình
+    /// đang chạy. Giới hạn còn lại ở bản pilot: KHÔNG lọc theo ngưỡng tiền (chữ ký chưa mang số tiền
+    /// hồ sơ) — cần bổ sung khi nối đa cấp theo tiền (D7).
     /// </summary>
-    private async Task<long[]> ResolveByApprovalAuthorityAsync(string approverSourceValue, long requesterId, long? companyId, CancellationToken ct)
+    private async Task<long[]> ResolveByApprovalAuthorityAsync(string approverSourceValue, long requesterId, long? companyId, string? processCode, CancellationToken ct)
     {
         if (companyId is null)
             return []; // Thẩm quyền phê duyệt luôn gắn công ty; không có công ty thì không xác định được.
@@ -131,7 +131,7 @@ public class ApproverResolver : IApproverResolver
                 && a.DepartmentId == departmentId.Value
                 && a.AuthorityLevel == level
                 && a.Status == "ACTIVE"
-                && a.ProcessCode == null
+                && (a.ProcessCode == null || a.ProcessCode == processCode)
                 && a.EffectiveFrom <= now
                 && (a.EffectiveTo == null || a.EffectiveTo > now))
             .Select(a => new { a.ApproverUserId, a.DelegatedFromUserId })

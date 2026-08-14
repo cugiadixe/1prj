@@ -30,11 +30,12 @@ public class WorkflowRuntimeController : ControllerBase
         return CreatedAtAction(nameof(GetInstance), new { instanceId = result.Id }, result);
     }
 
+    // Không canh cứng WORKFLOW_VIEW: người ĐỀ XUẤT và người ĐƯỢC GIAO DUYỆT phải xem được hồ sơ
+    // của chính mình (kiểm quyền theo giao dịch trong service). WORKFLOW_VIEW chỉ để admin xem mọi hồ sơ.
     [HttpGet("instances/{instanceId}")]
-    [RequirePermission(PermissionCodes.WorkflowView, PermissionScope.Global)]
     public async Task<IActionResult> GetInstance(long instanceId, CancellationToken ct)
     {
-        var result = await _runtimeService.GetInstanceByIdAsync(instanceId, ct);
+        var result = await _runtimeService.GetInstanceByIdAsync(instanceId, GetActorUserId(), ct);
         if (result == null) return NotFound();
         return Ok(result);
     }

@@ -37,8 +37,12 @@ const WorkflowMyApprovalsPage: React.FC = () => {
 
   const columns = [
     { title: 'Quy trình', dataIndex: 'processCode', key: 'processCode' },
-    { title: 'Loại đối tượng', dataIndex: 'businessEntityType', key: 'businessEntityType' },
-    { title: 'ID đối tượng', dataIndex: 'businessEntityId', key: 'businessEntityId' },
+    {
+      title: 'Đối tượng',
+      key: 'businessEntity',
+      render: (_: unknown, r: MyApprovalItem) =>
+        r.businessEntityLabel ?? `${r.businessEntityType} #${r.businessEntityId}`,
+    },
     { title: 'Bước', dataIndex: 'stepName', key: 'stepName' },
     {
       title: 'Người đề xuất',

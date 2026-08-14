@@ -112,11 +112,29 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         });
     }
 
-    public async Task<WorkflowInstanceDto?> GetInstanceByIdAsync(long instanceId, CancellationToken ct = default)
+    public async Task<WorkflowInstanceDto?> GetInstanceByIdAsync(long instanceId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        if (!await context.WorkflowInstances.AsNoTracking().AnyAsync(i => i.Id == instanceId, ct))
+        var instance = await context.WorkflowInstances.AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+        if (instance == null)
             return null;
+
+        // Kiểm quyền theo giao dịch: người đề xuất HOẶC người được giao duyệt HOẶC có WORKFLOW_VIEW.
+        if (instance.RequesterId != actorUserId)
+        {
+            var isAssignee = await context.WorkflowInstanceStepAssignees
+                .AsNoTracking()
+                .AnyAsync(a => a.UserId == actorUserId && a.Step.WorkflowInstanceId == instanceId, ct);
+            if (!isAssignee)
+            {
+                var canView = await _permissionEvaluator.EvaluateAsync(actorUserId, "WORKFLOW_VIEW", instance.CompanyId, ct)
+                    || await _permissionEvaluator.EvaluateAsync(actorUserId, "WORKFLOW_VIEW", null, ct);
+                if (!canView)
+                    throw new BusinessRuleValidationException("WF_INSTANCE_VIEW_UNAUTHORIZED", "You do not have permission to view this workflow instance.");
+            }
+        }
+
         return await LoadInstanceDtoAsync(context, instanceId, ct);
     }
 
@@ -151,6 +169,14 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         var names = await ResolveUserNamesAsync(context, items.Select(i => i.RequesterId), ct);
         foreach (var i in items)
             if (names.TryGetValue(i.RequesterId, out var rn)) i.RequesterName = rn;
+
+        // Nhãn đối tượng (tên gói + khách) để người duyệt biết đang duyệt cái gì.
+        var pkgLabels = await ResolveCarePackageLabelsAsync(
+            context, items.Where(i => i.BusinessEntityType == "CustomerCarePackage").Select(i => i.BusinessEntityId), ct);
+        foreach (var i in items)
+            if (i.BusinessEntityType == "CustomerCarePackage" && pkgLabels.TryGetValue(i.BusinessEntityId, out var lbl))
+                i.BusinessEntityLabel = lbl;
+
         return items;
     }
 
@@ -769,7 +795,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             foreach (var rule in templateStep.ApproverRules)
             {
                 var resolvedUserIds = await _approverResolver.ResolveApproversAsync(
-                    rule.ApproverSourceType, rule.ApproverSourceValue, requesterId, companyId, ct);
+                    rule.ApproverSourceType, rule.ApproverSourceValue, requesterId, companyId, instance.ProcessCode, ct);
 
                 foreach (var userId in resolvedUserIds)
                 {
@@ -833,6 +859,13 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         };
 
         await EnrichInstanceNamesAsync(context, new[] { dto }, ct);
+
+        if (dto.BusinessEntityType == "CustomerCarePackage")
+        {
+            var pkgLabels = await ResolveCarePackageLabelsAsync(context, new[] { dto.BusinessEntityId }, ct);
+            if (pkgLabels.TryGetValue(dto.BusinessEntityId, out var lbl)) dto.BusinessEntityLabel = lbl;
+        }
+
         return dto;
     }
 
@@ -872,6 +905,25 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             .Where(u => ids.Contains(u.Id))
             .Select(u => new { u.Id, u.FullName })
             .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+    }
+
+    /// <summary>
+    /// Nhãn dễ hiểu cho đối tượng nghiệp vụ để người duyệt biết đang duyệt cái gì (thay vì "ID 7").
+    /// Hiện xử lý CustomerCarePackage: "Tên gói — Tên khách (mã KH)". Loại khác trả rỗng → FE hiển thị mặc định.
+    /// </summary>
+    private static async Task<Dictionary<long, string>> ResolveCarePackageLabelsAsync(IOrganizationDbContext context, IEnumerable<long> packageIds, CancellationToken ct)
+    {
+        var ids = packageIds.Distinct().ToArray();
+        if (ids.Length == 0) return new Dictionary<long, string>();
+        var rows = await (
+            from p in context.CustomerCarePackages.AsNoTracking()
+            where ids.Contains(p.Id)
+            join st in context.ServiceTypes on p.ServiceTypeId equals st.Id
+            join c in context.Customers on p.CustomerId equals c.Id
+            join pr in context.Profiles on c.ProfileId equals pr.Id
+            select new { p.Id, ServiceName = st.Name, CustomerName = pr.FullName, c.CustomerCode })
+            .ToListAsync(ct);
+        return rows.ToDictionary(r => r.Id, r => $"{r.ServiceName} — {r.CustomerName} ({r.CustomerCode})");
     }
 
     private static string ComputeHash(string input)

@@ -1,6 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import type {
   ApprovalAuthority,
+  ApproverOption,
   CreateApprovalAuthorityRequest,
   OrgCompany,
   OrgDepartment,
@@ -37,6 +38,17 @@ export async function listCompanies(): Promise<OrgCompany[]> {
 export async function listDepartments(companyId?: number): Promise<OrgDepartment[]> {
   const { data } = await axiosClient.get<OrgDepartment[]>('/organizations/departments', {
     params: companyId ? { companyId } : {},
+  });
+  return data;
+}
+
+export async function listApproverOptions(
+  companyId: number,
+  departmentId?: number,
+  search?: string,
+): Promise<ApproverOption[]> {
+  const { data } = await axiosClient.get<ApproverOption[]>(`${BASE}/approver-options`, {
+    params: { companyId, departmentId, search: search || undefined },
   });
   return data;
 }
