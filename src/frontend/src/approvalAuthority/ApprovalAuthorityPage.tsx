@@ -273,14 +273,8 @@ const ApprovalAuthorityPage: React.FC = () => {
             <Input placeholder="Để trống = mọi quy trình (ví dụ: ASSIGN_CARE_PACKAGE)" />
           </Form.Item>
 
-          <Space size="large" style={{ display: 'flex' }}>
-            <Form.Item name="minAmount" label="Ngưỡng tiền tối thiểu" style={{ flex: 1 }}>
-              <InputNumber style={{ width: '100%' }} min={0} placeholder="Không giới hạn" />
-            </Form.Item>
-            <Form.Item name="maxAmount" label="Ngưỡng tiền tối đa" style={{ flex: 1 }}>
-              <InputNumber style={{ width: '100%' }} min={0} placeholder="Không giới hạn" />
-            </Form.Item>
-          </Space>
+          {/* Ngưỡng tiền tạm ẩn ở pilot: resolver chưa lọc theo số tiền hồ sơ nên điền vào không có
+              tác dụng. Cột hiển thị sẽ luôn là "Không giới hạn". Bật lại khi nối đa cấp theo tiền (D7). */}
 
           <Space size="large" style={{ display: 'flex' }}>
             <Form.Item

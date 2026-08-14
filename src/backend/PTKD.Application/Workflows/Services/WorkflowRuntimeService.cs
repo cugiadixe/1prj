@@ -275,10 +275,30 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                         });
                         throw;
                     }
+
+                    // Handler chạy xong (không ném) → lật hồ sơ sang EXECUTED (trước đây kẹt PENDING_EXECUTION).
+                    await MarkExecutedAsync(instanceId, ct);
                 }
             }
 
             return await LoadInstanceDtoAsync(context, instanceId, ct);
+        });
+    }
+
+    // Đặt hồ sơ = EXECUTED sau khi bộ xử lý chạy thành công.
+    private async Task MarkExecutedAsync(long instanceId, CancellationToken ct)
+    {
+        await using var tempCtx = _dbContextFactory.CreateDbContext();
+        var strategy = tempCtx.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var ctx = _dbContextFactory.CreateDbContext();
+            var wi = await ctx.WorkflowInstances.FirstAsync(w => w.Id == instanceId, ct);
+            if (wi.InstanceStatus == "PENDING_EXECUTION" || wi.InstanceStatus == "EXECUTING")
+            {
+                wi.SetExecuted(null);
+                await ctx.SaveChangesAsync(ct);
+            }
         });
     }
 
@@ -768,6 +788,9 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                     });
                     throw; // Allow caller to see failure
                 }
+
+                // Chạy lại thành công → lật hồ sơ sang EXECUTED.
+                await MarkExecutedAsync(instanceId, ct);
             }
 
             return await LoadInstanceDtoAsync(context, instanceId, ct);

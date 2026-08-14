@@ -31,7 +31,9 @@ public class ServiceTypeController : ControllerBase
     public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         var userId = GetUserId();
-        if (!await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_TYPE_MANAGE", null, ct))
+        // Chỉ XEM danh mục (vd để chọn gói chăm sóc) cần quyền xem — không đòi quyền quản trị danh mục.
+        if (!await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_TYPE_VIEW", null, ct)
+            && !await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_TYPE_MANAGE", null, ct))
             return Forbid();
 
         var result = await _serviceTypeService.ListAsync(page, pageSize, ct);
@@ -42,7 +44,8 @@ public class ServiceTypeController : ControllerBase
     public async Task<IActionResult> GetById(long id, CancellationToken ct = default)
     {
         var userId = GetUserId();
-        if (!await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_TYPE_MANAGE", null, ct))
+        if (!await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_TYPE_VIEW", null, ct)
+            && !await _permissionEvaluator.EvaluateAsync(userId, "SERVICE_TYPE_MANAGE", null, ct))
             return Forbid();
 
         var result = await _serviceTypeService.GetByIdAsync(id, ct);

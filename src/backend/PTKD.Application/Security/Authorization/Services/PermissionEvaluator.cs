@@ -191,14 +191,20 @@ public class PermissionEvaluator : IPermissionEvaluator
         }
 
         // 6. Check Department Baseline Grants
-        var activeDepts = await _dbContext.UserDepartmentAssignments
+        //    Quyền GLOBAL (companyId == null): mọi phòng người đó thuộc đều tính (vì quyền áp toàn
+        //    hệ thống, và các controller kiểm quyền nghiệp vụ này ở phạm vi GLOBAL). Nếu vẫn đòi
+        //    Department.CompanyId == null thì không phòng nào khớp → "gán vào phòng = có quyền" hỏng.
+        //    Quyền COMPANY: chỉ phòng thuộc đúng công ty đang xét.
+        var deptQuery = _dbContext.UserDepartmentAssignments
             .AsNoTracking()
             .Where(a => a.UserId == userId
                      && a.AssignmentStatus == "ACTIVE"
                      && a.EffectiveFrom <= now
                      && (a.EffectiveTo == null || a.EffectiveTo > now)
-                     && a.Department.IsActive
-                     && a.Department.CompanyId == companyId)
+                     && a.Department.IsActive);
+        if (companyId != null)
+            deptQuery = deptQuery.Where(a => a.Department.CompanyId == companyId);
+        var activeDepts = await deptQuery
             .Select(a => a.DepartmentId)
             .ToListAsync(cancellationToken);
 
