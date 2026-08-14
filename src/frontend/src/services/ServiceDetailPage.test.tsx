@@ -50,7 +50,7 @@ describe('ServiceDetailPage', () => {
 
   it('renders details', async () => {
     mockGetServiceById.mockResolvedValue({
-      id: 1, serviceTypeId: 1, serviceTypeCode: 'T1', serviceTypeName: 'Type 1', customerId: 1, companyId: 1, status: 'ACTIVE', appliedPrice: 1000, standardPriceSnapshot: 1000, isOverridePrice: false, overrideApprovalRequestId: null, validFrom: '2026-01-01', validTo: null, cycleNumber: 1, previousServiceId: null, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1'
+      id: 1, serviceTypeId: 1, serviceTypeCode: 'T1', serviceTypeName: 'Type 1', customerId: 1, customerCode: 'KH0001', customerName: 'Khách hàng 1', companyId: 1, companyName: 'Công ty 1', status: 'ACTIVE', appliedPrice: 1000, standardPriceSnapshot: 1000, isOverridePrice: false, overrideApprovalRequestId: null, validFrom: '2026-01-01', validTo: null, cycleNumber: 1, previousServiceId: null, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1'
     });
     renderPage();
     await waitFor(() => {
