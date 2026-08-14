@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 
 export interface RoleDto {
   id: number;
@@ -46,43 +46,43 @@ export interface PermissionDto {
   description: string | null;
 }
 
-const BASE_URL = '/api/v2/security';
+const BASE_URL = '/security';
 
 export const roleManagementApi = {
   getRoles: async (): Promise<RoleDto[]> => {
-    const response = await axios.get<RoleDto[]>(`${BASE_URL}/roles`);
+    const response = await axiosClient.get<RoleDto[]>(`${BASE_URL}/roles`);
     return response.data;
   },
 
   getRole: async (id: number): Promise<RoleDto> => {
-    const response = await axios.get<RoleDto>(`${BASE_URL}/roles/${id}`);
+    const response = await axiosClient.get<RoleDto>(`${BASE_URL}/roles/${id}`);
     return response.data;
   },
 
   createRole: async (request: CreateRoleRequest): Promise<RoleDto> => {
-    const response = await axios.post<RoleDto>(`${BASE_URL}/roles`, request);
+    const response = await axiosClient.post<RoleDto>(`${BASE_URL}/roles`, request);
     return response.data;
   },
 
   updateRole: async (id: number, request: UpdateRoleRequest): Promise<RoleDto> => {
-    const response = await axios.put<RoleDto>(`${BASE_URL}/roles/${id}`, request);
+    const response = await axiosClient.put<RoleDto>(`${BASE_URL}/roles/${id}`, request);
     return response.data;
   },
 
   deactivateRole: async (id: number, request: DeactivateRoleRequest): Promise<void> => {
-    await axios.delete(`${BASE_URL}/roles/${id}`, { data: request });
+    await axiosClient.delete(`${BASE_URL}/roles/${id}`, { data: request });
   },
 
   addRolePermissions: async (id: number, request: AddRolePermissionsRequest): Promise<void> => {
-    await axios.post(`${BASE_URL}/roles/${id}/permissions`, request);
+    await axiosClient.post(`${BASE_URL}/roles/${id}/permissions`, request);
   },
 
   removeRolePermission: async (id: number, code: string): Promise<void> => {
-    await axios.delete(`${BASE_URL}/roles/${id}/permissions/${encodeURIComponent(code)}`);
+    await axiosClient.delete(`${BASE_URL}/roles/${id}/permissions/${encodeURIComponent(code)}`);
   },
 
   getPermissions: async (): Promise<PermissionDto[]> => {
-    const response = await axios.get<PermissionDto[]>(`${BASE_URL}/permissions`);
+    const response = await axiosClient.get<PermissionDto[]>(`${BASE_URL}/permissions`);
     return response.data;
   },
 };

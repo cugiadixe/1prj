@@ -15,4 +15,7 @@ public sealed record AccountSummaryDto
     public required string EmploymentStatus { get; init; }
     public required DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
+    // Công ty/phòng ban chính của nhân viên (để dễ nhìn trong danh sách tài khoản). NULL nếu chưa phân công.
+    public string? CompanyName { get; init; }
+    public string? DepartmentName { get; init; }
 }

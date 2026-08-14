@@ -92,6 +92,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 interface GrantModalProps {
   open: boolean;
   permissions: PermissionDto[];
+  excludeCodes: string[];
   currentCompanyId: number | null;
   currentCompanyName: string | null;
   isLoading: boolean;
@@ -103,6 +104,7 @@ interface GrantModalProps {
 const GrantPermissionModal: React.FC<GrantModalProps> = ({
   open,
   permissions,
+  excludeCodes,
   currentCompanyId,
   currentCompanyName,
   isLoading,
@@ -116,9 +118,10 @@ const GrantPermissionModal: React.FC<GrantModalProps> = ({
   const [reason, setReason] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // Loại quyền đã cấp cho user này khỏi danh sách chọn (vấn đề: quyền đã cấp vẫn hiện trong dropdown).
   const activePermissions = useMemo(
-    () => permissions.filter((p) => p.isActive),
-    [permissions],
+    () => permissions.filter((p) => p.isActive && !excludeCodes.includes(p.permissionCode)),
+    [permissions, excludeCodes],
   );
   const selectedPerm = activePermissions.find((p) => p.permissionCode === permissionCode) ?? null;
   const reasonRequired = selectedPerm?.requiresReason ?? false;
@@ -776,6 +779,7 @@ const PermissionAssignmentPage: React.FC = () => {
       <GrantPermissionModal
         open={showGrantModal}
         permissions={catalog ?? []}
+        excludeCodes={activeAssignments.map((a) => a.permissionCode)}
         currentCompanyId={currentCompanyId}
         currentCompanyName={currentCompanyName}
         isLoading={grantMutation.isPending}
