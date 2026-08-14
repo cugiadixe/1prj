@@ -96,7 +96,8 @@ describe('WorkflowInstanceDetailPage', () => {
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('instance-status-tag')).toBeInTheDocument();
-      expect(screen.getByTestId('instance-status-tag')).toHaveTextContent('PENDING_APPROVAL');
+      // Trạng thái nay hiển thị nhãn tiếng Việt thay vì mã thô.
+      expect(screen.getByTestId('instance-status-tag')).toHaveTextContent('Chờ duyệt');
     });
   });
 

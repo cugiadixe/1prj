@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getInstanceActions } from './workflowRuntimeApi';
 import { getErrorMessage } from './errorMessages';
 import type { WorkflowActionDto } from './types';
+import { formatUtcDateTime } from '../utils/datetime';
 
 const { Title } = Typography;
 
@@ -70,7 +71,7 @@ const WorkflowActionHistoryPanel: React.FC<WorkflowActionHistoryPanelProps> = ({
       title: 'Thời gian',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
+      render: (val: string) => formatUtcDateTime(val),
     },
   ];
 

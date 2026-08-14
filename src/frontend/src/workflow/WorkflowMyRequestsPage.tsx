@@ -5,21 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { getMyRequests } from './workflowRuntimeApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
 import type { WorkflowInstance } from './types';
+import { formatUtcDateTime } from '../utils/datetime';
+import { INSTANCE_STATUS_COLORS, INSTANCE_STATUS_LABELS } from './instanceStatus';
 
 const { Title } = Typography;
 
-const INSTANCE_STATUS_COLORS: Record<string, string> = {
-  PENDING_APPROVAL: 'blue',
-  RETURNED: 'orange',
-  WITHDRAWN: 'red',
-  REJECTED: 'volcano',
-  PENDING_EXECUTION: 'cyan',
-  EXECUTING: 'geekblue',
-  EXECUTED: 'green',
-  FAILED: 'magenta',
-  COMPLETED: 'green',
-  CANCELLED: 'default',
-};
 
 const WorkflowMyRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +38,7 @@ const WorkflowMyRequestsPage: React.FC = () => {
       dataIndex: 'instanceStatus',
       key: 'instanceStatus',
       render: (val: string) => (
-        <Tag color={INSTANCE_STATUS_COLORS[val] ?? 'default'}>{val}</Tag>
+        <Tag color={INSTANCE_STATUS_COLORS[val] ?? 'default'}>{INSTANCE_STATUS_LABELS[val] ?? val}</Tag>
       ),
     },
     { title: 'Vòng', dataIndex: 'roundNo', key: 'roundNo' },
@@ -56,13 +46,13 @@ const WorkflowMyRequestsPage: React.FC = () => {
       title: 'Đã tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (val: string) => new Date(val).toLocaleString('vi-VN'),
+      render: (val: string) => formatUtcDateTime(val),
     },
     {
       title: 'Đã cập nhật',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
-      render: (val: string | null) => val ? new Date(val).toLocaleString('vi-VN') : '—',
+      render: (val: string | null) => formatUtcDateTime(val),
     },
   ];
 

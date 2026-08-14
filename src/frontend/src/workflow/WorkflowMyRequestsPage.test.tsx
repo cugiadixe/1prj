@@ -73,7 +73,8 @@ describe('WorkflowMyRequestsPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('my-requests-table')).toBeInTheDocument();
       expect(screen.getByText('CREATE_CUSTOMER')).toBeInTheDocument();
-      expect(screen.getByText('PENDING_APPROVAL')).toBeInTheDocument();
+      // Trạng thái nay hiển thị nhãn tiếng Việt thay vì mã thô.
+      expect(screen.getByText('Chờ duyệt')).toBeInTheDocument();
     });
   });
 

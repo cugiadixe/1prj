@@ -5,17 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { getMyApprovals } from './workflowRuntimeApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
 import type { MyApprovalItem } from './types';
+import { formatUtcDateTime } from '../utils/datetime';
+import { INSTANCE_STATUS_COLORS, INSTANCE_STATUS_LABELS } from './instanceStatus';
 
 const { Title } = Typography;
-
-const INSTANCE_STATUS_COLORS: Record<string, string> = {
-  PENDING_APPROVAL: 'blue',
-  RETURNED: 'orange',
-  WITHDRAWN: 'red',
-  PENDING_EXECUTION: 'cyan',
-  COMPLETED: 'green',
-  CANCELLED: 'default',
-};
 
 const WorkflowMyApprovalsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,14 +47,14 @@ const WorkflowMyApprovalsPage: React.FC = () => {
       dataIndex: 'instanceStatus',
       key: 'instanceStatus',
       render: (val: string) => (
-        <Tag color={INSTANCE_STATUS_COLORS[val] ?? 'default'}>{val}</Tag>
+        <Tag color={INSTANCE_STATUS_COLORS[val] ?? 'default'}>{INSTANCE_STATUS_LABELS[val] ?? val}</Tag>
       ),
     },
     {
       title: 'Đã phân công',
       dataIndex: 'assignedAt',
       key: 'assignedAt',
-      render: (val: string | null) => val ? new Date(val).toLocaleString('vi-VN') : '—',
+      render: (val: string | null) => formatUtcDateTime(val),
     },
   ];
 

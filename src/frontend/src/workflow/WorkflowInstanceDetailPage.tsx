@@ -31,21 +31,10 @@ import type { WorkflowInstanceStep } from './types';
 import WorkflowActionHistoryPanel from './WorkflowActionHistoryPanel';
 import WorkflowRejectDialog from './WorkflowRejectDialog';
 import WorkflowRetryExecutionButton from './WorkflowRetryExecutionButton';
+import { formatUtcDateTime } from '../utils/datetime';
+import { INSTANCE_STATUS_COLORS, INSTANCE_STATUS_LABELS } from './instanceStatus';
 
 const { Title } = Typography;
-
-const INSTANCE_STATUS_COLORS: Record<string, string> = {
-  PENDING_APPROVAL: 'blue',
-  RETURNED: 'orange',
-  WITHDRAWN: 'red',
-  PENDING_EXECUTION: 'cyan',
-  COMPLETED: 'green',
-  CANCELLED: 'default',
-  REJECTED: 'volcano',
-  EXECUTING: 'geekblue',
-  EXECUTED: 'green',
-  FAILED: 'magenta',
-};
 
 const STEP_STATUS_COLORS: Record<string, string> = {
   PENDING: 'blue',
@@ -54,6 +43,15 @@ const STEP_STATUS_COLORS: Record<string, string> = {
   RETURNED: 'orange',
   REJECTED: 'volcano',
   CANCELLED: 'default',
+};
+
+const STEP_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Chờ xử lý',
+  WAITING: 'Chờ tới lượt',
+  APPROVED: 'Đã duyệt',
+  RETURNED: 'Trả lại',
+  REJECTED: 'Từ chối',
+  CANCELLED: 'Đã hủy',
 };
 
 const WorkflowInstanceDetailPage: React.FC = () => {
@@ -198,7 +196,10 @@ const WorkflowInstanceDetailPage: React.FC = () => {
   const isRequester = currentUserId === instance.requesterId;
   const canResubmit = isRequester && instance.instanceStatus === 'RETURNED';
   const canWithdraw = isRequester && (instance.instanceStatus === 'PENDING_APPROVAL' || instance.instanceStatus === 'RETURNED');
-  const canRetry = hasPermission('WORKFLOW_RETRY_EXECUTION', 'GLOBAL') && instance.instanceStatus === 'FAILED';
+  // Cho phép chạy lại cả hồ sơ kẹt ở "Chờ thực thi"/"Đang thực thi" (hồ sơ mồ côi), không chỉ "Thất bại".
+  const canRetry =
+    hasPermission('WORKFLOW_RETRY_EXECUTION', 'GLOBAL') &&
+    ['FAILED', 'PENDING_EXECUTION', 'EXECUTING'].includes(instance.instanceStatus);
   const canReject = hasPermission('WORKFLOW_REJECT', 'GLOBAL');
 
   const openApproveModal = (step: WorkflowInstanceStep) => {
@@ -252,7 +253,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
       title: 'Trạng thái',
       dataIndex: 'stepStatus',
       key: 'stepStatus',
-      render: (val: string) => <Tag color={STEP_STATUS_COLORS[val] ?? 'default'}>{val}</Tag>,
+      render: (val: string) => <Tag color={STEP_STATUS_COLORS[val] ?? 'default'}>{STEP_STATUS_LABELS[val] ?? val}</Tag>,
     },
     {
       title: 'Người được phân công',
@@ -310,7 +311,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
         <Space>
           <Title level={4} style={{ margin: 0 }}>Phiên xử lý quy trình #{instance.id}</Title>
           <Tag color={INSTANCE_STATUS_COLORS[instance.instanceStatus] ?? 'default'} data-testid="instance-status-tag">
-            {instance.instanceStatus}
+            {INSTANCE_STATUS_LABELS[instance.instanceStatus] ?? instance.instanceStatus}
           </Tag>
         </Space>
         <Space>
@@ -367,7 +368,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
         <Descriptions.Item label="Người yêu cầu">{instance.requesterName ?? `Người dùng ${instance.requesterId}`}</Descriptions.Item>
         <Descriptions.Item label="Vòng">{instance.roundNo}</Descriptions.Item>
         <Descriptions.Item label="ID phiên bản">{instance.workflowVersionId}</Descriptions.Item>
-        <Descriptions.Item label="Đã tạo">{new Date(instance.createdAt).toLocaleString('vi-VN')}</Descriptions.Item>
+        <Descriptions.Item label="Đã tạo">{formatUtcDateTime(instance.createdAt)}</Descriptions.Item>
       </Descriptions>
 
       <Title level={5} style={{ marginBottom: 8 }}>Các bước</Title>
