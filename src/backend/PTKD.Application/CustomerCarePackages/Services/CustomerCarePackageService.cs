@@ -64,9 +64,19 @@ public class CustomerCarePackageService : ICustomerCarePackageService
         if (request.CotCount <= 0)
             throw new BusinessRuleValidationException("CCP_INVALID_COT_COUNT", "Số cốt phải lớn hơn 0.");
 
-        // Có phê duyệt hay không: chỉ khi có công ty VÀ đã cấu hình quy trình (binding) đang hiệu lực
-        // cho ASSIGN_CARE_PACKAGE. Chưa cấu hình → gán thẳng như hành vi cũ (tương thích ngược).
-        bool requiresApproval = companyId is > 0 && await HasActiveAssignBindingAsync(companyId.Value, ct);
+        // CHÍNH SÁCH: gán gói là quy trình BẮT BUỘC phê duyệt. Thiếu cấu hình thì CHẶN,
+        // không được âm thầm bỏ qua bước duyệt (trước đây gán thẳng — rủi ro bỏ sót phê duyệt).
+        if (companyId is not > 0)
+            throw new BusinessRuleValidationException(
+                "CCP_COMPANY_CONTEXT_REQUIRED",
+                "Chưa xác định công ty làm việc nên không xác định được quy trình phê duyệt. Vui lòng chọn công ty rồi thử lại.");
+
+        if (!await HasActiveAssignBindingAsync(companyId.Value, ct))
+            throw new BusinessRuleValidationException(
+                "CCP_APPROVAL_NOT_CONFIGURED",
+                "Quy trình phê duyệt gán gói dịch vụ chưa được cấu hình cho công ty này. Vui lòng liên hệ quản trị để khai báo liên kết quy trình.");
+
+        const bool requiresApproval = true;
 
         long packageId;
         await using (var tempContext = _dbContextFactory.CreateDbContext())
@@ -126,12 +136,20 @@ public class CustomerCarePackageService : ICustomerCarePackageService
             var instance = await _workflowRuntimeService.CreateInstanceAsync(workflowRequest, actorUserId, ct);
             await LinkWorkflowInstanceAsync(packageId, instance.Id, actorUserId, ct);
         }
-        catch (BusinessRuleValidationException ex) when (
-            ex.ErrorCode == "WF_NO_ASSIGNEE_FOR_STEP" || ex.ErrorCode == "WF_NO_VALID_BINDING")
+        catch (BusinessRuleValidationException ex) when (ex.ErrorCode == "WF_ONLY_REQUESTER_IS_APPROVER")
         {
-            // Không có ai duyệt ngoài chính người tạo (VD trưởng phòng tự tạo — Q6),
-            // hoặc binding vừa bị gỡ: TỰ ĐỘNG DUYỆT có ghi dấu, chuyển thẳng sang chờ gán mộ.
+            // CA B — người đề xuất chính là người duyệt duy nhất (vd trưởng phòng tự tạo).
+            // Đây là quy tắc nghiệp vụ đã duyệt: TỰ ĐỘNG DUYỆT nhưng phải ghi dấu rõ ràng.
             await AutoApproveAsync(packageId, actorUserId, ex.ErrorCode, ct);
+        }
+        catch (Exception)
+        {
+            // CA A/C — thiếu cấu hình hoặc không xác định được người duyệt: KHÔNG tự duyệt.
+            // Gói đã lỡ được tạo ở giao dịch trước nên phải hủy để không kẹt "Chờ duyệt" mồ côi.
+            // Dùng CancellationToken.None: nếu request bị hủy/timeout thì việc dọn dẹp VẪN phải chạy,
+            // nếu không gói sẽ nằm lại vĩnh viễn — đúng cái đang muốn tránh.
+            await CancelOrphanAsync(packageId, actorUserId, CancellationToken.None);
+            throw;
         }
 
         return (await GetByIdEnrichedAsync(packageId, ct))!;
@@ -165,6 +183,37 @@ public class CustomerCarePackageService : ICustomerCarePackageService
         });
     }
 
+    /// <summary>
+    /// Bù trừ: hủy gói vừa tạo khi không sinh được hồ sơ phê duyệt. Không có bước này thì gói
+    /// nằm lại ở "Chờ duyệt" mà không có hồ sơ nào — không ai duyệt được, cũng không ai hủy được.
+    /// </summary>
+    private async Task CancelOrphanAsync(long packageId, long actorUserId, CancellationToken ct)
+    {
+        try
+        {
+            await using var tempContext = _dbContextFactory.CreateDbContext();
+            var strategy = tempContext.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var context = _dbContextFactory.CreateDbContext();
+                await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+                var package = await context.CustomerCarePackages.FirstOrDefaultAsync(p => p.Id == packageId, ct);
+                if (package != null && package.Status == CustomerCarePackage.StatusPendingApproval)
+                {
+                    package.Cancel(actorUserId);
+                    await context.SaveChangesAsync(ct);
+                    await WriteAuditAsync(context, "CARE_PACKAGE_CANCELLED_NO_WORKFLOW", packageId, actorUserId,
+                        new { PackageId = packageId, reason = "Không tạo được hồ sơ phê duyệt nên hủy gói vừa tạo." }, ct);
+                }
+                await transaction.CommitAsync(ct);
+            });
+        }
+        catch (Exception)
+        {
+            // Bù trừ thất bại không được che mất lỗi gốc — lỗi gốc mới là thứ người dùng cần thấy.
+        }
+    }
+
     private async Task AutoApproveAsync(long packageId, long actorUserId, string reasonCode, CancellationToken ct)
     {
         await using var tempContext = _dbContextFactory.CreateDbContext();
@@ -179,9 +228,7 @@ public class CustomerCarePackageService : ICustomerCarePackageService
                 package.MarkApproved(actorUserId);
                 await context.SaveChangesAsync(ct);
                 await WriteAuditAsync(context, "CARE_PACKAGE_AUTO_APPROVED", package.Id, actorUserId,
-                    new { package.Id, reason = reasonCode == "WF_NO_ASSIGNEE_FOR_STEP"
-                        ? "Người đề xuất là người duyệt duy nhất — tự động duyệt."
-                        : "Chưa có quy trình phê duyệt hiệu lực — gán thẳng." }, ct);
+                    new { package.Id, reasonCode, reason = "Người đề xuất cũng là người duyệt duy nhất — tự động duyệt." }, ct);
             }
             await transaction.CommitAsync(ct);
         });

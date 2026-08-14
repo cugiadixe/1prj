@@ -44,6 +44,20 @@ export function getCcpErrorMessage(error: unknown): string {
     CCP_NOT_FOUND: 'Không tìm thấy gói chăm sóc của khách.',
     CCP_CANCELLED: 'Gói đã hủy, không thể gán mộ.',
     CCP_INVALID_COT_COUNT: 'Số cốt phải lớn hơn 0.',
+    // Chặn khi chưa khai báo quy trình phê duyệt (Nhóm 0).
+    CCP_COMPANY_CONTEXT_REQUIRED:
+      'Chưa xác định công ty làm việc nên không xác định được quy trình phê duyệt. Vui lòng chọn công ty rồi thử lại.',
+    CCP_APPROVAL_NOT_CONFIGURED:
+      'Quy trình phê duyệt gán gói dịch vụ chưa được cấu hình cho công ty này. Vui lòng liên hệ quản trị.',
+    // Lỗi từ engine quy trình có thể nổi lên khi tạo gói.
+    WF_NO_VALID_BINDING:
+      'Quy trình phê duyệt chưa được khai báo liên kết đang hiệu lực. Vui lòng liên hệ quản trị.',
+    WF_NO_ASSIGNEE_FOR_STEP:
+      'Chưa xác định được người duyệt. Vui lòng kiểm tra cấu hình thẩm quyền phê duyệt.',
+    WF_NO_EXECUTION_HANDLER:
+      'Quy trình này chưa có bộ xử lý thực thi nên chưa dùng được. Vui lòng báo bộ phận CNTT.',
+    WF_BINDING_AMBIGUOUS:
+      'Quy trình có nhiều liên kết trùng hạng — lỗi cấu hình. Vui lòng liên hệ quản trị.',
   };
   try {
     const err = error as {

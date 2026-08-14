@@ -82,6 +82,51 @@ public class CustomerCarePackage
         UpdatedByUserId = updatedByUserId;
     }
 
+    /// <summary>
+    /// Trưởng phòng TỪ CHỐI: đưa gói ra khỏi trạng thái chờ duyệt.
+    /// Dùng lại trạng thái CANCELLED (đã hủy) để không phải nới ràng buộc CSDL; lý do từ chối
+    /// nằm ở nhật ký quy trình và được ghi thêm vào ghi chú của gói.
+    /// </summary>
+    /// <summary>Giới hạn cột notes trong CSDL (nvarchar(2000)).</summary>
+    private const int NotesMaxLength = 2000;
+
+    public void MarkRejected(long updatedByUserId, string? reason)
+    {
+        if (Status != StatusPendingApproval)
+            throw new InvalidOperationException($"Only a package pending approval can be rejected (current: {Status}).");
+
+        Status = StatusCancelled;
+
+        var note = string.IsNullOrWhiteSpace(reason)
+            ? "Bị từ chối phê duyệt."
+            : $"Bị từ chối phê duyệt: {reason}";
+
+        // Ghi chú cũ và lý do từ chối đều có thể dài tới 2000 ký tự, nối lại sẽ TRÀN cột.
+        // Ưu tiên giữ ghi chú từ chối (thông tin mới nhất), cắt bớt phần cũ nếu cần.
+        Notes = AppendWithinLimit(Notes, note);
+
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedByUserId = updatedByUserId;
+    }
+
+    private static string AppendWithinLimit(string? existing, string addition)
+    {
+        // Bản thân phần thêm vào đã quá dài → cắt chính nó.
+        if (addition.Length >= NotesMaxLength)
+            return addition[..NotesMaxLength];
+
+        if (string.IsNullOrWhiteSpace(existing))
+            return addition;
+
+        var combined = $"{existing}\n{addition}";
+        if (combined.Length <= NotesMaxLength)
+            return combined;
+
+        // Cắt phần ghi chú cũ từ đầu, chừa đủ chỗ cho dấu xuống dòng + phần thêm vào.
+        var keep = NotesMaxLength - addition.Length - 1;
+        return keep <= 0 ? addition : $"{existing[..keep]}\n{addition}";
+    }
+
     public void AssignGrave(long graveId, long updatedByUserId)
     {
         if (Status == StatusPendingApproval)

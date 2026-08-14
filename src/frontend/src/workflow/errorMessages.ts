@@ -18,12 +18,31 @@ const ERROR_MESSAGES: Record<string, string> = {
   WF_REQUESTER_IS_APPROVER: 'Requester cannot approve their own request.',
   WF_NOT_REQUESTER: 'Only the original requester can perform this action.',
   WF_CANNOT_WITHDRAW: 'This instance cannot be withdrawn in its current state.',
-  WF_NO_VALID_BINDING: 'No active workflow binding found for this process.',
-  WF_NO_ASSIGNEE_FOR_STEP: 'No valid approvers could be resolved for a step.',
+  WF_NO_VALID_BINDING:
+    'Quy trình này chưa được khai báo liên kết đang hiệu lực. Vui lòng liên hệ quản trị.',
+  WF_NO_ASSIGNEE_FOR_STEP:
+    'Chưa xác định được người duyệt cho một bước. Vui lòng kiểm tra cấu hình thẩm quyền phê duyệt.',
   WF_REASON_REQUIRED: 'Reason is required for this action.',
   WF_USER_NOT_FOUND: 'Target user not found or inactive.',
-  WF_INSTANCE_NOT_FAILED: 'Only failed instances can be retried.',
   WF_ALREADY_REJECTED: 'This step has already been rejected.',
+
+  // Các mã bổ sung khi siết an toàn quy trình (Nhóm 0).
+  WF_NO_EXECUTION_HANDLER:
+    'Quy trình này chưa có bộ xử lý thực thi nên chưa dùng được. Vui lòng báo bộ phận CNTT.',
+  WF_BINDING_AMBIGUOUS:
+    'Quy trình có nhiều liên kết cùng phạm vi và cùng mức ưu tiên. Đây là lỗi cấu hình — vui lòng đóng bớt liên kết cũ hoặc đặt mức ưu tiên khác nhau.',
+  WF_ONLY_REQUESTER_IS_APPROVER:
+    'Người đề xuất cũng là người duyệt duy nhất của bước này.',
+  WF_INSTANCE_NOT_RETRYABLE:
+    'Chỉ chạy lại được hồ sơ đang Thất bại hoặc đang kẹt chờ thực thi.',
+  WF_REJECT_COMPENSATION_FAILED:
+    'Đã ghi nhận từ chối, nhưng chưa cập nhật được trạng thái hồ sơ nghiệp vụ. Vui lòng báo bộ phận CNTT để xử lý lại.',
+
+  // Gán gói dịch vụ cho khách.
+  CCP_COMPANY_CONTEXT_REQUIRED:
+    'Chưa xác định công ty làm việc nên không xác định được quy trình phê duyệt. Vui lòng chọn công ty rồi thử lại.',
+  CCP_APPROVAL_NOT_CONFIGURED:
+    'Quy trình phê duyệt gán gói dịch vụ chưa được cấu hình cho công ty này. Vui lòng liên hệ quản trị.',
 };
 
 export const GENERIC_ERROR = 'An error occurred. Please try again.';

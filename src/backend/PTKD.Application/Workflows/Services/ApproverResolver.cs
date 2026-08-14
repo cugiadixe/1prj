@@ -20,6 +20,12 @@ public class ApproverResolver : IApproverResolver
 
     public async Task<long[]> ResolveApproversAsync(string approverSourceType, string approverSourceValue, long requesterId, long? companyId, string? processCode = null, CancellationToken ct = default)
     {
+        var result = await ResolveApproversDetailedAsync(approverSourceType, approverSourceValue, requesterId, companyId, processCode, ct);
+        return result.Approvers;
+    }
+
+    public async Task<ApproverResolution> ResolveApproversDetailedAsync(string approverSourceType, string approverSourceValue, long requesterId, long? companyId, string? processCode = null, CancellationToken ct = default)
+    {
         var userIds = approverSourceType switch
         {
             "SPECIFIC_USER" => long.TryParse(approverSourceValue, out var uid) ? new[] { uid } : [],
@@ -33,17 +39,26 @@ public class ApproverResolver : IApproverResolver
             _ => []
         };
 
+        // Người đề xuất CÓ nằm trong nhóm người duyệt không (trước khi bị loại vì không tự duyệt được).
+        var requesterWasCandidate = userIds.Contains(requesterId);
+
         var candidates = userIds.Where(id => id != requesterId).Distinct().ToArray();
+
+        // Có người khác được cấu hình làm người duyệt không — tính TRƯỚC khi lọc tài khoản bất hoạt.
+        var hadOtherCandidates = candidates.Length > 0;
+
         if (candidates.Length == 0)
-            return candidates;
+            return new ApproverResolution(candidates, requesterWasCandidate, hadOtherCandidates);
 
         // A6 — chỉ giữ người duyệt còn hoạt động (loại tài khoản đã khoá / nghỉ việc).
         // Áp cho MỌI loại nguồn: người đã bất hoạt không được là người duyệt hợp lệ.
-        return await _authContext.Users
+        var active = await _authContext.Users
             .AsNoTracking()
             .Where(u => candidates.Contains(u.Id) && u.AccountStatus == "ACTIVE")
             .Select(u => u.Id)
             .ToArrayAsync(ct);
+
+        return new ApproverResolution(active, requesterWasCandidate, hadOtherCandidates);
     }
 
     private async Task<long[]> ResolveByRoleAsync(string roleCode, CancellationToken ct)

@@ -36,6 +36,13 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
 
     public async Task<WorkflowInstanceDto> CreateInstanceAsync(CreateWorkflowInstanceRequest request, long requesterId, CancellationToken ct = default)
     {
+        // CHẶN SỚM: không có bộ xử lý thì duyệt xong cũng không có gì chạy, hồ sơ sẽ kẹt
+        // vĩnh viễn ở PENDING_EXECUTION mà không báo lỗi. Thà chặn ngay lúc tạo.
+        if (!_executionHandlerFactory.HasHandler(request.ProcessCode))
+            throw new BusinessRuleValidationException(
+                "WF_NO_EXECUTION_HANDLER",
+                $"Quy trình '{request.ProcessCode}' chưa có bộ xử lý thực thi nên chưa thể sử dụng. Vui lòng báo bộ phận CNTT.");
+
         await using var tempContext = _dbContextFactory.CreateDbContext();
         var strategy = tempContext.CreateExecutionStrategy();
 
@@ -46,19 +53,40 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
 
             var now = DateTime.UtcNow;
 
-            var binding = await context.WorkflowBindings
+            var candidateBindings = await context.WorkflowBindings
                 .Where(b => b.IsActive
                     && b.ProcessCode == request.ProcessCode
                     && b.EffectiveFrom <= now
                     && (b.EffectiveTo == null || b.EffectiveTo > now))
                 .Where(b => (b.ScopeType == "COMPANY" && b.CompanyId == request.CompanyId)
                     || b.ScopeType == "GLOBAL")
+                .ToListAsync(ct);
+
+            if (candidateBindings.Count == 0)
+                throw new BusinessRuleValidationException("WF_NO_VALID_BINDING", "No active workflow binding found for this process and scope.");
+
+            // Thứ tự ưu tiên: liên kết theo CÔNG TY thắng GLOBAL, sau đó mức ưu tiên cao hơn thắng.
+            var rankedBindings = candidateBindings
                 .OrderByDescending(b => b.ScopeType == "COMPANY" ? 1 : 0)
                 .ThenByDescending(b => b.Priority)
-                .FirstOrDefaultAsync(ct);
+                .ToList();
 
-            if (binding == null)
-                throw new BusinessRuleValidationException("WF_NO_VALID_BINDING", "No active workflow binding found for this process and scope.");
+            var binding = rankedBindings[0];
+
+            // Nếu còn liên kết khác NGANG HẠNG với cái thắng thì đây là lỗi cấu hình.
+            // Trước đây hệ chọn bừa một cái — trái nguyên tắc "mập mờ là lỗi cấu hình,
+            // không bao giờ chọn ngẫu nhiên" trong tài liệu quản trị.
+            var tiedBindings = rankedBindings
+                .Where(b => (b.ScopeType == "COMPANY") == (binding.ScopeType == "COMPANY")
+                            && b.Priority == binding.Priority)
+                .ToList();
+
+            if (tiedBindings.Count > 1)
+                throw new BusinessRuleValidationException(
+                    "WF_BINDING_AMBIGUOUS",
+                    $"Quy trình '{request.ProcessCode}' có {tiedBindings.Count} liên kết cùng phạm vi và cùng mức ưu tiên " +
+                    $"({string.Join(", ", tiedBindings.Select(b => $"#{b.Id}"))}). Đây là lỗi cấu hình: " +
+                    "vui lòng đóng bớt liên kết cũ hoặc đặt mức ưu tiên khác nhau.");
 
             var version = await context.WorkflowDefinitionVersions
                 .Include(v => v.Steps).ThenInclude(s => s.ApproverRules)
@@ -256,7 +284,18 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             if (instance.InstanceStatus == "PENDING_EXECUTION")
             {
                 var handler = _executionHandlerFactory.GetHandler(instance.ProcessCode);
-                if (handler != null)
+                if (handler == null)
+                {
+                    // Không có bộ xử lý: TRƯỚC ĐÂY im lặng bỏ qua, hồ sơ kẹt PENDING_EXECUTION
+                    // vĩnh viễn và không chạy lại được. Nay đánh dấu FAILED để nổi lên hàng đợi lỗi
+                    // và có thể chạy lại sau khi CNTT bổ sung bộ xử lý.
+                    await MarkFailedAsync(instanceId, ct);
+                    throw new BusinessRuleValidationException(
+                        "WF_NO_EXECUTION_HANDLER",
+                        $"Đã duyệt xong nhưng quy trình '{instance.ProcessCode}' chưa có bộ xử lý thực thi. " +
+                        "Hồ sơ được đánh dấu Thất bại để xử lý lại. Vui lòng báo bộ phận CNTT.");
+                }
+
                 {
                     try
                     {
@@ -264,15 +303,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                     }
                     catch (Exception)
                     {
-                        await using var failCtx = _dbContextFactory.CreateDbContext();
-                        var failStrategy = failCtx.CreateExecutionStrategy();
-                        await failStrategy.ExecuteAsync(async () =>
-                        {
-                            await using var ctx = _dbContextFactory.CreateDbContext();
-                            var wi = await ctx.WorkflowInstances.FirstAsync(w => w.Id == instanceId, ct);
-                            wi.SetFailed();
-                            await ctx.SaveChangesAsync(ct);
-                        });
+                        await MarkFailedAsync(instanceId, ct);
                         throw;
                     }
 
@@ -282,6 +313,23 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             }
 
             return await LoadInstanceDtoAsync(context, instanceId, ct);
+        });
+    }
+
+    // Đặt hồ sơ = FAILED khi bộ xử lý ném lỗi hoặc không tồn tại.
+    private async Task MarkFailedAsync(long instanceId, CancellationToken ct)
+    {
+        await using var tempCtx = _dbContextFactory.CreateDbContext();
+        var strategy = tempCtx.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var ctx = _dbContextFactory.CreateDbContext();
+            var wi = await ctx.WorkflowInstances.FirstAsync(w => w.Id == instanceId, ct);
+            if (wi.InstanceStatus == "PENDING_EXECUTION" || wi.InstanceStatus == "EXECUTING")
+            {
+                wi.SetFailed();
+                await ctx.SaveChangesAsync(ct);
+            }
         });
     }
 
@@ -663,7 +711,9 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         await using var tempContext = _dbContextFactory.CreateDbContext();
         var strategy = tempContext.CreateExecutionStrategy();
 
-        return await strategy.ExecuteAsync(async () =>
+        // Ghi nhận việc từ chối. Khối này có thể được CHẠY LẠI khi CSDL lỗi tạm thời,
+        // nên KHÔNG được đặt việc hoàn tác nghiệp vụ ở trong (xem ngay sau khối).
+        var dto = await strategy.ExecuteAsync(async () =>
         {
             await using var context = _dbContextFactory.CreateDbContext();
             await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
@@ -720,6 +770,34 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
 
             return await LoadInstanceDtoAsync(context, instanceId, ct);
         });
+
+        // Hoàn tác nghiệp vụ: đưa bản ghi ra khỏi trạng thái "chờ duyệt".
+        // Không có bước này thì bản ghi (vd gói dịch vụ) kẹt "chờ duyệt" vĩnh viễn.
+        // Đặt NGOÀI khối trên để lỗi ở đây không khiến việc từ chối (đã ghi nhận xong) bị chạy lại.
+        var rejectHandler = _executionHandlerFactory.GetHandler(dto.ProcessCode);
+        if (rejectHandler != null)
+        {
+            await using var compCtx = _dbContextFactory.CreateDbContext();
+            var rejectedInstance = await compCtx.WorkflowInstances
+                .AsNoTracking()
+                .FirstAsync(i => i.Id == instanceId, ct);
+
+            try
+            {
+                await rejectHandler.OnRejectedAsync(rejectedInstance, ct);
+            }
+            catch (Exception ex)
+            {
+                // Việc từ chối ĐÃ được ghi nhận; chỉ phần cập nhật bản ghi nghiệp vụ thất bại.
+                // Báo rõ để không ai tưởng thao tác chưa chạy, và để bộ phận CNTT xử lý lại.
+                throw new BusinessRuleValidationException(
+                    "WF_REJECT_COMPENSATION_FAILED",
+                    "Đã ghi nhận từ chối, nhưng chưa cập nhật được trạng thái hồ sơ nghiệp vụ. " +
+                    $"Vui lòng báo bộ phận CNTT (hồ sơ #{instanceId}). Chi tiết: {ex.Message}");
+            }
+        }
+
+        return dto;
     }
 
     public async Task<WorkflowInstanceDto> RetryExecutionAsync(long instanceId, long actorUserId, CancellationToken ct = default)
@@ -736,8 +814,13 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
                 ?? throw new EntityNotFoundException("WF_INSTANCE_NOT_FOUND", "Workflow instance not found.");
 
-            if (instance.InstanceStatus != "FAILED")
-                throw new BusinessRuleValidationException("WF_INSTANCE_NOT_FAILED", "Only FAILED instances can be retried.");
+            // Cho phép chạy lại cả hồ sơ đang KẸT ở PENDING_EXECUTION/EXECUTING — đây là những hồ sơ
+            // mồ côi do bản cũ không có bộ xử lý (hoặc tiến trình chết giữa chừng); trước đây
+            // chúng không cứu được bằng bất kỳ cách nào ngoài sửa CSDL tay.
+            if (instance.InstanceStatus is not ("FAILED" or "PENDING_EXECUTION" or "EXECUTING"))
+                throw new BusinessRuleValidationException(
+                    "WF_INSTANCE_NOT_RETRYABLE",
+                    "Chỉ chạy lại được hồ sơ đang Thất bại hoặc đang kẹt chờ thực thi.");
 
             instance.SetPendingExecution();
 
@@ -769,7 +852,14 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
 
             // Trigger execution
             var handler = _executionHandlerFactory.GetHandler(instance.ProcessCode);
-            if (handler != null)
+            if (handler == null)
+            {
+                await MarkFailedAsync(instanceId, ct);
+                throw new BusinessRuleValidationException(
+                    "WF_NO_EXECUTION_HANDLER",
+                    $"Quy trình '{instance.ProcessCode}' vẫn chưa có bộ xử lý thực thi nên chưa chạy lại được. Vui lòng báo bộ phận CNTT.");
+            }
+
             {
                 try
                 {
@@ -777,15 +867,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 }
                 catch (Exception)
                 {
-                    await using var failCtx = _dbContextFactory.CreateDbContext();
-                    var failStrategy = failCtx.CreateExecutionStrategy();
-                    await failStrategy.ExecuteAsync(async () =>
-                    {
-                        await using var ctx = _dbContextFactory.CreateDbContext();
-                        var wi = await ctx.WorkflowInstances.FirstAsync(w => w.Id == instanceId, ct);
-                        wi.SetFailed();
-                        await ctx.SaveChangesAsync(ct);
-                    });
+                    await MarkFailedAsync(instanceId, ct);
                     throw; // Allow caller to see failure
                 }
 
@@ -815,12 +897,17 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             context.WorkflowInstanceSteps.Add(instanceStep);
             await context.SaveChangesAsync(ct);
 
+            var requesterWasCandidate = false;
+            var hadOtherCandidates = false;
             foreach (var rule in templateStep.ApproverRules)
             {
-                var resolvedUserIds = await _approverResolver.ResolveApproversAsync(
+                var resolution = await _approverResolver.ResolveApproversDetailedAsync(
                     rule.ApproverSourceType, rule.ApproverSourceValue, requesterId, companyId, instance.ProcessCode, ct);
 
-                foreach (var userId in resolvedUserIds)
+                requesterWasCandidate |= resolution.RequesterWasCandidate;
+                hadOtherCandidates |= resolution.HadOtherCandidates;
+
+                foreach (var userId in resolution.Approvers)
                 {
                     var assignee = new WorkflowInstanceStepAssignee(instanceStep.Id, userId, rule.ApproverSourceType);
                     context.WorkflowInstanceStepAssignees.Add(assignee);
@@ -831,7 +918,31 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             var assigneeCount = await context.WorkflowInstanceStepAssignees
                 .CountAsync(a => a.WorkflowInstanceStepId == instanceStep.Id, ct);
             if (assigneeCount == 0)
-                throw new BusinessRuleValidationException("WF_NO_ASSIGNEE_FOR_STEP", $"No valid approvers resolved for step '{templateStep.StepName}' after excluding requester.");
+            {
+                // Tách 2 ca vốn bị gộp làm một:
+                //  - Người đề xuất CHÍNH LÀ người duyệt duy nhất (vd trưởng phòng tự tạo) → hợp lệ,
+                //    module nghiệp vụ tự quyết định có tự duyệt hay không.
+                //  - Không tìm được ai duyệt → LỖI CẤU HÌNH, phải chặn.
+                //
+                // Ba điều kiện đều bắt buộc:
+                //  (a) người đề xuất nằm trong nhóm người duyệt;
+                //  (b) KHÔNG có ai khác được cấu hình (nếu có mà họ đã nghỉ việc thì là lỗi cấu hình);
+                //  (c) quy trình chỉ có ĐÚNG MỘT bước — nhiều bước mà cho qua thì các cấp duyệt
+                //      phía sau (vd Giám đốc) sẽ bị bỏ qua hoàn toàn.
+                if (requesterWasCandidate && !hadOtherCandidates && sortedSteps.Count == 1)
+                    throw new BusinessRuleValidationException(
+                        "WF_ONLY_REQUESTER_IS_APPROVER",
+                        $"Bước '{templateStep.StepName}': người đề xuất cũng chính là người duyệt duy nhất.");
+
+                if (requesterWasCandidate && !hadOtherCandidates)
+                    throw new BusinessRuleValidationException(
+                        "WF_NO_ASSIGNEE_FOR_STEP",
+                        $"Bước '{templateStep.StepName}': người đề xuất là người duyệt duy nhất, nhưng quy trình còn bước phê duyệt khác nên không thể tự duyệt. Vui lòng bổ sung người duyệt thay thế.");
+
+                throw new BusinessRuleValidationException(
+                    "WF_NO_ASSIGNEE_FOR_STEP",
+                    $"Bước '{templateStep.StepName}' chưa xác định được người duyệt nào (người duyệt được cấu hình có thể đã nghỉ việc hoặc bị khoá tài khoản). Vui lòng kiểm tra cấu hình thẩm quyền phê duyệt.");
+            }
         }
     }
 

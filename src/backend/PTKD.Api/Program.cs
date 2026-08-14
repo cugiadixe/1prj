@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using PTKD.API.Filters;
+using PTKD.Api.Extensions;
 using PTKD.Api.Security;
 
 using PTKD.Application.Common.Interfaces;
@@ -127,18 +128,16 @@ builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardReprintRequestSe
 // Customer Proposal Services (Phase 1B.3-B4)
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerProposalService, PTKD.Application.Customers.Services.CustomerProposalService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMasterChangeService, PTKD.Application.Customers.Services.CustomerMasterChangeService>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.Customers.Services.CreateCustomerExecutionHandler>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.Customers.Handlers.CustomerMasterChangeExecutionHandler>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.Customers.Handlers.CustomerMergeExecutionHandler>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandlerFactory, PTKD.Application.Workflows.Services.WorkflowExecutionHandlerFactory>();
+// Bộ xử lý thực thi quy trình: TỰ QUÉT toàn bộ assembly PTKD.Application thay vì liệt kê tay.
+// (Trước đây liệt kê tay ở đây và ở khối Service Management bên dưới — CardReprintExecutionHandler
+//  bị quên, khiến hồ sơ in lại thẻ duyệt xong là kẹt vĩnh viễn.)
+builder.Services.AddWorkflowExecutionHandlers();
 
 // Service Management Services (Phase 1B.6-B)
 builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceTypeService, PTKD.Application.ServiceManagement.Services.ServiceTypeService>();
 builder.Services.AddScoped<PTKD.Application.CarePackages.Services.ICarePackageRequestService, PTKD.Application.CarePackages.Services.CarePackageRequestService>();
 builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceService, PTKD.Application.ServiceManagement.Services.ServiceService>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.ServiceManagement.Handlers.ServicePriceOverrideExecutionHandler>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.CarePackages.Handlers.CarePackageExecutionHandler>();
-builder.Services.AddScoped<PTKD.Application.Workflows.Services.IWorkflowExecutionHandler, PTKD.Application.CustomerCarePackages.Handlers.AssignCarePackageExecutionHandler>();
+// (Các IWorkflowExecutionHandler đã được tự quét & đăng ký ở trên.)
 
 // Payment Management Services (Phase 1B.7-B)
 builder.Services.AddScoped<PTKD.Application.PaymentManagement.Services.IPaymentTransactionService, PTKD.Application.PaymentManagement.Services.PaymentTransactionService>();
@@ -191,6 +190,10 @@ healthChecks.AddSqlServer(
     name: "sql_server", tags: ["db"]);
 
 var app = builder.Build();
+
+// Kiểm tra bộ xử lý quy trình ngay khi khởi động: phát hiện trùng mã (ném lỗi rõ ràng)
+// và cảnh báo quy trình cần duyệt nhưng chưa có bộ xử lý.
+app.Services.ValidateWorkflowExecutionHandlers();
 
 app.UseSerilogRequestLogging();
 
