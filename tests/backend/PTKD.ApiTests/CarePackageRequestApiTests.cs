@@ -183,7 +183,7 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
             await db.SaveChangesAsync();
             customerId = customer.Id;
             
-            var serviceType = new ServiceType("TEST_CARE", "Test Care", null, 1000m, 12, _userId);
+            var serviceType = new ServiceType("TEST_CARE", "Test Care", null, 1000m, 12, true, _userId);
             db.Set<ServiceType>().Add(serviceType);
             await db.SaveChangesAsync();
             

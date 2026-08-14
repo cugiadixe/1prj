@@ -370,6 +370,8 @@ internal sealed class AccountManagementTestHarness
 
         Service = new AccountManagementService(
             factory,
+            // Dịch vụ nay cần thêm ngữ cảnh tổ chức (để lấy công ty/phòng ban của nhân viên).
+            new AppDbContextFactory(_options),
             passwordHashService,
             new SecurityStampSessionInvalidationService(),
             new SqlTransactionalAuditWriter(),
