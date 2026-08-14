@@ -105,3 +105,34 @@ export async function reassignStep(
   );
   return data;
 }
+
+export interface WorkflowInstanceSearchParams {
+  processCode?: string;
+  instanceStatus?: string;
+  companyId?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PagedInstances {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  items: WorkflowInstance[];
+}
+
+/** Tra cứu hồ sơ toàn hệ thống (quản trị). Cần quyền WORKFLOW_VIEW. */
+export async function searchInstances(
+  params: WorkflowInstanceSearchParams = {},
+): Promise<PagedInstances> {
+  const { data } = await axiosClient.get<PagedInstances>(`${BASE}/instances`, {
+    params: {
+      processCode: params.processCode || undefined,
+      instanceStatus: params.instanceStatus || undefined,
+      companyId: params.companyId,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+    },
+  });
+  return data;
+}

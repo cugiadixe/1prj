@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
+using PTKD.Application.Common.Models;
 using PTKD.Application.Security.Audit;
 using PTKD.Application.Workflows.DTOs;
 using PTKD.Domain.Entities;
@@ -644,6 +645,64 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
 
         await EnrichInstanceNamesAsync(context, dtos, ct);
         return dtos;
+    }
+
+    /// <summary>
+    /// Tra cứu hồ sơ cho màn hình quản trị. Quyền đã được chặn ở controller (WORKFLOW_VIEW),
+    /// nên ở đây không lọc theo người dùng — đây là góc nhìn toàn hệ thống.
+    /// </summary>
+    public async Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, CancellationToken ct = default)
+    {
+        var page = request.Page < 1 ? 1 : request.Page;
+        var pageSize = request.PageSize is < 1 or > 100 ? 20 : request.PageSize;
+
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        var query = context.WorkflowInstances.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.ProcessCode))
+            query = query.Where(i => i.ProcessCode == request.ProcessCode);
+        if (!string.IsNullOrWhiteSpace(request.InstanceStatus))
+            query = query.Where(i => i.InstanceStatus == request.InstanceStatus);
+        if (request.CompanyId.HasValue)
+            query = query.Where(i => i.CompanyId == request.CompanyId.Value);
+        if (request.RequesterId.HasValue)
+            query = query.Where(i => i.RequesterId == request.RequesterId.Value);
+
+        var totalCount = await query.LongCountAsync(ct);
+
+        var instances = await query
+            .OrderByDescending(i => i.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToArrayAsync(ct);
+
+        var dtos = instances.Select(instance => new WorkflowInstanceDto
+        {
+            Id = instance.Id,
+            WorkflowVersionId = instance.WorkflowVersionId,
+            ProcessCode = instance.ProcessCode,
+            CompanyId = instance.CompanyId,
+            RequesterId = instance.RequesterId,
+            BusinessEntityType = instance.BusinessEntityType,
+            BusinessEntityId = instance.BusinessEntityId,
+            InstanceStatus = instance.InstanceStatus,
+            RoundNo = instance.RoundNo,
+            RowVersion = Convert.ToBase64String(instance.RowVersion),
+            CreatedAt = instance.CreatedAt,
+            UpdatedAt = instance.UpdatedAt,
+            Steps = []
+        }).ToArray();
+
+        await EnrichInstanceNamesAsync(context, dtos, ct);
+
+        return new PagedResult<WorkflowInstanceDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Items = dtos
+        };
     }
 
     public async Task<WorkflowActionDto[]> GetInstanceActionsAsync(long instanceId, long userId, CancellationToken ct = default)

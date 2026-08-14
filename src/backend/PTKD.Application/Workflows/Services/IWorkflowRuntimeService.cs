@@ -1,3 +1,4 @@
+using PTKD.Application.Common.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using PTKD.Application.Workflows.DTOs;
@@ -18,4 +19,10 @@ public interface IWorkflowRuntimeService
     Task<WorkflowActionDto[]> GetInstanceActionsAsync(long instanceId, long userId, CancellationToken ct = default);
     Task<WorkflowInstanceDto> RejectStepAsync(long instanceId, long stepId, ApprovalActionRequest request, long actorUserId, CancellationToken ct = default);
     Task<WorkflowInstanceDto> RetryExecutionAsync(long instanceId, long actorUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Tra cứu hồ sơ cho QUẢN TRỊ (cần quyền WORKFLOW_VIEW). Trước đây admin chỉ mở được hồ sơ
+    /// nếu đã biết ID, nên hồ sơ Thất bại nằm im không ai thấy để chạy lại.
+    /// </summary>
+    Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, CancellationToken ct = default);
 }

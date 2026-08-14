@@ -20,6 +20,8 @@ import {
   getBindings,
   createBinding,
   updateBinding,
+  updateApproverRule,
+  deleteApproverRule,
 } from './workflowApi';
 
 vi.mock('../api/axiosClient', () => ({
@@ -170,9 +172,21 @@ describe('workflowApi', () => {
     expect(mockAxios.put).toHaveBeenCalledWith('/workflows/bindings/1', req);
   });
 
-  it('does not expose DELETE approver rule endpoint', async () => {
-    const mod = await import('./workflowApi');
-    expect('deleteApproverRule' in mod).toBe(false);
+  // Trước đây endpoint sửa/xoá luật người duyệt CHƯA được xây, và test này đóng băng hiện trạng đó.
+  // Nay đã có (Nhóm 1): tài liệu quản trị cho phép sửa cấu hình ở trạng thái NHÁP
+  // ("Only DRAFT configuration is editable"), và backend chặn WF_VERSION_NOT_DRAFT nếu
+  // phiên bản đã xuất bản. Không có 2 endpoint này thì gõ sai một luật phải xoá cả bước.
+  it('updateApproverRule calls PUT /workflows/approver-rules/:id', async () => {
+    const req = { approverSourceType: 'ROLE', approverSourceValue: 'MANAGER', priority: 1 };
+    mockAxios.put.mockResolvedValue({ data: { id: 7 } });
+    await updateApproverRule(7, req);
+    expect(mockAxios.put).toHaveBeenCalledWith('/workflows/approver-rules/7', req);
+  });
+
+  it('deleteApproverRule calls DELETE /workflows/approver-rules/:id', async () => {
+    mockAxios.delete.mockResolvedValue({ data: undefined });
+    await deleteApproverRule(7);
+    expect(mockAxios.delete).toHaveBeenCalledWith('/workflows/approver-rules/7');
   });
 
   it('does not expose POST/DELETE condition endpoints', async () => {

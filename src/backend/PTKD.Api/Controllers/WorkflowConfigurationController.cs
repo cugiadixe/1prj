@@ -129,6 +129,58 @@ public class WorkflowConfigurationController : ControllerBase
         return Created($"api/v2/workflows/approver-rules/{result.Id}", result);
     }
 
+    [HttpPut("approver-rules/{ruleId}")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> UpdateApproverRule(long ruleId, [FromBody] CreateApproverRuleRequest request, CancellationToken ct)
+    {
+        var result = await _configService.UpdateApproverRuleAsync(ruleId, request, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
+    [HttpDelete("approver-rules/{ruleId}")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> DeleteApproverRule(long ruleId, CancellationToken ct)
+    {
+        await _configService.DeleteApproverRuleAsync(ruleId, GetActorUserId(), ct);
+        return NoContent();
+    }
+
+    /// <summary>Danh sách lựa chọn cho ô "giá trị nguồn" theo từng loại nguồn người duyệt.</summary>
+    [HttpGet("approver-source-options")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> GetApproverSourceOptions([FromQuery] string sourceType, CancellationToken ct)
+    {
+        var result = await _configService.GetApproverSourceOptionsAsync(sourceType, ct);
+        return Ok(result);
+    }
+
+    /// <summary>Các phiên bản đang hiệu lực có thể gán liên kết cho một mã quy trình.</summary>
+    [HttpGet("bindable-versions")]
+    [RequirePermission(PermissionCodes.WorkflowBindProcess, PermissionScope.Global)]
+    public async Task<IActionResult> GetBindableVersions([FromQuery] string processCode, CancellationToken ct)
+    {
+        var result = await _configService.GetBindableVersionsAsync(processCode, ct);
+        return Ok(result);
+    }
+
+    /// <summary>Ngừng một liên kết quy trình.</summary>
+    [HttpPost("bindings/{bindingId}/deactivate")]
+    [RequirePermission(PermissionCodes.WorkflowBindProcess, PermissionScope.Global)]
+    public async Task<IActionResult> DeactivateBinding(long bindingId, [FromBody] RetireVersionRequest request, CancellationToken ct)
+    {
+        var result = await _configService.DeactivateBindingAsync(bindingId, request.TargetVersion, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Nhân bản phiên bản thành bản nháp mới (sao chép bước + luật người duyệt).</summary>
+    [HttpPost("versions/{versionId}/clone")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> CloneVersion(long versionId, CancellationToken ct)
+    {
+        var result = await _configService.CloneVersionAsync(versionId, GetActorUserId(), ct);
+        return Created($"api/v2/workflows/versions/{result.Id}", result);
+    }
+
     [HttpPost("versions/{versionId}/publish")]
     [RequirePermission(PermissionCodes.WorkflowPublish, PermissionScope.Global)]
     public async Task<IActionResult> PublishVersion(long versionId, [FromBody] PublishVersionRequest request, CancellationToken ct)

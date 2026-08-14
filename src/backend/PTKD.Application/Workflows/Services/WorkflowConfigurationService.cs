@@ -18,9 +18,23 @@ public class WorkflowConfigurationService : IWorkflowConfigurationService
 {
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
+    private readonly PTKD.Application.Security.Authorization.Interfaces.IAuthorizationDbContext _authContext;
 
-    public WorkflowConfigurationService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter)
+    /// <summary>
+    /// A5 — chặn bẫy: chỉ chấp nhận đúng các loại nguồn mà ApproverResolver THỰC SỰ xử lý.
+    /// Bỏ DEPARTMENT_MANAGER/REQUESTER_MANAGER (resolver chưa hiện thực → tạo được nhưng ra 0
+    /// người duyệt, hồ sơ kẹt). Có APPROVAL_AUTHORITY (tra bảng Thẩm quyền phê duyệt).
+    /// Dùng chung cho cả tạo mới và sửa để hai đường không lệch nhau.
+    /// </summary>
+    public static readonly string[] ValidApproverSourceTypes =
+        ["SPECIFIC_USER", "ROLE", "DEPARTMENT", "PERMISSION", "ADMIN_GROUP", "APPROVAL_AUTHORITY"];
+
+    public WorkflowConfigurationService(
+        IOrganizationDbContextFactory dbContextFactory,
+        ITransactionalAuditWriter auditWriter,
+        PTKD.Application.Security.Authorization.Interfaces.IAuthorizationDbContext authContext)
     {
+        _authContext = authContext;
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
     }
@@ -370,11 +384,7 @@ public class WorkflowConfigurationService : IWorkflowConfigurationService
 
     public async Task<ApproverRuleDto> CreateApproverRuleAsync(long stepId, CreateApproverRuleRequest request, long actorUserId, CancellationToken ct = default)
     {
-        // A5 — chặn bẫy: chỉ chấp nhận đúng các loại nguồn mà ApproverResolver thực sự xử lý.
-        // Bỏ DEPARTMENT_MANAGER/REQUESTER_MANAGER (resolver chưa hiện thực → tạo được nhưng ra 0
-        // người duyệt, hồ sơ kẹt). Thêm APPROVAL_AUTHORITY (tra bảng Thẩm quyền phê duyệt).
-        var validSourceTypes = new[] { "SPECIFIC_USER", "ROLE", "DEPARTMENT", "PERMISSION", "ADMIN_GROUP", "APPROVAL_AUTHORITY" };
-        if (!validSourceTypes.Contains(request.ApproverSourceType))
+        if (!ValidApproverSourceTypes.Contains(request.ApproverSourceType))
             throw new BusinessRuleValidationException("WF_INVALID_APPROVER_SOURCE_TYPE", $"Invalid approver source type: {request.ApproverSourceType}");
 
         await using var tempContext = _dbContextFactory.CreateDbContext();
@@ -407,6 +417,227 @@ public class WorkflowConfigurationService : IWorkflowConfigurationService
                 Priority = rule.Priority
             };
         });
+    }
+
+    public async Task<ApproverRuleDto> UpdateApproverRuleAsync(long ruleId, CreateApproverRuleRequest request, long actorUserId, CancellationToken ct = default)
+    {
+        if (!ValidApproverSourceTypes.Contains(request.ApproverSourceType))
+            throw new BusinessRuleValidationException("WF_INVALID_APPROVER_SOURCE_TYPE", $"Invalid approver source type: {request.ApproverSourceType}");
+
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var rule = await context.WorkflowStepApproverRules
+                .Include(r => r.Step).ThenInclude(s => s.Version)
+                .FirstOrDefaultAsync(r => r.Id == ruleId, ct)
+                ?? throw new EntityNotFoundException("WF_APPROVER_RULE_NOT_FOUND", "Không tìm thấy luật người duyệt.");
+
+            if (!rule.Step.Version.IsDraft)
+                throw new BusinessRuleValidationException("WF_VERSION_NOT_DRAFT", "Chỉ sửa được luật người duyệt trên bản nháp.");
+
+            rule.Update(request.ApproverSourceType, request.ApproverSourceValue, request.Priority);
+            await context.SaveChangesAsync(ct);
+
+            await transaction.CommitAsync(ct);
+
+            return new ApproverRuleDto
+            {
+                Id = rule.Id,
+                ApproverSourceType = rule.ApproverSourceType,
+                ApproverSourceValue = rule.ApproverSourceValue,
+                Priority = rule.Priority
+            };
+        });
+    }
+
+    public async Task DeleteApproverRuleAsync(long ruleId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var rule = await context.WorkflowStepApproverRules
+                .Include(r => r.Step).ThenInclude(s => s.Version)
+                .FirstOrDefaultAsync(r => r.Id == ruleId, ct)
+                ?? throw new EntityNotFoundException("WF_APPROVER_RULE_NOT_FOUND", "Không tìm thấy luật người duyệt.");
+
+            if (!rule.Step.Version.IsDraft)
+                throw new BusinessRuleValidationException("WF_VERSION_NOT_DRAFT", "Chỉ xoá được luật người duyệt trên bản nháp.");
+
+            context.WorkflowStepApproverRules.Remove(rule);
+            await context.SaveChangesAsync(ct);
+
+            await transaction.CommitAsync(ct);
+        });
+    }
+
+    /// <summary>
+    /// Nhân bản một phiên bản thành bản NHÁP mới, sao chép nguyên vẹn bước + luật người duyệt
+    /// + điều kiện. Không có việc này thì muốn sửa một bước trong quy trình 5 bước phải gõ lại
+    /// cả 5 bước — lý do thực tế khiến không ai dám sửa quy trình đang chạy.
+    /// </summary>
+    public async Task<WorkflowVersionDetailDto> CloneVersionAsync(long sourceVersionId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var source = await context.WorkflowDefinitionVersions
+                .Include(v => v.Steps).ThenInclude(s => s.ApproverRules)
+                .Include(v => v.Conditions)
+                .FirstOrDefaultAsync(v => v.Id == sourceVersionId, ct)
+                ?? throw new EntityNotFoundException("WF_VERSION_NOT_FOUND", "Không tìm thấy phiên bản nguồn.");
+
+            var maxVersion = await context.WorkflowDefinitionVersions
+                .Where(v => v.WorkflowDefinitionId == source.WorkflowDefinitionId)
+                .MaxAsync(v => (int?)v.VersionNumber, ct) ?? 0;
+
+            var clone = new WorkflowDefinitionVersion(source.WorkflowDefinitionId, maxVersion + 1, actorUserId);
+            context.WorkflowDefinitionVersions.Add(clone);
+            await context.SaveChangesAsync(ct); // cần Id của bản mới trước khi tạo bước
+
+            foreach (var sourceStep in source.Steps.OrderBy(s => s.StepOrder))
+            {
+                var newStep = new WorkflowStep(
+                    clone.Id, sourceStep.StepOrder, sourceStep.StepName,
+                    sourceStep.IsRequired, sourceStep.Description);
+                // Giữ nguyên hạn xử lý nếu bản gốc có đặt.
+                newStep.Update(sourceStep.StepName, sourceStep.StepOrder, sourceStep.IsRequired,
+                    sourceStep.Description, sourceStep.DueDurationMinutes);
+                context.WorkflowSteps.Add(newStep);
+                await context.SaveChangesAsync(ct); // cần Id của bước trước khi tạo luật
+
+                foreach (var sourceRule in sourceStep.ApproverRules)
+                {
+                    context.WorkflowStepApproverRules.Add(new WorkflowStepApproverRule(
+                        newStep.Id, sourceRule.ApproverSourceType, sourceRule.ApproverSourceValue, sourceRule.Priority));
+                }
+            }
+
+            foreach (var sourceCondition in source.Conditions)
+            {
+                context.WorkflowConditions.Add(new WorkflowCondition(
+                    clone.Id, sourceCondition.FieldCode, sourceCondition.Operator, sourceCondition.Value));
+            }
+
+            await context.SaveChangesAsync(ct);
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "WORKFLOW_VERSION_CLONED",
+                EntityType = "WorkflowDefinitionVersion",
+                EntityId = clone.Id.ToString(),
+                Outcome = "SUCCESS",
+                CorrelationId = Guid.NewGuid(),
+                ActorUserId = actorUserId,
+                AfterStateJson = JsonSerializer.Serialize(new
+                {
+                    SourceVersionId = sourceVersionId,
+                    SourceVersionNumber = source.VersionNumber,
+                    NewVersionId = clone.Id,
+                    NewVersionNumber = clone.VersionNumber,
+                    StepCount = source.Steps.Count
+                })
+            };
+            audit.ThrowIfContainsSensitiveData();
+            await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
+
+            await transaction.CommitAsync(ct);
+
+            var reloaded = await context.WorkflowDefinitionVersions
+                .AsNoTracking()
+                .Include(v => v.Steps).ThenInclude(s => s.ApproverRules)
+                .Include(v => v.Conditions)
+                .FirstAsync(v => v.Id == clone.Id, ct);
+
+            return MapToVersionDetailDto(reloaded);
+        });
+    }
+
+    /// <summary>
+    /// Nguồn dữ liệu cho ô "giá trị nguồn" của luật người duyệt. Trước đây là ô nhập tự do, admin
+    /// phải nhớ và gõ đúng số ID người dùng / phòng ban hoặc mã vai trò — gõ sai thì hồ sơ không
+    /// tìm được người duyệt và kẹt. Endpoint này gắn quyền WORKFLOW_CONFIG_MANAGE nên admin quy
+    /// trình dùng được mà không cần quyền quản trị người dùng.
+    /// </summary>
+    public async Task<ApproverSourceOptionDto[]> GetApproverSourceOptionsAsync(string sourceType, CancellationToken ct = default)
+    {
+        switch (sourceType)
+        {
+            case "ROLE":
+                return await _authContext.Roles.AsNoTracking()
+                    .Where(r => r.IsActive)
+                    .OrderBy(r => r.Name)
+                    .Select(r => new ApproverSourceOptionDto { Value = r.RoleCode, Label = r.Name, Hint = r.RoleCode })
+                    .ToArrayAsync(ct);
+
+            case "ADMIN_GROUP":
+                return await _authContext.AdminGroups.AsNoTracking()
+                    .Where(g => g.IsActive)
+                    .OrderBy(g => g.Name)
+                    .Select(g => new ApproverSourceOptionDto { Value = g.GroupCode, Label = g.Name, Hint = g.GroupCode })
+                    .ToArrayAsync(ct);
+
+            case "PERMISSION":
+                return await _authContext.Permissions.AsNoTracking()
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.PermissionCode)
+                    .Select(p => new ApproverSourceOptionDto { Value = p.PermissionCode, Label = p.PermissionCode, Hint = p.ModuleCode })
+                    .ToArrayAsync(ct);
+
+            case "SPECIFIC_USER":
+                return await _authContext.Users.AsNoTracking()
+                    .Where(u => u.AccountStatus == "ACTIVE")
+                    .OrderBy(u => u.FullName)
+                    .Select(u => new ApproverSourceOptionDto
+                    {
+                        Value = u.Id.ToString(),
+                        Label = u.FullName,
+                        Hint = u.EmployeeCode
+                    })
+                    .ToArrayAsync(ct);
+
+            case "DEPARTMENT":
+            {
+                await using var context = _dbContextFactory.CreateDbContext();
+                return await (
+                    from d in context.Departments.AsNoTracking().Where(d => d.IsActive)
+                    join c in context.Companies.AsNoTracking() on d.CompanyId equals c.Id into cj
+                    from c in cj.DefaultIfEmpty()
+                    orderby d.Name
+                    select new ApproverSourceOptionDto
+                    {
+                        Value = d.Id.ToString(),
+                        Label = d.Name,
+                        Hint = c != null ? c.Name : null
+                    }).ToArrayAsync(ct);
+            }
+
+            case "APPROVAL_AUTHORITY":
+                // Giá trị là CẤP thẩm quyền, khớp bảng Thẩm quyền phê duyệt.
+                return
+                [
+                    new ApproverSourceOptionDto { Value = "1", Label = "Cấp 1 — Trưởng phòng", Hint = "Tra bảng Thẩm quyền phê duyệt" },
+                    new ApproverSourceOptionDto { Value = "2", Label = "Cấp 2 — Giám đốc", Hint = "Tra bảng Thẩm quyền phê duyệt" },
+                ];
+
+            default:
+                throw new BusinessRuleValidationException(
+                    "WF_INVALID_APPROVER_SOURCE_TYPE", $"Loại nguồn người duyệt không hợp lệ: {sourceType}");
+        }
     }
 
     public async Task<WorkflowVersionDetailDto> PublishVersionAsync(long versionId, PublishVersionRequest request, long actorUserId, CancellationToken ct = default)
@@ -654,6 +885,68 @@ public class WorkflowConfigurationService : IWorkflowConfigurationService
                 Outcome = "SUCCESS",
                 CorrelationId = Guid.NewGuid(),
                 ActorUserId = actorUserId
+            };
+            audit.ThrowIfContainsSensitiveData();
+            await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
+
+            await transaction.CommitAsync(ct);
+
+            return MapToBindingDto(binding);
+        });
+    }
+
+    /// <summary>
+    /// Các phiên bản có thể gán liên kết cho một mã quy trình. Trước đây admin phải tự nhớ và
+    /// GÕ SỐ ID phiên bản vào ô nhập — gõ nhầm sang phiên bản chưa kích hoạt là chặn cả quy trình.
+    /// Chỉ trả về phiên bản ACTIVE vì lúc tạo hồ sơ engine bắt buộc phiên bản phải ACTIVE.
+    /// </summary>
+    public async Task<ApproverSourceOptionDto[]> GetBindableVersionsAsync(string processCode, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        return await (
+            from v in context.WorkflowDefinitionVersions.AsNoTracking()
+            join d in context.WorkflowDefinitions.AsNoTracking() on v.WorkflowDefinitionId equals d.Id
+            where d.ProcessCode == processCode && d.IsActive && v.VersionStatus == "ACTIVE"
+            orderby d.DefinitionName, v.VersionNumber
+            select new ApproverSourceOptionDto
+            {
+                Value = v.Id.ToString(),
+                Label = $"{d.DefinitionName} — phiên bản {v.VersionNumber}",
+                Hint = d.DefinitionCode
+            }).ToArrayAsync(ct);
+    }
+
+    public async Task<WorkflowBindingListItemDto> DeactivateBindingAsync(long bindingId, string targetVersion, long actorUserId, CancellationToken ct = default)
+    {
+        var rowVersion = RowVersion.FromBase64(targetVersion).Value;
+
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var binding = await context.WorkflowBindings.FirstOrDefaultAsync(b => b.Id == bindingId, ct)
+                ?? throw new EntityNotFoundException("WF_BINDING_NOT_FOUND", "Không tìm thấy liên kết quy trình.");
+
+            if (!binding.RowVersion.SequenceEqual(rowVersion))
+                throw new ConcurrencyException("WF_INVALID_ROW_VERSION", "The binding has been modified by another user.");
+
+            binding.Deactivate();
+            await context.SaveChangesAsync(ct);
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "WORKFLOW_BINDING_DEACTIVATED",
+                EntityType = "WorkflowBinding",
+                EntityId = binding.Id.ToString(),
+                Outcome = "SUCCESS",
+                CorrelationId = Guid.NewGuid(),
+                ActorUserId = actorUserId,
+                AfterStateJson = JsonSerializer.Serialize(new { binding.ProcessCode, binding.ScopeType, binding.CompanyId })
             };
             audit.ThrowIfContainsSensitiveData();
             await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);

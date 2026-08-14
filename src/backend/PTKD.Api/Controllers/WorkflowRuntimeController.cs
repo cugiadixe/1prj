@@ -90,6 +90,15 @@ public class WorkflowRuntimeController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Tra cứu hồ sơ toàn hệ thống cho quản trị (kèm hàng đợi hồ sơ Thất bại).</summary>
+    [HttpGet("instances")]
+    [RequirePermission(PermissionCodes.WorkflowView, PermissionScope.Global)]
+    public async Task<IActionResult> SearchInstances([FromQuery] WorkflowInstanceSearchRequest request, CancellationToken ct)
+    {
+        var result = await _runtimeService.SearchInstancesAsync(request, ct);
+        return Ok(result);
+    }
+
     [HttpGet("instances/{instanceId}/actions")]
     public async Task<IActionResult> GetInstanceActions(long instanceId, CancellationToken ct)
     {

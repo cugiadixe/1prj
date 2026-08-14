@@ -279,3 +279,25 @@ public class RetryExecutionRequest
 {
     public string TargetVersion { get; set; } = null!;
 }
+
+/// <summary>Một lựa chọn cho ô "giá trị nguồn" của luật người duyệt.</summary>
+public class ApproverSourceOptionDto
+{
+    /// <summary>Giá trị lưu vào approver_source_value (id dạng chuỗi, hoặc mã code).</summary>
+    public string Value { get; set; } = null!;
+    /// <summary>Nhãn hiển thị cho người dùng.</summary>
+    public string Label { get; set; } = null!;
+    /// <summary>Thông tin phụ (vd mã nhân viên, phòng ban) — hiển thị mờ bên cạnh.</summary>
+    public string? Hint { get; set; }
+}
+
+/// <summary>Tham số tra cứu hồ sơ quy trình cho màn hình quản trị.</summary>
+public class WorkflowInstanceSearchRequest
+{
+    public string? ProcessCode { get; set; }
+    public string? InstanceStatus { get; set; }
+    public long? CompanyId { get; set; }
+    public long? RequesterId { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}

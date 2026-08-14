@@ -196,6 +196,12 @@ const AuthenticatedShell: React.FC = () => {
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow/bindings'),
         } : null,
+        hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
+          key: '/workflow/instances',
+          label: 'Tất cả hồ sơ',
+          icon: <ApartmentOutlined />,
+          onClick: () => navigate('/workflow/instances'),
+        } : null,
         hasPermission('APPROVAL_AUTHORITY_MANAGE', 'GLOBAL') ? {
           key: '/workflow/authorities',
           label: 'Thẩm quyền phê duyệt',

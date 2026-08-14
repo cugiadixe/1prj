@@ -144,6 +144,32 @@ export async function createApproverRule(
   return data;
 }
 
+export async function updateApproverRule(
+  ruleId: number,
+  request: CreateApproverRuleRequest,
+): Promise<ApproverRule> {
+  const { data } = await axiosClient.put<ApproverRule>(
+    `${BASE}/approver-rules/${ruleId}`,
+    request,
+  );
+  return data;
+}
+
+export async function deleteApproverRule(ruleId: number): Promise<void> {
+  await axiosClient.delete(`${BASE}/approver-rules/${ruleId}`);
+}
+
+/**
+ * Nhân bản phiên bản thành bản nháp mới (sao chép bước + luật người duyệt + điều kiện).
+ * Không có việc này thì muốn sửa 1 bước phải gõ lại toàn bộ quy trình.
+ */
+export async function cloneVersion(versionId: number): Promise<WorkflowVersionDetail> {
+  const { data } = await axiosClient.post<WorkflowVersionDetail>(
+    `${BASE}/versions/${versionId}/clone`,
+  );
+  return data;
+}
+
 export async function publishVersion(
   versionId: number,
   request: PublishVersionRequest,
@@ -204,6 +230,46 @@ export async function updateBinding(
   const { data } = await axiosClient.put<WorkflowBindingListItem>(
     `${BASE}/bindings/${bindingId}`,
     request,
+  );
+  return data;
+}
+
+export interface ApproverSourceOption {
+  value: string;
+  label: string;
+  hint: string | null;
+}
+
+/** Danh sách lựa chọn cho ô "giá trị nguồn" theo loại nguồn người duyệt. */
+export async function getApproverSourceOptions(
+  sourceType: string,
+): Promise<ApproverSourceOption[]> {
+  const { data } = await axiosClient.get<ApproverSourceOption[]>(
+    `${BASE}/approver-source-options`,
+    { params: { sourceType } },
+  );
+  return data;
+}
+
+/** Các phiên bản đang hiệu lực có thể gán liên kết cho một mã quy trình. */
+export async function getBindableVersions(
+  processCode: string,
+): Promise<ApproverSourceOption[]> {
+  const { data } = await axiosClient.get<ApproverSourceOption[]>(
+    `${BASE}/bindable-versions`,
+    { params: { processCode } },
+  );
+  return data;
+}
+
+/** Ngừng một liên kết quy trình. */
+export async function deactivateBinding(
+  bindingId: number,
+  targetVersion: string,
+): Promise<WorkflowBindingListItem> {
+  const { data } = await axiosClient.post<WorkflowBindingListItem>(
+    `${BASE}/bindings/${bindingId}/deactivate`,
+    { targetVersion },
   );
   return data;
 }

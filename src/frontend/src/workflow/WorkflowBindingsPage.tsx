@@ -15,13 +15,17 @@ import {
   Typography,
 } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { usePermissions } from '../auth/AuthProvider';
 import {
   createBinding,
+  deactivateBinding,
+  getBindableVersions,
   getBindings,
   getBusinessProcesses,
   updateBinding,
 } from './workflowApi';
+import { listCompanies } from '../approvalAuthority/api';
 import { getErrorMessage, isConcurrencyError, isPermissionDenied } from './errorMessages';
 import type {
   CreateWorkflowBindingRequest,
@@ -52,6 +56,20 @@ const WorkflowBindingsPage: React.FC = () => {
   });
 
   const scopeType = Form.useWatch('scopeType', form);
+  const formProcessCode = Form.useWatch('processCode', form);
+
+  // Danh sách phiên bản gán được cho mã quy trình đang chọn (thay cho việc gõ số ID).
+  const { data: bindableVersions, isLoading: versionsLoading } = useQuery({
+    queryKey: ['workflow-bindable-versions', formProcessCode],
+    queryFn: () => getBindableVersions(formProcessCode as string),
+    enabled: !!formProcessCode && !editingBinding,
+  });
+
+  const { data: companies } = useQuery({
+    queryKey: ['org-companies'],
+    queryFn: listCompanies,
+    staleTime: 300000,
+  });
 
   const handleError = (err: unknown) => {
     if (isConcurrencyError(err)) {
@@ -88,6 +106,13 @@ const WorkflowBindingsPage: React.FC = () => {
     onError: handleError,
   });
 
+  const deactivateMutation = useMutation({
+    mutationFn: ({ id, rowVersion }: { id: number; rowVersion: string }) =>
+      deactivateBinding(id, rowVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflow-bindings'] }),
+    onError: handleError,
+  });
+
   if (isPermissionDenied(error)) {
     return (
       <Alert
@@ -107,8 +132,12 @@ const WorkflowBindingsPage: React.FC = () => {
 
   const openEdit = (binding: WorkflowBindingListItem) => {
     setEditingBinding(binding);
+    // Trước đây chỉ nạp priority, trong khi form vẫn bắt buộc "Hiệu lực từ" → mở Sửa là ô ngày
+    // trống, người dùng phải gõ lại ngày hiệu lực mỗi lần chỉ muốn đổi mức ưu tiên.
     form.setFieldsValue({
       priority: binding.priority,
+      effectiveFrom: binding.effectiveFrom ? dayjs(binding.effectiveFrom) : undefined,
+      effectiveTo: binding.effectiveTo ? dayjs(binding.effectiveTo) : undefined,
     });
     setModalOpen(true);
   };
@@ -175,9 +204,31 @@ const WorkflowBindingsPage: React.FC = () => {
             title: 'Thao tác',
             key: 'actions',
             render: (_: unknown, record: WorkflowBindingListItem) => (
-              <Button size="small" onClick={() => openEdit(record)} data-testid={`edit-binding-${record.id}`}>
-                Sửa
-              </Button>
+              <Space>
+                <Button size="small" onClick={() => openEdit(record)} data-testid={`edit-binding-${record.id}`}>
+                  Sửa
+                </Button>
+                {/* Trước đây không có cách nào ngừng một liên kết qua giao diện — cột "Hoạt động"
+                    chỉ để xem. Liên kết cũ còn sống là nguyên nhân gây trùng hạng (WF_BINDING_AMBIGUOUS). */}
+                {record.isActive && (
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => {
+                      Modal.confirm({
+                        title: 'Ngừng liên kết',
+                        content: `Ngừng liên kết quy trình "${record.processCode}"? Hồ sơ MỚI sẽ không dùng liên kết này nữa; hồ sơ đang chạy dở không bị ảnh hưởng.`,
+                        okText: 'Ngừng',
+                        cancelText: 'Huỷ',
+                        onOk: () => deactivateMutation.mutateAsync({ id: record.id, rowVersion: record.rowVersion }),
+                      });
+                    }}
+                    data-testid={`deactivate-binding-${record.id}`}
+                  >
+                    Ngừng
+                  </Button>
+                )}
+              </Space>
             ),
           },
         ]
@@ -260,22 +311,39 @@ const WorkflowBindingsPage: React.FC = () => {
           {!editingBinding && (
             <>
               <Form.Item
-                name="workflowVersionId"
-                label="ID Phiên bản quy trình"
-                rules={[{ required: true, message: 'ID phiên bản là bắt buộc' }]}
-              >
-                <InputNumber min={1} style={{ width: '100%' }} data-testid="input-versionId" />
-              </Form.Item>
-              <Form.Item
                 name="processCode"
                 label="Quy trình nghiệp vụ"
                 rules={[{ required: true, message: 'Quy trình là bắt buộc' }]}
               >
                 <Select
                   data-testid="input-bindingProcessCode"
+                  onChange={() => form.setFieldsValue({ workflowVersionId: undefined })}
                   options={(processes ?? []).map((p) => ({
                     label: `${p.processCode} — ${p.processName}`,
                     value: p.processCode,
+                  }))}
+                />
+              </Form.Item>
+              {/* Chọn phiên bản từ danh sách thay vì gõ số ID: gõ nhầm sang phiên bản chưa
+                  kích hoạt sẽ chặn toàn bộ quy trình mà không có cảnh báo lúc cấu hình. */}
+              <Form.Item
+                name="workflowVersionId"
+                label="Phiên bản quy trình"
+                rules={[{ required: true, message: 'Phiên bản là bắt buộc' }]}
+                extra={
+                  formProcessCode && !versionsLoading && (bindableVersions ?? []).length === 0
+                    ? 'Quy trình này chưa có phiên bản nào được KÍCH HOẠT. Hãy xuất bản và kích hoạt một phiên bản trước.'
+                    : undefined
+                }
+              >
+                <Select
+                  data-testid="input-versionId"
+                  disabled={!formProcessCode}
+                  loading={versionsLoading}
+                  placeholder={formProcessCode ? 'Chọn phiên bản' : 'Chọn quy trình trước'}
+                  options={(bindableVersions ?? []).map((v) => ({
+                    label: v.hint ? `${v.label} (${v.hint})` : v.label,
+                    value: Number(v.value),
                   }))}
                 />
               </Form.Item>
@@ -295,10 +363,16 @@ const WorkflowBindingsPage: React.FC = () => {
               {scopeType === 'COMPANY' && (
                 <Form.Item
                   name="companyId"
-                  label="ID Công ty"
-                  rules={[{ required: true, message: 'ID công ty là bắt buộc đối với phạm vi COMPANY' }]}
+                  label="Công ty"
+                  rules={[{ required: true, message: 'Công ty là bắt buộc đối với phạm vi Công ty' }]}
                 >
-                  <InputNumber min={1} style={{ width: '100%' }} data-testid="input-companyId" />
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    data-testid="input-companyId"
+                    placeholder="Chọn công ty"
+                    options={(companies ?? []).map((c) => ({ label: c.name, value: c.id }))}
+                  />
                 </Form.Item>
               )}
             </>

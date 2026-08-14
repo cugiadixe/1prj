@@ -23,4 +23,15 @@ public class WorkflowStepApproverRule
         Priority = priority;
         CreatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Sửa luật người duyệt. Trước đây chỉ thêm được: gõ sai một luật là phải xoá cả bước
+    /// rồi dựng lại từ đầu.
+    /// </summary>
+    public void Update(string approverSourceType, string approverSourceValue, int priority)
+    {
+        ApproverSourceType = approverSourceType ?? throw new ArgumentNullException(nameof(approverSourceType));
+        ApproverSourceValue = approverSourceValue ?? throw new ArgumentNullException(nameof(approverSourceValue));
+        Priority = priority;
+    }
 }

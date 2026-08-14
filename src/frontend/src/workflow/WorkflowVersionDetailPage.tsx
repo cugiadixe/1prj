@@ -18,26 +18,31 @@ import {
   Typography,
 } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
 import {
   activateVersion,
+  cloneVersion,
   createApproverRule,
   createStep,
+  deleteApproverRule,
   deleteStep,
   deleteVersion,
   getVersionById,
   publishVersion,
   retireVersion,
+  updateApproverRule,
   updateStep,
 } from './workflowApi';
 import { getErrorMessage, isConcurrencyError, isPermissionDenied } from './errorMessages';
 import type {
+  ApproverRule,
   CreateApproverRuleRequest,
   CreateWorkflowStepRequest,
   UpdateWorkflowStepRequest,
   WorkflowStep,
 } from './types';
+import ApproverSourceValueInput from './ApproverSourceValueInput';
 
 const { Title, Text } = Typography;
 
@@ -46,6 +51,15 @@ const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'blue',
   ACTIVE: 'green',
   RETIRED: 'red',
+};
+
+const APPROVER_SOURCE_LABELS: Record<string, string> = {
+  SPECIFIC_USER: 'Người dùng',
+  ROLE: 'Vai trò',
+  ADMIN_GROUP: 'Nhóm quản trị',
+  DEPARTMENT: 'Phòng ban',
+  PERMISSION: 'Quyền',
+  APPROVAL_AUTHORITY: 'Thẩm quyền phê duyệt',
 };
 
 const WorkflowVersionDetailPage: React.FC = () => {
@@ -61,7 +75,10 @@ const WorkflowVersionDetailPage: React.FC = () => {
   const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null);
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [ruleStepId, setRuleStepId] = useState<number | null>(null);
+  const [editingRule, setEditingRule] = useState<ApproverRule | null>(null);
+  const [ruleSourceType, setRuleSourceType] = useState<string | undefined>(undefined);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const [stepForm] = Form.useForm();
   const [ruleForm] = Form.useForm();
@@ -115,10 +132,40 @@ const WorkflowVersionDetailPage: React.FC = () => {
     onError: handleError,
   });
 
+  const closeRuleModal = () => {
+    setRuleModalOpen(false);
+    setEditingRule(null);
+    setRuleSourceType(undefined);
+    ruleForm.resetFields();
+  };
+
   const createRuleMutation = useMutation({
     mutationFn: ({ stepId, req }: { stepId: number; req: CreateApproverRuleRequest }) =>
       createApproverRule(stepId, req),
-    onSuccess: () => { invalidate(); setRuleModalOpen(false); ruleForm.resetFields(); },
+    onSuccess: () => { invalidate(); closeRuleModal(); },
+    onError: handleError,
+  });
+
+  const updateRuleMutation = useMutation({
+    mutationFn: ({ ruleId, req }: { ruleId: number; req: CreateApproverRuleRequest }) =>
+      updateApproverRule(ruleId, req),
+    onSuccess: () => { invalidate(); closeRuleModal(); },
+    onError: handleError,
+  });
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: (ruleId: number) => deleteApproverRule(ruleId),
+    onSuccess: invalidate,
+    onError: handleError,
+  });
+
+  // Nhân bản: tạo bản nháp mới sao chép toàn bộ bước + luật, rồi mở luôn bản mới để sửa.
+  const cloneMutation = useMutation({
+    mutationFn: () => cloneVersion(vId),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['workflow-versions', defId] });
+      navigate(`/workflow/definitions/${defId}/versions/${created.id}`);
+    },
     onError: handleError,
   });
 
@@ -210,15 +257,38 @@ const WorkflowVersionDetailPage: React.FC = () => {
   };
 
   const handleRuleSubmit = (values: Record<string, unknown>) => {
+    const req: CreateApproverRuleRequest = {
+      approverSourceType: values.approverSourceType as string,
+      approverSourceValue: String(values.approverSourceValue ?? ''),
+      priority: values.priority as number,
+    };
+
+    if (editingRule) {
+      updateRuleMutation.mutate({ ruleId: editingRule.id, req });
+      return;
+    }
     if (ruleStepId === null) return;
-    createRuleMutation.mutate({
-      stepId: ruleStepId,
-      req: {
-        approverSourceType: values.approverSourceType as string,
-        approverSourceValue: values.approverSourceValue as string,
-        priority: values.priority as number,
-      },
+    createRuleMutation.mutate({ stepId: ruleStepId, req });
+  };
+
+  const openAddRule = (stepId: number) => {
+    setEditingRule(null);
+    setRuleStepId(stepId);
+    setRuleSourceType(undefined);
+    ruleForm.resetFields();
+    setRuleModalOpen(true);
+  };
+
+  const openEditRule = (stepId: number, rule: ApproverRule) => {
+    setEditingRule(rule);
+    setRuleStepId(stepId);
+    setRuleSourceType(rule.approverSourceType);
+    ruleForm.setFieldsValue({
+      approverSourceType: rule.approverSourceType,
+      approverSourceValue: rule.approverSourceValue,
+      priority: rule.priority,
     });
+    setRuleModalOpen(true);
   };
 
   const openEditStep = (step: WorkflowStep) => {
@@ -238,12 +308,6 @@ const WorkflowVersionDetailPage: React.FC = () => {
     stepForm.resetFields();
     stepForm.setFieldsValue({ isRequired: true, stepOrder: (version.steps.length + 1) });
     setStepModalOpen(true);
-  };
-
-  const openAddRule = (stepId: number) => {
-    setRuleStepId(stepId);
-    ruleForm.resetFields();
-    setRuleModalOpen(true);
   };
 
   const stepColumns = [
@@ -267,7 +331,25 @@ const WorkflowVersionDetailPage: React.FC = () => {
       render: (_: unknown, step: WorkflowStep) =>
         step.approverRules.length > 0
           ? step.approverRules.map((r) => (
-              <Tag key={r.id}>{r.approverSourceType}: {r.approverSourceValue}</Tag>
+              // Trên bản nháp: bấm vào thẻ để SỬA, dấu x để XOÁ (trước đây chỉ thêm được,
+              // gõ sai một luật là phải xoá cả bước rồi dựng lại).
+              <Tag
+                key={r.id}
+                closable={isDraft && canManage}
+                onClose={(e) => {
+                  e.preventDefault();
+                  Modal.confirm({
+                    title: 'Xoá quy tắc phê duyệt',
+                    content: `Xoá quy tắc "${APPROVER_SOURCE_LABELS[r.approverSourceType] ?? r.approverSourceType}: ${r.approverSourceValue}"?`,
+                    onOk: () => deleteRuleMutation.mutate(r.id),
+                  });
+                }}
+                onClick={() => { if (isDraft && canManage) openEditRule(step.id, r); }}
+                style={{ cursor: isDraft && canManage ? 'pointer' : 'default', marginBottom: 4 }}
+                data-testid={`rule-tag-${r.id}`}
+              >
+                {(APPROVER_SOURCE_LABELS[r.approverSourceType] ?? r.approverSourceType)}: {r.approverSourceValue}
+              </Tag>
             ))
           : <Text type="secondary">Không có</Text>,
     },
@@ -315,6 +397,25 @@ const WorkflowVersionDetailPage: React.FC = () => {
           </Tag>
         </Title>
         <Space>
+          {/* Nhân bản: cách DUY NHẤT để sửa một quy trình đã xuất bản mà không phải
+              gõ lại toàn bộ bước và luật người duyệt. */}
+          {canManage && (
+            <Button
+              onClick={() => {
+                Modal.confirm({
+                  title: 'Tạo bản nháp từ phiên bản này',
+                  content: `Sẽ tạo một PHIÊN BẢN NHÁP mới, sao chép toàn bộ ${version.steps.length} bước và quy tắc phê duyệt của phiên bản ${version.versionNumber}. Phiên bản hiện tại và các hồ sơ đang chạy KHÔNG bị ảnh hưởng.`,
+                  okText: 'Tạo bản nháp',
+                  cancelText: 'Huỷ',
+                  onOk: () => cloneMutation.mutateAsync(),
+                });
+              }}
+              loading={cloneMutation.isPending}
+              data-testid="clone-version-btn"
+            >
+              Tạo bản nháp từ bản này
+            </Button>
+          )}
           {isDraft && canPublish && (
             <Button
               type="primary"
@@ -489,11 +590,11 @@ const WorkflowVersionDetailPage: React.FC = () => {
       </Modal>
 
       <Modal
-        title="Thêm quy tắc phê duyệt"
+        title={editingRule ? 'Sửa quy tắc phê duyệt' : 'Thêm quy tắc phê duyệt'}
         open={ruleModalOpen}
-        onCancel={() => { setRuleModalOpen(false); ruleForm.resetFields(); }}
+        onCancel={closeRuleModal}
         onOk={() => ruleForm.submit()}
-        confirmLoading={createRuleMutation.isPending}
+        confirmLoading={createRuleMutation.isPending || updateRuleMutation.isPending}
         data-testid="rule-modal"
       >
         <Form form={ruleForm} layout="vertical" onFinish={handleRuleSubmit}>
@@ -504,12 +605,18 @@ const WorkflowVersionDetailPage: React.FC = () => {
           >
             <Select
               data-testid="input-approverSourceType"
+              onChange={(v: string) => {
+                // Đổi loại nguồn thì giá trị cũ không còn ý nghĩa — xoá để không lưu nhầm.
+                setRuleSourceType(v);
+                ruleForm.setFieldsValue({ approverSourceValue: undefined });
+              }}
               options={[
                 { label: 'Người dùng cụ thể', value: 'SPECIFIC_USER' },
                 { label: 'Vai trò', value: 'ROLE' },
                 { label: 'Nhóm quản trị', value: 'ADMIN_GROUP' },
                 { label: 'Phòng ban', value: 'DEPARTMENT' },
                 { label: 'Quyền', value: 'PERMISSION' },
+                { label: 'Thẩm quyền phê duyệt', value: 'APPROVAL_AUTHORITY' },
               ]}
             />
           </Form.Item>
@@ -518,7 +625,7 @@ const WorkflowVersionDetailPage: React.FC = () => {
             label="Giá trị nguồn"
             rules={[{ required: true, message: 'Giá trị nguồn là bắt buộc' }]}
           >
-            <Input data-testid="input-approverSourceValue" />
+            <ApproverSourceValueInput sourceType={ruleSourceType} />
           </Form.Item>
           <Form.Item
             name="priority"
