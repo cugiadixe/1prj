@@ -675,10 +675,18 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
     }
 
     /// <summary>
-    /// Tra cứu hồ sơ cho màn hình quản trị. Quyền đã được chặn ở controller (WORKFLOW_VIEW),
-    /// nên ở đây không lọc theo người dùng — đây là góc nhìn toàn hệ thống.
+    /// Tra cứu hồ sơ cho màn hình quản trị.
+    ///
+    /// AN NINH: bản đầu KHÔNG lọc theo công ty, chỉ dựa vào quyền WORKFLOW_VIEW — mà quyền đó
+    /// khai báo phạm vi GLOBAL và có thể đến từ CHUẨN PHÒNG BAN (khi kiểm ở phạm vi GLOBAL thì
+    /// mọi phòng người đó thuộc đều tính). Hệ quả: một nhân viên phòng ban của công ty A liệt kê
+    /// được hồ sơ của mọi công ty, kèm TÊN và MÃ KHÁCH HÀNG trong nhãn đối tượng — dữ liệu cá
+    /// nhân thuộc phạm vi NĐ 13/2023.
+    ///
+    /// Nay mặc định CHỈ trả hồ sơ thuộc các công ty người dùng được phân công. Muốn nhìn xuyên
+    /// công ty phải có riêng quyền WORKFLOW_VIEW_ALL_COMPANIES (V0036).
     /// </summary>
-    public async Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, long actorUserId, CancellationToken ct = default)
     {
         var page = request.Page < 1 ? 1 : request.Page;
         var pageSize = request.PageSize is < 1 or > 100 ? 20 : request.PageSize;
@@ -686,6 +694,28 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         await using var context = _dbContextFactory.CreateDbContext();
 
         var query = context.WorkflowInstances.AsNoTracking().AsQueryable();
+
+        var canSeeAllCompanies = await _permissionEvaluator.EvaluateAsync(
+            actorUserId, "WORKFLOW_VIEW_ALL_COMPANIES", null, ct);
+
+        if (!canSeeAllCompanies)
+        {
+            var now = DateTime.UtcNow;
+            var myCompanyIds = await context.UserCompanyAssignments
+                .AsNoTracking()
+                .Where(a => a.UserId == actorUserId
+                            && a.AssignmentStatus == "ACTIVE"
+                            && a.EffectiveFrom <= now
+                            && (a.EffectiveTo == null || a.EffectiveTo > now))
+                .Select(a => a.CompanyId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            // Hồ sơ không gắn công ty (company_id NULL) cũng bị loại: không xác định được nó
+            // thuộc về ai nên không có cơ sở cho người dùng thường xem. Người cần xem phải được
+            // cấp WORKFLOW_VIEW_ALL_COMPANIES.
+            query = query.Where(i => i.CompanyId != null && myCompanyIds.Contains(i.CompanyId.Value));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.ProcessCode))
             query = query.Where(i => i.ProcessCode == request.ProcessCode);

@@ -95,7 +95,7 @@ public class WorkflowRuntimeController : ControllerBase
     [RequirePermission(PermissionCodes.WorkflowView, PermissionScope.Global)]
     public async Task<IActionResult> SearchInstances([FromQuery] WorkflowInstanceSearchRequest request, CancellationToken ct)
     {
-        var result = await _runtimeService.SearchInstancesAsync(request, ct);
+        var result = await _runtimeService.SearchInstancesAsync(request, GetActorUserId(), ct);
         return Ok(result);
     }
 

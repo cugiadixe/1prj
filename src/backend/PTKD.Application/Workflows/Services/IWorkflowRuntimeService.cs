@@ -24,7 +24,7 @@ public interface IWorkflowRuntimeService
     /// Tra cứu hồ sơ cho QUẢN TRỊ (cần quyền WORKFLOW_VIEW). Trước đây admin chỉ mở được hồ sơ
     /// nếu đã biết ID, nên hồ sơ Thất bại nằm im không ai thấy để chạy lại.
     /// </summary>
-    Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, CancellationToken ct = default);
+    Task<PagedResult<WorkflowInstanceDto>> SearchInstancesAsync(WorkflowInstanceSearchRequest request, long actorUserId, CancellationToken ct = default);
 
     /// <summary>
     /// Hồ sơ với dữ liệu này có phải qua phê duyệt không — trả lời bằng CẤU HÌNH (liên kết +

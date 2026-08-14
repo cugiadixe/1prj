@@ -47,6 +47,12 @@ public static class PermissionCodes
     public const string CustomerMasterUpdate = "CUSTOMER_MASTER_UPDATE";
 
     public const string WorkflowView = "WORKFLOW_VIEW";
+
+    /// <summary>
+    /// Xem hồ sơ quy trình của MỌI công ty. Không có quyền này thì chỉ thấy hồ sơ của các công ty
+    /// mình được phân công — vì nhãn đối tượng có kèm tên và mã khách hàng.
+    /// </summary>
+    public const string WorkflowViewAllCompanies = "WORKFLOW_VIEW_ALL_COMPANIES";
     public const string WorkflowConfigManage = "WORKFLOW_CONFIG_MANAGE";
     public const string WorkflowReject = "WORKFLOW_REJECT";
     public const string WorkflowRetryExecution = "WORKFLOW_RETRY_EXECUTION";
