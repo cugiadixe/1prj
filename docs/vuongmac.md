@@ -29,6 +29,33 @@ quyết định gộp `main`.
 
 ---
 
+## 0b. ✅ QUYẾT ĐỊNH CỦA ANH BÁCH (cuối phiên 2026-08-14)
+
+1. **Gộp `main`:** anh test giao diện trước (~15 phút), rồi mới gộp. Chưa gộp.
+2. **Việc lớn tiếp theo: phương án A — BẬT CÁC QUY TRÌNH CÒN LẠI.** Biến năng lực đã xây
+   thành tính năng chạy thật, thay vì xây thêm năng lực mới.
+3. **Bật cả 4 nhóm quy trình:** bán gói chăm sóc (có giảm giá) · in lại thẻ · đề xuất khách
+   hàng mới + sửa thông tin KH · gộp khách hàng trùng.
+
+> Thứ tự thực hiện đề xuất (từ dễ tới khó): **bán gói** (chỉ cần khai báo điều kiện
+> `Số tiền giảm giá > 0`) → **in lại thẻ** (chỉ khai báo) → **đề xuất/sửa KH** (chỉ khai báo)
+> → **gộp KH trùng** (phải VIẾT THÊM CODE nối luồng vào engine).
+>
+> **Chặn trước khi làm:** mỗi quy trình cần anh cho biết **ai duyệt, cấp nào** — đây là quyết
+> định nghiệp vụ, AI không tự đặt.
+
+### ⛔ Việc dở dang: rà soát an ninh chưa chạy được
+
+Cuối phiên đã cho chạy rà soát *"backend có thật sự chặn xem chéo công ty không"* (sau khi gỡ
+guard frontend). **Cả 4 luồng đều thất bại do hết hạn mức phiên làm việc — KHÔNG có kết quả.**
+Kết quả rỗng KHÔNG có nghĩa là sạch. Cần chạy lại. Bốn mặt cắt định soi:
+`ServiceController`/`ServiceTypeController` · `CustomerCarePackagesController`/
+`CarePackageRequestsController` · cơ chế `PermissionAuthorizationFilter` + `PermissionEvaluator`
+· endpoint mới `GET /workflows/instances` (gắn quyền GLOBAL, **không lọc theo công ty**, mà
+`businessEntityLabel` có chứa tên khách hàng + mã KH — đây là chỗ em nghi nhất).
+
+---
+
 ## 1. ❓ CÂU HỎI CẦN ANH TRẢ LỜI
 
 ### 1.1. Guard chống xem chéo công ty — đã gỡ, xin xác nhận lại cho chắc
