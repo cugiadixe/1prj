@@ -25,6 +25,7 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<WorkflowStep> WorkflowSteps { get; }
     DbSet<WorkflowStepApproverRule> WorkflowStepApproverRules { get; }
     DbSet<WorkflowCondition> WorkflowConditions { get; }
+    DbSet<WorkflowConditionField> WorkflowConditionFields { get; }
     DbSet<WorkflowBinding> WorkflowBindings { get; }
     DbSet<WorkflowInstance> WorkflowInstances { get; }
     DbSet<WorkflowInstanceStep> WorkflowInstanceSteps { get; }

@@ -38,6 +38,15 @@ const ERROR_MESSAGES: Record<string, string> = {
   WF_REJECT_COMPENSATION_FAILED:
     'Đã ghi nhận từ chối, nhưng chưa cập nhật được trạng thái hồ sơ nghiệp vụ. Vui lòng báo bộ phận CNTT để xử lý lại.',
 
+  // Điều kiện áp dụng (Nhóm 2).
+  WF_NO_MATCHING_CONDITION:
+    'Không có quy trình nào thoả điều kiện áp dụng cho hồ sơ này. Vui lòng kiểm tra điều kiện của các phiên bản, hoặc bổ sung một liên kết không điều kiện làm phương án mặc định.',
+  WF_INVALID_CONDITION_FIELD:
+    'Trường này không được phép dùng làm điều kiện cho quy trình đã chọn.',
+  WF_INVALID_CONDITION_OPERATOR:
+    'Toán tử không dùng được với kiểu dữ liệu của trường đã chọn.',
+  WF_CONDITION_VALUE_REQUIRED: 'Giá trị so sánh là bắt buộc.',
+
   // Gán gói dịch vụ cho khách.
   CCP_COMPANY_CONTEXT_REQUIRED:
     'Chưa xác định công ty làm việc nên không xác định được quy trình phê duyệt. Vui lòng chọn công ty rồi thử lại.',

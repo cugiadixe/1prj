@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   Button,
-  Card,
   DatePicker,
   Descriptions,
   Form,
@@ -43,6 +42,8 @@ import type {
   WorkflowStep,
 } from './types';
 import ApproverSourceValueInput from './ApproverSourceValueInput';
+import WorkflowConditionsCard from './WorkflowConditionsCard';
+import { getDefinitionById } from './workflowApi';
 
 const { Title, Text } = Typography;
 
@@ -93,6 +94,13 @@ const WorkflowVersionDetailPage: React.FC = () => {
     queryKey: ['workflow-version', vId],
     queryFn: () => getVersionById(vId),
     enabled: !isNaN(vId),
+  });
+
+  // Cần processCode của quy trình để biết những trường nào được phép dùng làm điều kiện.
+  const { data: definition } = useQuery({
+    queryKey: ['workflow-definition', defId],
+    queryFn: () => getDefinitionById(defId),
+    enabled: !isNaN(defId),
   });
 
   const handleError = (err: unknown) => {
@@ -544,23 +552,13 @@ const WorkflowVersionDetailPage: React.FC = () => {
         />
       )}
 
-      {version.conditions.length > 0 && (
-        <>
-          <Title level={5}>Điều kiện (Chỉ đọc)</Title>
-          <Card data-testid="conditions-display">
-            <Table
-              dataSource={version.conditions}
-              rowKey="id"
-              pagination={false}
-              columns={[
-                { title: 'Trường', dataIndex: 'fieldCode', key: 'fieldCode' },
-                { title: 'Toán tử', dataIndex: 'operator', key: 'operator' },
-                { title: 'Giá trị', dataIndex: 'value', key: 'value' },
-              ]}
-            />
-          </Card>
-        </>
-      )}
+      <WorkflowConditionsCard
+        versionId={vId}
+        processCode={definition?.processCode}
+        conditions={version.conditions}
+        editable={isDraft && canManage}
+        onChanged={invalidate}
+      />
 
       <Modal
         title={editingStep ? 'Sửa bước' : 'Thêm bước'}

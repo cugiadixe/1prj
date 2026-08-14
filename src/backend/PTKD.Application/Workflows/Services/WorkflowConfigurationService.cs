@@ -957,6 +957,118 @@ public class WorkflowConfigurationService : IWorkflowConfigurationService
         });
     }
 
+    public async Task<ConditionFieldDto[]> GetConditionFieldsAsync(string processCode, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        var fields = await context.WorkflowConditionFields
+            .AsNoTracking()
+            .Where(f => f.ProcessCode == processCode && f.IsActive)
+            .OrderBy(f => f.FieldLabel)
+            .ToListAsync(ct);
+
+        return fields.Select(f => new ConditionFieldDto
+        {
+            FieldCode = f.FieldCode,
+            FieldLabel = f.FieldLabel,
+            DataType = f.DataType,
+            Description = f.Description,
+            AllowedOperators = WorkflowConditionEvaluator.OperatorsForDataType(f.DataType)
+        }).ToArray();
+    }
+
+    public async Task<WorkflowConditionDto> CreateConditionAsync(long versionId, CreateWorkflowConditionRequest request, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var version = await context.WorkflowDefinitionVersions
+                .Include(v => v.Definition)
+                .FirstOrDefaultAsync(v => v.Id == versionId, ct)
+                ?? throw new EntityNotFoundException("WF_VERSION_NOT_FOUND", "Không tìm thấy phiên bản quy trình.");
+
+            if (!version.IsDraft)
+                throw new BusinessRuleValidationException("WF_VERSION_NOT_DRAFT", "Chỉ thêm được điều kiện trên bản nháp.");
+
+            // Ranh giới quản trị: trường phải nằm trong danh mục DEV khai báo sẵn cho quy trình này.
+            var field = await context.WorkflowConditionFields
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.ProcessCode == version.Definition.ProcessCode
+                                          && f.FieldCode == request.FieldCode
+                                          && f.IsActive, ct)
+                ?? throw new BusinessRuleValidationException(
+                    "WF_INVALID_CONDITION_FIELD",
+                    $"Trường '{request.FieldCode}' không được phép dùng làm điều kiện cho quy trình này.");
+
+            var allowedOperators = WorkflowConditionEvaluator.OperatorsForDataType(field.DataType);
+            if (!allowedOperators.Contains(request.Operator))
+                throw new BusinessRuleValidationException(
+                    "WF_INVALID_CONDITION_OPERATOR",
+                    $"Toán tử '{request.Operator}' không dùng được với trường kiểu {field.DataType}. " +
+                    $"Toán tử hợp lệ: {string.Join(", ", allowedOperators)}.");
+
+            if (string.IsNullOrWhiteSpace(request.Value))
+                throw new BusinessRuleValidationException("WF_CONDITION_VALUE_REQUIRED", "Giá trị so sánh là bắt buộc.");
+
+            var condition = new WorkflowCondition(versionId, request.FieldCode, request.Operator, request.Value.Trim());
+            context.WorkflowConditions.Add(condition);
+            await context.SaveChangesAsync(ct);
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "WORKFLOW_CONDITION_CREATED",
+                EntityType = "WorkflowCondition",
+                EntityId = condition.Id.ToString(),
+                Outcome = "SUCCESS",
+                CorrelationId = Guid.NewGuid(),
+                ActorUserId = actorUserId,
+                AfterStateJson = JsonSerializer.Serialize(new { versionId, condition.FieldCode, condition.Operator, condition.Value })
+            };
+            audit.ThrowIfContainsSensitiveData();
+            await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
+
+            await transaction.CommitAsync(ct);
+
+            return new WorkflowConditionDto
+            {
+                Id = condition.Id,
+                FieldCode = condition.FieldCode,
+                Operator = condition.Operator,
+                Value = condition.Value
+            };
+        });
+    }
+
+    public async Task DeleteConditionAsync(long conditionId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var condition = await context.WorkflowConditions
+                .Include(c => c.Version)
+                .FirstOrDefaultAsync(c => c.Id == conditionId, ct)
+                ?? throw new EntityNotFoundException("WF_CONDITION_NOT_FOUND", "Không tìm thấy điều kiện.");
+
+            if (!condition.Version.IsDraft)
+                throw new BusinessRuleValidationException("WF_VERSION_NOT_DRAFT", "Chỉ xoá được điều kiện trên bản nháp.");
+
+            context.WorkflowConditions.Remove(condition);
+            await context.SaveChangesAsync(ct);
+
+            await transaction.CommitAsync(ct);
+        });
+    }
+
     private static WorkflowDefinitionDetailDto MapToDefinitionDetailDto(WorkflowDefinition definition)
     {
         return new WorkflowDefinitionDetailDto

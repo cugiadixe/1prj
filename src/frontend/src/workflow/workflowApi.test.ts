@@ -22,6 +22,8 @@ import {
   updateBinding,
   updateApproverRule,
   deleteApproverRule,
+  createCondition,
+  deleteCondition,
 } from './workflowApi';
 
 vi.mock('../api/axiosClient', () => ({
@@ -189,9 +191,19 @@ describe('workflowApi', () => {
     expect(mockAxios.delete).toHaveBeenCalledWith('/workflows/approver-rules/7');
   });
 
-  it('does not expose POST/DELETE condition endpoints', async () => {
-    const mod = await import('./workflowApi');
-    expect('createCondition' in mod).toBe(false);
-    expect('deleteCondition' in mod).toBe(false);
+  // Trước đây điều kiện chỉ đọc được, vì KHÔNG có code nào đánh giá chúng lúc chạy — cho tạo
+  // sẽ là bẫy (admin tưởng đã đặt luật nhưng hệ bỏ qua). Nhóm 2 đã xây bộ đánh giá, nên nay
+  // tạo/xoá điều kiện là hợp lệ (chỉ trên bản NHÁP, và trường phải nằm trong danh mục DEV khai báo).
+  it('createCondition calls POST /workflows/versions/:id/conditions', async () => {
+    const req = { fieldCode: 'TotalAmount', operator: 'GT', value: '50000000' };
+    mockAxios.post.mockResolvedValue({ data: { id: 3 } });
+    await createCondition(5, req);
+    expect(mockAxios.post).toHaveBeenCalledWith('/workflows/versions/5/conditions', req);
+  });
+
+  it('deleteCondition calls DELETE /workflows/conditions/:id', async () => {
+    mockAxios.delete.mockResolvedValue({ data: undefined });
+    await deleteCondition(3);
+    expect(mockAxios.delete).toHaveBeenCalledWith('/workflows/conditions/3');
   });
 });

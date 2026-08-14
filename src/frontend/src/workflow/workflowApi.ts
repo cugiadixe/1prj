@@ -19,6 +19,7 @@ import type {
   WorkflowSearchParams,
   WorkflowStep,
   WorkflowVersionDetail,
+  WorkflowCondition,
   WorkflowVersionListItem,
 } from './types';
 
@@ -272,4 +273,41 @@ export async function deactivateBinding(
     { targetVersion },
   );
   return data;
+}
+
+export interface ConditionField {
+  fieldCode: string;
+  fieldLabel: string;
+  dataType: string;
+  description: string | null;
+  allowedOperators: string[];
+}
+
+/** Các trường được phép dùng làm điều kiện cho một quy trình (DEV khai báo sẵn). */
+export async function getConditionFields(processCode: string): Promise<ConditionField[]> {
+  const { data } = await axiosClient.get<ConditionField[]>(`${BASE}/condition-fields`, {
+    params: { processCode },
+  });
+  return data;
+}
+
+export interface CreateConditionRequest {
+  fieldCode: string;
+  operator: string;
+  value: string;
+}
+
+export async function createCondition(
+  versionId: number,
+  request: CreateConditionRequest,
+): Promise<WorkflowCondition> {
+  const { data } = await axiosClient.post<WorkflowCondition>(
+    `${BASE}/versions/${versionId}/conditions`,
+    request,
+  );
+  return data;
+}
+
+export async function deleteCondition(conditionId: number): Promise<void> {
+  await axiosClient.delete(`${BASE}/conditions/${conditionId}`);
 }

@@ -37,6 +37,15 @@ public interface IWorkflowConfigurationService
 
     /// <summary>Ngừng một liên kết (is_active = 0). Trước đây Deactivate() là code chết.</summary>
     Task<WorkflowBindingListItemDto> DeactivateBindingAsync(long bindingId, string targetVersion, long actorUserId, CancellationToken ct = default);
+
+    /// <summary>Các trường được phép dùng làm điều kiện cho một quy trình (DEV khai báo sẵn).</summary>
+    Task<ConditionFieldDto[]> GetConditionFieldsAsync(string processCode, CancellationToken ct = default);
+
+    /// <summary>Thêm điều kiện cho phiên bản NHÁP.</summary>
+    Task<WorkflowConditionDto> CreateConditionAsync(long versionId, CreateWorkflowConditionRequest request, long actorUserId, CancellationToken ct = default);
+
+    /// <summary>Xoá điều kiện khỏi phiên bản NHÁP.</summary>
+    Task DeleteConditionAsync(long conditionId, long actorUserId, CancellationToken ct = default);
     Task<WorkflowVersionDetailDto> PublishVersionAsync(long versionId, PublishVersionRequest request, long actorUserId, CancellationToken ct = default);
     Task<WorkflowVersionDetailDto> ActivateVersionAsync(long versionId, string targetVersion, long actorUserId, CancellationToken ct = default);
     Task<WorkflowVersionDetailDto> RetireVersionAsync(long versionId, string targetVersion, long actorUserId, CancellationToken ct = default);

@@ -301,3 +301,20 @@ public class WorkflowInstanceSearchRequest
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
+
+/// <summary>Một trường được phép dùng làm điều kiện, kèm các toán tử hợp lệ cho kiểu của nó.</summary>
+public class ConditionFieldDto
+{
+    public string FieldCode { get; set; } = null!;
+    public string FieldLabel { get; set; } = null!;
+    public string DataType { get; set; } = null!;
+    public string? Description { get; set; }
+    public string[] AllowedOperators { get; set; } = [];
+}
+
+public class CreateWorkflowConditionRequest
+{
+    public string FieldCode { get; set; } = null!;
+    public string Operator { get; set; } = null!;
+    public string Value { get; set; } = null!;
+}

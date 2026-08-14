@@ -154,6 +154,31 @@ public class WorkflowConfigurationController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Các trường được phép dùng làm điều kiện cho một quy trình.</summary>
+    [HttpGet("condition-fields")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> GetConditionFields([FromQuery] string processCode, CancellationToken ct)
+    {
+        var result = await _configService.GetConditionFieldsAsync(processCode, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("versions/{versionId}/conditions")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> CreateCondition(long versionId, [FromBody] CreateWorkflowConditionRequest request, CancellationToken ct)
+    {
+        var result = await _configService.CreateConditionAsync(versionId, request, GetActorUserId(), ct);
+        return Created($"api/v2/workflows/conditions/{result.Id}", result);
+    }
+
+    [HttpDelete("conditions/{conditionId}")]
+    [RequirePermission(PermissionCodes.WorkflowConfigManage, PermissionScope.Global)]
+    public async Task<IActionResult> DeleteCondition(long conditionId, CancellationToken ct)
+    {
+        await _configService.DeleteConditionAsync(conditionId, GetActorUserId(), ct);
+        return NoContent();
+    }
+
     /// <summary>Các phiên bản đang hiệu lực có thể gán liên kết cho một mã quy trình.</summary>
     [HttpGet("bindable-versions")]
     [RequirePermission(PermissionCodes.WorkflowBindProcess, PermissionScope.Global)]

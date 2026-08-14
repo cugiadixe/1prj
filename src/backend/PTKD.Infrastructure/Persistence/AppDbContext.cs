@@ -29,6 +29,7 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
     public DbSet<WorkflowStepApproverRule> WorkflowStepApproverRules => Set<WorkflowStepApproverRule>();
     public DbSet<WorkflowCondition> WorkflowConditions => Set<WorkflowCondition>();
+    public DbSet<WorkflowConditionField> WorkflowConditionFields => Set<WorkflowConditionField>();
     public DbSet<WorkflowBinding> WorkflowBindings => Set<WorkflowBinding>();
     public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
     public DbSet<WorkflowInstanceStep> WorkflowInstanceSteps => Set<WorkflowInstanceStep>();

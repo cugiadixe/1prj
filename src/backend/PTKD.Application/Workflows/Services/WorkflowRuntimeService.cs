@@ -72,12 +72,39 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 .ThenByDescending(b => b.Priority)
                 .ToList();
 
-            var binding = rankedBindings[0];
+            // ĐÁNH GIÁ ĐIỀU KIỆN: giữ lại các liên kết mà điều kiện của phiên bản KHỚP payload.
+            // Nhờ đó admin khai báo được luật kiểu "tổng tiền > 50 triệu thì dùng quy trình 2 cấp"
+            // mà không cần lập trình viên. Không có điều kiện = luôn khớp (tương thích ngược).
+            var candidateVersionIds = rankedBindings.Select(b => b.WorkflowVersionId).Distinct().ToList();
+            var conditionsByVersion = (await context.WorkflowConditions
+                    .AsNoTracking()
+                    .Where(c => candidateVersionIds.Contains(c.WorkflowVersionId))
+                    .ToListAsync(ct))
+                .GroupBy(c => c.WorkflowVersionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (IReadOnlyCollection<ConditionCheck>)g
+                        .Select(c => new ConditionCheck(c.FieldCode, c.Operator, c.Value)).ToList());
+
+            var matchingBindings = rankedBindings
+                .Where(b => WorkflowConditionEvaluator.Matches(
+                    conditionsByVersion.TryGetValue(b.WorkflowVersionId, out var cs) ? cs : [],
+                    request.PayloadJson))
+                .ToList();
+
+            if (matchingBindings.Count == 0)
+                throw new BusinessRuleValidationException(
+                    "WF_NO_MATCHING_CONDITION",
+                    $"Quy trình '{request.ProcessCode}' có liên kết nhưng KHÔNG liên kết nào thoả điều kiện áp dụng " +
+                    "cho hồ sơ này. Vui lòng kiểm tra điều kiện của các phiên bản, hoặc bổ sung một liên kết " +
+                    "không điều kiện làm phương án mặc định.");
+
+            var binding = matchingBindings[0];
 
             // Nếu còn liên kết khác NGANG HẠNG với cái thắng thì đây là lỗi cấu hình.
             // Trước đây hệ chọn bừa một cái — trái nguyên tắc "mập mờ là lỗi cấu hình,
             // không bao giờ chọn ngẫu nhiên" trong tài liệu quản trị.
-            var tiedBindings = rankedBindings
+            var tiedBindings = matchingBindings
                 .Where(b => (b.ScopeType == "COMPANY") == (binding.ScopeType == "COMPANY")
                             && b.Priority == binding.Priority)
                 .ToList();
