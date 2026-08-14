@@ -37,6 +37,15 @@ import type { MenuProps } from 'antd';
 
 const { Header, Content, Sider } = Layout;
 
+/**
+ * Bọc nhãn menu bằng span có định danh cố định.
+ *
+ * Vì sao: antd Menu dùng API `items` nên không nhận data-testid trực tiếp trên từng mục.
+ * Không có định danh thì test kiểm phân quyền buộc phải khớp CHỮ HIỂN THỊ — đổi một chữ
+ * tiếng Việt là hàng loạt test vỡ, đúng khoản nợ vừa phải dọn.
+ */
+const navLabel = (testId: string, text: string) => <span data-testid={testId}>{text}</span>;
+
 const AuthenticatedShell: React.FC = () => {
   const { logout, user } = useAuth();
   const { hasPermission } = usePermissions();
@@ -65,41 +74,41 @@ const AuthenticatedShell: React.FC = () => {
     {
       key: '/',
       icon: <HomeOutlined />,
-      label: 'Trang chủ',
+      label: navLabel('nav-home', 'Trang chủ'),
       onClick: () => navigate('/'),
     },
     hasPermission('CUSTOMER_VIEW_BASIC', 'GLOBAL') ? {
       key: 'customers-group',
       icon: <TeamOutlined />,
-      label: 'Khách hàng',
+      label: navLabel('nav-customers-group', 'Khách hàng'),
       children: [
         {
           key: '/customers',
-          label: 'Danh sách KH',
+          label: navLabel('nav-customers', 'Danh sách KH'),
           icon: <TeamOutlined />,
           onClick: () => navigate('/customers'),
         },
         hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') ? {
           key: '/customers/proposals',
-          label: 'Đề xuất KH mới',
+          label: navLabel('nav-customers-proposals', 'Đề xuất KH mới'),
           icon: <FileSearchOutlined />,
           onClick: () => navigate('/customers/proposals'),
         } : null,
         hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') ? {
           key: '/customers/change-requests',
-          label: 'Yêu cầu thay đổi',
+          label: navLabel('nav-customers-change-requests', 'Yêu cầu thay đổi'),
           icon: <SwapOutlined />,
           onClick: () => navigate('/customers/change-requests'),
         } : null,
         hasPermission('CUSTOMER_MERGE_REQUEST_VIEW', 'GLOBAL') ? {
           key: '/customers/merge-requests',
-          label: 'Gộp khách hàng',
+          label: navLabel('nav-customers-merge-requests', 'Gộp khách hàng'),
           icon: <SwapOutlined />,
           onClick: () => navigate('/customers/merge-requests'),
         } : null,
         hasPermission('CUSTOMER_MERGE_REQUEST_CREATE', 'GLOBAL') ? {
           key: '/customers/merge/search',
-          label: 'Tìm trùng lặp',
+          label: navLabel('nav-customers-merge-search', 'Tìm trùng lặp'),
           icon: <FileSearchOutlined />,
           onClick: () => navigate('/customers/merge/search'),
         } : null,
@@ -108,29 +117,29 @@ const AuthenticatedShell: React.FC = () => {
     hasPermission('GRAVE_VIEW', 'GLOBAL') ? {
       key: '/graves',
       icon: <EnvironmentOutlined />,
-      label: 'Quản lý mộ',
+      label: navLabel('nav-graves', 'Quản lý mộ'),
       onClick: () => navigate('/graves'),
     } : null,
     hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') || hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') ? {
       key: 'payments-group',
       icon: <DollarOutlined />,
-      label: 'Thanh toán',
+      label: navLabel('nav-payments-group', 'Thanh toán'),
       children: [
         hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') ? {
           key: '/payments',
-          label: 'Giao dịch',
+          label: navLabel('nav-payments', 'Giao dịch'),
           icon: <DollarOutlined />,
           onClick: () => navigate('/payments'),
         } : null,
         hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') ? {
           key: '/reconciliation/daily',
-          label: 'Đối soát ngày',
+          label: navLabel('nav-reconciliation-daily', 'Đối soát ngày'),
           icon: <ReconciliationOutlined />,
           onClick: () => navigate('/reconciliation/daily'),
         } : null,
         hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') ? {
           key: '/reconciliation/monthly',
-          label: 'Đối soát tháng',
+          label: navLabel('nav-reconciliation-monthly', 'Đối soát tháng'),
           icon: <ReconciliationOutlined />,
           onClick: () => navigate('/reconciliation/monthly'),
         } : null,
@@ -139,23 +148,23 @@ const AuthenticatedShell: React.FC = () => {
     hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') || hasPermission('SERVICE_VIEW', 'COMPANY') ? {
       key: 'services-group',
       icon: <ToolOutlined />,
-      label: 'Dịch vụ',
+      label: navLabel('nav-services-group', 'Dịch vụ'),
       children: [
         hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') ? {
           key: '/services/types',
-          label: 'Gói dịch vụ',
+          label: navLabel('nav-services-types', 'Gói dịch vụ'),
           icon: <SettingOutlined />,
           onClick: () => navigate('/services/types'),
         } : null,
         hasPermission('SERVICE_VIEW', 'COMPANY') ? {
           key: '/services',
-          label: 'Bảng tổng hợp dịch vụ',
+          label: navLabel('nav-services', 'Bảng tổng hợp dịch vụ'),
           icon: <ToolOutlined />,
           onClick: () => navigate('/services'),
         } : null,
         {
           key: '/care-packages',
-          label: 'Gói chăm sóc',
+          label: navLabel('nav-care-packages', 'Gói chăm sóc'),
           icon: <HeartOutlined />,
           onClick: () => navigate('/care-packages'),
         },
@@ -164,47 +173,47 @@ const AuthenticatedShell: React.FC = () => {
     {
       key: '/cards/reprints',
       icon: <CreditCardOutlined />,
-      label: 'In lại thẻ',
+      label: navLabel('nav-cards-reprints', 'In lại thẻ'),
       onClick: () => navigate('/cards/reprints'),
     },
     {
       key: 'workflow-group',
       icon: <ApartmentOutlined />,
-      label: 'Quy trình',
+      label: navLabel('nav-workflow-group', 'Quy trình'),
       children: [
         {
           key: '/workflow/my-approvals',
-          label: 'Chờ duyệt',
+          label: navLabel('nav-workflow-my-approvals', 'Chờ duyệt'),
           icon: <CheckSquareOutlined />,
           onClick: () => navigate('/workflow/my-approvals'),
         },
         {
           key: '/workflow/my-requests',
-          label: 'Yêu cầu của tôi',
+          label: navLabel('nav-workflow-my-requests', 'Yêu cầu của tôi'),
           icon: <AuditOutlined />,
           onClick: () => navigate('/workflow/my-requests'),
         },
         hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
           key: '/workflow',
-          label: 'Quản trị quy trình',
+          label: navLabel('nav-workflow', 'Quản trị quy trình'),
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow'),
         } : null,
         hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
           key: '/workflow/bindings',
-          label: 'Liên kết quy trình',
+          label: navLabel('nav-workflow-bindings', 'Liên kết quy trình'),
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow/bindings'),
         } : null,
         hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
           key: '/workflow/instances',
-          label: 'Tất cả hồ sơ',
+          label: navLabel('nav-workflow-instances', 'Tất cả hồ sơ'),
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow/instances'),
         } : null,
         hasPermission('APPROVAL_AUTHORITY_MANAGE', 'GLOBAL') ? {
           key: '/workflow/authorities',
-          label: 'Thẩm quyền phê duyệt',
+          label: navLabel('nav-workflow-authorities', 'Thẩm quyền phê duyệt'),
           icon: <SafetyCertificateOutlined />,
           onClick: () => navigate('/workflow/authorities'),
         } : null,
@@ -213,47 +222,47 @@ const AuthenticatedShell: React.FC = () => {
     hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') || hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL') || hasPermission('SECURITY_AUDIT_VIEW', 'GLOBAL') ? {
       key: 'security-group',
       icon: <SafetyOutlined />,
-      label: 'Bảo mật',
+      label: navLabel('nav-security-group', 'Bảo mật'),
       children: [
         hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL') ? {
           key: '/security/accounts',
-          label: 'Tài khoản',
+          label: navLabel('nav-security-accounts', 'Tài khoản'),
           icon: <UserOutlined />,
           onClick: () => navigate('/security/accounts'),
         } : null,
         hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
           key: '/security/permissions/assignments',
-          label: 'Phân quyền',
+          label: navLabel('nav-security-permissions-assignments', 'Phân quyền'),
           icon: <KeyOutlined />,
           onClick: () => navigate('/security/permissions/assignments'),
         } : null,
         hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
           key: '/security/roles',
-          label: 'Vai trò',
+          label: navLabel('nav-security-roles', 'Vai trò'),
           icon: <IdcardOutlined />,
           onClick: () => navigate('/security/roles'),
         } : null,
         hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
           key: '/security/admin-groups',
-          label: 'Nhóm quản trị',
+          label: navLabel('nav-security-admin-groups', 'Nhóm quản trị'),
           icon: <LockOutlined />,
           onClick: () => navigate('/security/admin-groups'),
         } : null,
         hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
           key: '/security/departments/permissions',
-          label: 'Quyền phòng ban',
+          label: navLabel('nav-security-departments-permissions', 'Quyền phòng ban'),
           icon: <BankOutlined />,
           onClick: () => navigate('/security/departments/permissions'),
         } : null,
         hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
           key: '/security/effective-permissions',
-          label: 'Kiểm tra quyền',
+          label: navLabel('nav-security-effective-permissions', 'Kiểm tra quyền'),
           icon: <SafetyOutlined />,
           onClick: () => navigate('/security/effective-permissions'),
         } : null,
         hasPermission('SECURITY_AUDIT_VIEW', 'GLOBAL') ? {
           key: '/security/audit',
-          label: 'Nhật ký kiểm toán',
+          label: navLabel('nav-security-audit', 'Nhật ký kiểm toán'),
           icon: <AuditOutlined />,
           onClick: () => navigate('/security/audit'),
         } : null,
@@ -262,13 +271,13 @@ const AuthenticatedShell: React.FC = () => {
     hasPermission('TAG_MANAGE', 'GLOBAL') ? {
       key: '/tags',
       icon: <TagsOutlined />,
-      label: 'Quản lý thẻ',
+      label: navLabel('nav-tags', 'Quản lý thẻ'),
       onClick: () => navigate('/tags'),
     } : null,
     {
       key: '/system-health',
       icon: <SettingOutlined />,
-      label: 'Hệ thống',
+      label: navLabel('nav-system-health', 'Hệ thống'),
       onClick: () => navigate('/system-health'),
     },
   ].filter(Boolean) as MenuProps['items'];
@@ -295,20 +304,20 @@ const AuthenticatedShell: React.FC = () => {
     {
       key: 'profile',
       icon: <IdcardOutlined />,
-      label: 'Trang cá nhân',
+      label: navLabel('nav-profile', 'Trang cá nhân'),
       onClick: () => navigate('/profile'),
     },
     {
       key: 'change-password',
       icon: <KeyOutlined />,
-      label: 'Đổi mật khẩu',
+      label: navLabel('nav-change-password', 'Đổi mật khẩu'),
       onClick: () => navigate('/change-password'),
     },
     { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Đăng xuất',
+      label: navLabel('nav-logout', 'Đăng xuất'),
       onClick: handleLogout,
       danger: true,
     },
