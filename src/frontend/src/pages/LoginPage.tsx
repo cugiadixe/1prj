@@ -42,9 +42,19 @@ const LoginPage: React.FC = () => {
       await login(values.username, values.password);
       navigate(mustChangePassword ? '/change-password' : '/', { replace: true });
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response
-        ?.status;
-      if (status === 401 || status === 403) {
+      const e = err as { response?: { status?: number }; code?: string };
+      const status = e?.response?.status;
+
+      // KHÔNG có response = chưa gọi tới được máy chủ (máy chủ chưa chạy, sập, hoặc mạng hỏng).
+      // Trước đây ca này rơi vào thông báo chung "Đăng nhập thất bại", khiến người dùng tưởng
+      // mình gõ sai mật khẩu và gõ đi gõ lại vô ích. Phải nói rõ đây là lỗi kết nối.
+      if (!e?.response) {
+        setErrorMessage(
+          e?.code === 'ECONNABORTED'
+            ? 'Máy chủ phản hồi quá lâu. Vui lòng thử lại.'
+            : 'Không kết nối được máy chủ. Vui lòng kiểm tra máy chủ đã chạy chưa rồi thử lại. (Đây KHÔNG phải lỗi sai mật khẩu.)'
+        );
+      } else if (status === 401 || status === 403) {
         setErrorMessage('Thông tin đăng nhập không đúng. Vui lòng thử lại.');
       } else if (status === 503) {
         setErrorMessage('Dịch vụ xác thực tạm thời không khả dụng.');

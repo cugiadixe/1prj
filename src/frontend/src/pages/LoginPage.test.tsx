@@ -56,6 +56,32 @@ describe('LoginPage', () => {
     });
   });
 
+  it('phân biệt lỗi KẾT NỐI với lỗi sai mật khẩu', async () => {
+    // Máy chủ chưa chạy: axios ném lỗi KHÔNG có response. Trước đây ca này rơi vào thông báo
+    // chung "Đăng nhập thất bại", khiến người dùng gõ lại mật khẩu nhiều lần vô ích.
+    vi.spyOn(authApi, 'apiRefresh').mockRejectedValue(new Error('No session'));
+    vi.spyOn(authApi, 'apiLogin').mockRejectedValue({ code: 'ERR_NETWORK', message: 'Network Error' });
+
+    render(<LoginPage />, { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('login-submit')).toBeInTheDocument(),
+    );
+
+    await userEvent.type(screen.getByTestId('login-username'), 'admin@ptkd.local');
+    await userEvent.type(screen.getByTestId('login-password'), 'dungmatkhau');
+    await userEvent.click(screen.getByTestId('login-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('login-error')).toBeInTheDocument(),
+    );
+
+    const errorEl = screen.getByTestId('login-error');
+    expect(errorEl.textContent).toContain('Không kết nối được máy chủ');
+    // Quan trọng: KHÔNG được gợi ý là sai thông tin đăng nhập.
+    expect(errorEl.textContent).not.toContain('không đúng');
+  });
+
   it('displays sanitized error on login failure', async () => {
     vi.spyOn(authApi, 'apiRefresh').mockRejectedValue(new Error('No session'));
     vi.spyOn(authApi, 'apiLogin').mockRejectedValue({
