@@ -23,6 +23,9 @@ public interface IAuthorizationDbContext
     // Required for company-scope check on mutations (OD-D-B-15)
     DbSet<UserCompanyAssignment> UserCompanyAssignments { get; }
 
+    // Cây công ty (ParentCompanyId) — để mô hình "cấp ở công ty mẹ phủ công ty con".
+    DbSet<Company> Companies { get; }
+
     // Nguồn dữ liệu thẩm quyền phê duyệt (APPROVAL_AUTHORITY resolver).
     DbSet<ApprovalAuthority> ApprovalAuthorities { get; }
 

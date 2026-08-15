@@ -13,6 +13,7 @@ namespace PTKD.UnitTests.Security.Authorization;
 public class PermissionEvaluatorTests
 {
     private readonly Mock<IAuthorizationDbContext> _dbContextMock;
+    private readonly Mock<ICompanyHierarchyService> _hierarchyMock;
     private readonly IMemoryCache _cache;
     private readonly PermissionEvaluator _sut;
     private readonly TimeProvider _timeProvider;
@@ -20,13 +21,24 @@ public class PermissionEvaluatorTests
     public PermissionEvaluatorTests()
     {
         _dbContextMock = new Mock<IAuthorizationDbContext>();
+
+        // Mặc định không nở cây (trả về đúng tập vào). Test nào cần "mẹ phủ con" thì tự dựng
+        // lại phép nở qua _hierarchyMock. Giữ mặc định = đồng nhất để mọi test phạm-vi-đơn hiện
+        // có không đổi hành vi.
+        _hierarchyMock = new Mock<ICompanyHierarchyService>();
+        _hierarchyMock
+            .Setup(x => x.ExpandWithDescendantsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .Returns((IEnumerable<long> ids, CancellationToken _) =>
+                Task.FromResult((IReadOnlyCollection<long>)ids.Distinct().ToList()));
+
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProvider = TimeProvider.System;
         _sut = new PermissionEvaluator(
-            _dbContextMock.Object, 
-            _cache, 
-            NullLogger<PermissionEvaluator>.Instance, 
-            _timeProvider);
+            _dbContextMock.Object,
+            _cache,
+            NullLogger<PermissionEvaluator>.Instance,
+            _timeProvider,
+            _hierarchyMock.Object);
 
         _dbContextMock.Setup(x => x.AuthorizationPolicyStates)
             .ReturnsDbSet(new List<AuthorizationPolicyState>());
@@ -343,6 +355,84 @@ public class PermissionEvaluatorTests
         Assert.False(scope.Allows(200));
         Assert.True(scope.Allows(100));
         Assert.False(await _sut.EvaluateAsync(1, "PERM1", 200));
+    }
+
+    /// <summary>
+    /// Dựng cây công ty cho phép nở: mỗi cặp (mẹ → các con) khiến ExpandWithDescendants trả về
+    /// mẹ + toàn bộ con của nó. Công ty không có trong cây thì nở ra chính nó.
+    /// </summary>
+    private void SetupHierarchy(IReadOnlyDictionary<long, long[]> childrenByParent)
+    {
+        _hierarchyMock
+            .Setup(x => x.ExpandWithDescendantsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .Returns((IEnumerable<long> seeds, CancellationToken _) =>
+            {
+                var result = new HashSet<long>();
+                var queue = new Queue<long>(seeds);
+                while (queue.Count > 0)
+                {
+                    var id = queue.Dequeue();
+                    if (!result.Add(id)) continue;
+                    if (childrenByParent.TryGetValue(id, out var kids))
+                        foreach (var k in kids) queue.Enqueue(k);
+                }
+                return Task.FromResult((IReadOnlyCollection<long>)result);
+            });
+    }
+
+    /// <summary>
+    /// "Mẹ phủ con": cấp phạm vi CÔNG TY ở công ty mẹ (100) phải phủ công ty con (200), nhưng
+    /// KHÔNG phủ công ty ngoài nhánh (999). Đây là tầng ở giữa anh Bách chốt — nhân viên tập đoàn
+    /// gán ở công ty mẹ thấy được dữ liệu công ty con, mà không cần cấp GLOBAL.
+    /// </summary>
+    [Fact]
+    public async Task Resolve_CompanyGrantOnParent_CoversChildren()
+    {
+        SetupHierarchy(new Dictionary<long, long[]> { [100] = new long[] { 200, 300 } });
+
+        SetupPermissions(new[] { new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "COMPANY" } });
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "COMPANY", CompanyId = 100 }
+        });
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
+
+        var scope = await _sut.ResolveAsync(1, "PERM1");
+
+        Assert.True(scope.Granted);
+        Assert.False(scope.IsUnrestricted);           // KHÔNG phải toàn cục — vẫn có bộ lọc công ty
+        Assert.True(scope.Allows(100));               // chính công ty mẹ
+        Assert.True(scope.Allows(200));               // công ty con
+        Assert.True(scope.Allows(300));               // công ty con khác
+        Assert.False(scope.Allows(999));              // ngoài nhánh → không thấy
+        Assert.Equal(new long[] { 100, 200, 300 }, scope.AllowedCompanyIds);
+    }
+
+    /// <summary>
+    /// Cấm ở công ty mẹ phải cascade xuống con: cấp GLOBAL nhưng cấm nhánh mẹ (100) thì con (200)
+    /// cũng bị cấm — không lách vào công ty con qua quyền toàn cục được.
+    /// </summary>
+    [Fact]
+    public async Task Resolve_CompanyDenyOnParent_CascadesToChildren()
+    {
+        SetupHierarchy(new Dictionary<long, long[]> { [100] = new long[] { 200 } });
+
+        SetupPermissions(new[] { new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" } });
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "GLOBAL" },
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "DENY", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "COMPANY", CompanyId = 100 }
+        });
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
+
+        var scope = await _sut.ResolveAsync(1, "PERM1");
+
+        Assert.True(scope.IsGlobal);
+        Assert.False(scope.Allows(100));              // nhánh mẹ bị cấm
+        Assert.False(scope.Allows(200));              // con cũng bị cấm theo
+        Assert.True(scope.Allows(999));               // công ty ngoài nhánh vẫn thấy (toàn cục)
     }
 
     /// <summary>

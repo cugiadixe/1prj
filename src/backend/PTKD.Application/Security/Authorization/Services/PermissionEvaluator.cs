@@ -25,6 +25,7 @@ public class PermissionEvaluator : IPermissionEvaluator
     private readonly IMemoryCache _cache;
     private readonly ILogger<PermissionEvaluator> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly ICompanyHierarchyService _companyHierarchy;
 
     private const string ScopeGlobal = "GLOBAL";
     private const string GrantDeny = "DENY";
@@ -33,12 +34,14 @@ public class PermissionEvaluator : IPermissionEvaluator
         IAuthorizationDbContext dbContext,
         IMemoryCache cache,
         ILogger<PermissionEvaluator> logger,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ICompanyHierarchyService companyHierarchy)
     {
         _dbContext = dbContext;
         _cache = cache;
         _logger = logger;
         _timeProvider = timeProvider;
+        _companyHierarchy = companyHierarchy;
     }
 
     /// <summary>
@@ -280,6 +283,12 @@ public class PermissionEvaluator : IPermissionEvaluator
                 map.Remove(code);
         }
 
+        // Nở phạm vi theo cây công ty: một lần cấp ở công ty MẸ phủ mọi công ty CON. Làm ở bước
+        // cuối, trên phạm vi đã gom, để mỗi mã quyền chỉ nở một lần. Cấm (DENY) cũng nở xuống con —
+        // cấm ở mẹ thì con không lách vào được kể cả khi có lần cấp toàn cục.
+        foreach (var acc in map.Values)
+            await acc.ExpandByHierarchyAsync(_companyHierarchy, cancellationToken);
+
         return map;
     }
 
@@ -312,6 +321,29 @@ public class PermissionEvaluator : IPermissionEvaluator
                 _denyGlobal = true;
             else if (companyId.HasValue)
                 _denyCompanies.Add(companyId.Value);
+        }
+
+        /// <summary>
+        /// Nở cả tập cho phép lẫn tập cấm xuống công ty con theo cây. Không đụng tới cờ toàn cục:
+        /// GLOBAL đã là "mọi công ty" nên không cần nở, còn cấm toàn cục thì đã phủ tất cả.
+        /// </summary>
+        public async Task ExpandByHierarchyAsync(
+            ICompanyHierarchyService hierarchy, CancellationToken cancellationToken)
+        {
+            await ExpandSetAsync(_allowCompanies, hierarchy, cancellationToken);
+            await ExpandSetAsync(_denyCompanies, hierarchy, cancellationToken);
+        }
+
+        private static async Task ExpandSetAsync(
+            HashSet<long> companies, ICompanyHierarchyService hierarchy, CancellationToken cancellationToken)
+        {
+            if (companies.Count == 0)
+                return;
+
+            var expanded = await hierarchy.ExpandWithDescendantsAsync(companies, cancellationToken);
+            companies.Clear();
+            foreach (var id in expanded)
+                companies.Add(id);
         }
 
         public PermissionScopeResult ToResult()

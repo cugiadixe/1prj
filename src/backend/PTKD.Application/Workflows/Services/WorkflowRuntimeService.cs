@@ -25,14 +25,16 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
     private readonly IApproverResolver _approverResolver;
     private readonly IWorkflowExecutionHandlerFactory _executionHandlerFactory;
     private readonly IPermissionEvaluator _permissionEvaluator;
+    private readonly ICompanyHierarchyService _companyHierarchy;
 
-    public WorkflowRuntimeService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter, IApproverResolver approverResolver, IWorkflowExecutionHandlerFactory executionHandlerFactory, IPermissionEvaluator permissionEvaluator)
+    public WorkflowRuntimeService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter, IApproverResolver approverResolver, IWorkflowExecutionHandlerFactory executionHandlerFactory, IPermissionEvaluator permissionEvaluator, ICompanyHierarchyService companyHierarchy)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
         _approverResolver = approverResolver;
         _executionHandlerFactory = executionHandlerFactory;
         _permissionEvaluator = permissionEvaluator;
+        _companyHierarchy = companyHierarchy;
     }
 
     public async Task<WorkflowInstanceDto> CreateInstanceAsync(CreateWorkflowInstanceRequest request, long requesterId, CancellationToken ct = default)
@@ -171,10 +173,10 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
     /// <summary>
     /// Các công ty người dùng đang được phân công (hiệu lực). Dùng để chặn xem chéo công ty.
     /// </summary>
-    private static async Task<List<long>> GetMyCompanyIdsAsync(IOrganizationDbContext context, long actorUserId, CancellationToken ct)
+    private async Task<List<long>> GetMyCompanyIdsAsync(IOrganizationDbContext context, long actorUserId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
-        return await context.UserCompanyAssignments
+        var assigned = await context.UserCompanyAssignments
             .AsNoTracking()
             .Where(a => a.UserId == actorUserId
                         && a.AssignmentStatus == "ACTIVE"
@@ -183,6 +185,14 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
             .Select(a => a.CompanyId)
             .Distinct()
             .ToListAsync(ct);
+
+        if (assigned.Count == 0)
+            return assigned;
+
+        // "Mẹ phủ con": nhân viên tập đoàn (gán ở công ty mẹ) xem/duyệt được hồ sơ các công ty con.
+        // Không nở ở đây thì người duyệt cấp tập đoàn không thấy hồ sơ công ty con trong hộp chờ duyệt.
+        var expanded = await _companyHierarchy.ExpandWithDescendantsAsync(assigned, ct);
+        return expanded.ToList();
     }
 
     /// <summary>

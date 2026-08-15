@@ -98,6 +98,7 @@ builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IA
 
 // Authorization Services
 builder.Services.AddMemoryCache();
+builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.ICompanyHierarchyService, PTKD.Application.Security.Authorization.Services.CompanyHierarchyService>();
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IPermissionEvaluator, PTKD.Application.Security.Authorization.Services.PermissionEvaluator>();
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.ICompanyContextService, PTKD.Application.Security.Authorization.Services.CompanyContextService>();
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.ISecurityAdminService, PTKD.Application.Security.Authorization.Services.SecurityAdminService>();

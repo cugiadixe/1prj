@@ -8,11 +8,16 @@ public class CompanyContextService : ICompanyContextService
 {
     private readonly IAuthorizationDbContext _dbContext;
     private readonly TimeProvider _timeProvider;
+    private readonly ICompanyHierarchyService _companyHierarchy;
 
-    public CompanyContextService(IAuthorizationDbContext dbContext, TimeProvider timeProvider)
+    public CompanyContextService(
+        IAuthorizationDbContext dbContext,
+        TimeProvider timeProvider,
+        ICompanyHierarchyService companyHierarchy)
     {
         _dbContext = dbContext;
         _timeProvider = timeProvider;
+        _companyHierarchy = companyHierarchy;
     }
 
     public async Task<IReadOnlyList<long>> GetMyCompanyIdsAsync(
@@ -21,7 +26,7 @@ public class CompanyContextService : ICompanyContextService
     {
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-        return await _dbContext.UserCompanyAssignments
+        var assigned = await _dbContext.UserCompanyAssignments
             .AsNoTracking()
             .Where(a => a.UserId == userId
                         && a.AssignmentStatus == "ACTIVE"
@@ -30,6 +35,14 @@ public class CompanyContextService : ICompanyContextService
             .Select(a => a.CompanyId)
             .Distinct()
             .ToListAsync(cancellationToken);
+
+        if (assigned.Count == 0)
+            return assigned;
+
+        // Gán vào công ty MẸ (tập đoàn) thì thành viên của cả nhánh con — nhân viên tập đoàn
+        // xem/thao tác được dữ liệu các công ty con.
+        var expanded = await _companyHierarchy.ExpandWithDescendantsAsync(assigned, cancellationToken);
+        return expanded.ToList();
     }
 
     public async Task<bool> IsMemberOfAsync(
@@ -37,15 +50,10 @@ public class CompanyContextService : ICompanyContextService
         long companyId,
         CancellationToken cancellationToken = default)
     {
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
-
-        return await _dbContext.UserCompanyAssignments
-            .AsNoTracking()
-            .AnyAsync(a => a.UserId == userId
-                           && a.CompanyId == companyId
-                           && a.AssignmentStatus == "ACTIVE"
-                           && a.EffectiveFrom <= now
-                           && (a.EffectiveTo == null || a.EffectiveTo > now),
-                cancellationToken);
+        // Đi qua tập đã nở theo cây: người gán ở công ty mẹ được coi là thành viên công ty con,
+        // nên tự khai X-Company-Id của một công ty con hợp lệ. Nếu tách riêng một truy vấn AnyAsync
+        // thì lại quên mất nhánh cây — đúng lỗi "hai chỗ trả lời lệch nhau" mà mô hình này tránh.
+        var myCompanies = await GetMyCompanyIdsAsync(userId, cancellationToken);
+        return myCompanies.Contains(companyId);
     }
 }

@@ -43,6 +43,7 @@ public class PermissionEvaluatorIntegrationTests : IClassFixture<TestDatabaseFix
         services.AddScoped<IAuthorizationDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddMemoryCache();
         services.AddSingleton(TimeProvider.System);
+        services.AddScoped<ICompanyHierarchyService, CompanyHierarchyService>();
         services.AddScoped<IPermissionEvaluator, PermissionEvaluator>();
         
         // Use NullLogger for tests
@@ -363,7 +364,8 @@ public class PermissionEvaluatorIntegrationTests : IClassFixture<TestDatabaseFix
             dbContext2,
             freshCache,
             NullLogger<PermissionEvaluator>.Instance,
-            TimeProvider.System);
+            TimeProvider.System,
+            new CompanyHierarchyService(dbContext2, freshCache));
 
         // Act — permission is now inactive
         var result = await sut2.EvaluateAsync(user.Id, perm.PermissionCode, null);
