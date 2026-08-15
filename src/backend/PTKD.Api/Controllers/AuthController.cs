@@ -306,39 +306,30 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(BuildGenericAuthProblem());
         }
 
-        long? parsedCompanyId = null;
+        // Header không còn tham gia việc lọc quyền (xem chú thích bên dưới), nhưng vẫn kiểm dạng
+        // để lỗi gõ sai ở client bật ra ngay thay vì âm thầm bị bỏ qua.
         var headerValue = Request.Headers["X-Company-Id"].ToString();
 
-        if (!string.IsNullOrWhiteSpace(headerValue))
+        if (!string.IsNullOrWhiteSpace(headerValue) && !long.TryParse(headerValue, out _))
         {
-            if (!long.TryParse(headerValue, out var cid))
+            return BadRequest(new ProblemDetails
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Status = 400,
-                    Title = "Malformed Company Context",
-                    Detail = "The X-Company-Id header must be a valid integer.",
-                    Type = "https://ptkd-erp.example.com/errors/malformed-company-context"
-                });
-            }
-            parsedCompanyId = cid;
+                Status = 400,
+                Title = "Malformed Company Context",
+                Detail = "The X-Company-Id header must be a valid integer.",
+                Type = "https://ptkd-erp.example.com/errors/malformed-company-context"
+            });
         }
 
-        var effectiveCodes = await _permissionEvaluator.GetEffectivePermissionsAsync(userId, parsedCompanyId, cancellationToken);
-        var catalog = await _securityAdminService.ListPermissionsAsync(cancellationToken);
+        // Trả về TOÀN BỘ quyền kèm phạm vi thật, không lọc sẵn theo công ty đang chọn.
+        // Giao diện cần biết cả "quyền này có ở công ty khác" để dựng bộ chọn công ty cho đúng;
+        // lọc sẵn ở backend thì người dùng đa công ty mở app lên sẽ thấy menu thiếu cho tới khi
+        // tự bấm chọn công ty.
+        var entries = await _permissionEvaluator.GetEffectivePermissionEntriesAsync(userId, cancellationToken);
 
-        var dtos = new List<CurrentUserPermissionDto>();
-        foreach (var code in effectiveCodes)
-        {
-            var cat = catalog.FirstOrDefault(c => c.PermissionCode == code);
-            if (cat != null)
-            {
-                dtos.Add(new CurrentUserPermissionDto(
-                    cat.PermissionCode,
-                    cat.DataScope,
-                    cat.DataScope == "COMPANY" ? parsedCompanyId : null));
-            }
-        }
+        var dtos = entries
+            .Select(e => new CurrentUserPermissionDto(e.PermissionCode, e.IsGlobal, e.CompanyIds))
+            .ToList();
 
         return Ok(new CurrentUserPermissionsResponseDto(dtos));
     }

@@ -21,10 +21,13 @@ public sealed class SecurityAdminService : ISecurityAdminService
 
 	private readonly TimeProvider _time;
 
-	public SecurityAdminService(IAuthorizationDbContext db, TimeProvider time)
+	private readonly IPermissionEvaluator _permissionEvaluator;
+
+	public SecurityAdminService(IAuthorizationDbContext db, TimeProvider time, IPermissionEvaluator permissionEvaluator)
 	{
 		_db = db;
 		_time = time;
+		_permissionEvaluator = permissionEvaluator;
 	}
 
 	public async Task<IReadOnlyList<PermissionDto>> ListPermissionsAsync(CancellationToken ct = default(CancellationToken))
@@ -686,56 +689,18 @@ public sealed class SecurityAdminService : ISecurityAdminService
 		};
 		return response;
 	}
+	/// <summary>
+	/// Quyền hiệu dụng của MỘT NGƯỜI KHÁC — phục vụ màn hình chẩn đoán của quản trị viên.
+	///
+	/// Uỷ quyền hẳn cho <see cref="IPermissionEvaluator"/>. Trước đây đây là bản sao THỨ BA của
+	/// thuật toán quyền hiệu dụng, và nó sai theo hướng nguy hiểm nhất: bỏ lọc công ty của phòng
+	/// ban và bỏ lọc phòng ban đã vô hiệu hoá, nên màn hình dùng để KIỂM TRA ma trận phân quyền
+	/// lại báo cáo RỘNG HƠN thực tế — quản trị viên rà soát bằng nó sẽ bị dẫn sai.
+	/// </summary>
 	public async Task<EffectivePermissionsResponse> GetEffectivePermissionsAsync(long userId, long? companyId, CancellationToken ct = default(CancellationToken))
 	{
-		DateTime now = UtcNow();
-		HashSet<string> activePermSet = new HashSet<string>(await (from permission in _db.Permissions.AsNoTracking()
-			where permission.IsActive
-			select permission.PermissionCode).ToListAsync(ct));
-		HashSet<string> grantedSet = new HashSet<string>();
-		if (companyId.HasValue)
-		{
-			List<long> activeDepts = await (from a in _db.UserDepartmentAssignments.AsNoTracking()
-				where a.UserId == userId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom <= now && (a.EffectiveTo == null || a.EffectiveTo > now)
-				select a.DepartmentId).ToListAsync(ct);
-			if (activeDepts.Count > 0)
-			{
-				foreach (string p in await (from departmentPermission in _db.DepartmentPermissions.AsNoTracking()
-					where activeDepts.Contains(departmentPermission.DepartmentId)
-					select departmentPermission.PermissionCode).ToListAsync(ct))
-				{
-					grantedSet.Add(p);
-				}
-			}
-		}
-		foreach (string p2 in await (from rolePermission in (from a in _db.UserRoleAssignments.AsNoTracking()
-				where a.UserId == userId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom <= now && (a.EffectiveTo == null || a.EffectiveTo > now) && a.Role.IsActive && (a.Role.ScopeType == "GLOBAL" || a.Role.CompanyId == companyId)
-				select a).SelectMany((UserRoleAssignment a) => a.Role.Permissions)
-			select rolePermission.PermissionCode).ToListAsync(ct))
-		{
-			grantedSet.Add(p2);
-		}
-		foreach (string p3 in await (from userIndividualPermission in _db.UserIndividualPermissions.AsNoTracking()
-			where userIndividualPermission.UserId == userId && userIndividualPermission.AssignmentStatus == "ACTIVE" && userIndividualPermission.GrantType == "ALLOW" && userIndividualPermission.EffectiveFrom <= now && (userIndividualPermission.EffectiveTo == null || userIndividualPermission.EffectiveTo > now) && (userIndividualPermission.ScopeType == "GLOBAL" || userIndividualPermission.CompanyId == companyId)
-			select userIndividualPermission.PermissionCode).ToListAsync(ct))
-		{
-			grantedSet.Add(p3);
-		}
-		foreach (string p4 in await (from adminGroupPermission in (from a in _db.UserAdminGroupAssignments.AsNoTracking()
-				where a.UserId == userId && a.AssignmentStatus == "ACTIVE" && a.EffectiveFrom <= now && (a.EffectiveTo == null || a.EffectiveTo > now) && a.AdminGroup.IsActive && (a.AdminGroup.ScopeType == "GLOBAL" || a.AdminGroup.CompanyId == companyId)
-				select a).SelectMany((UserAdminGroupAssignment a) => a.AdminGroup.Permissions)
-			select adminGroupPermission.PermissionCode).ToListAsync(ct))
-		{
-			grantedSet.Add(p4);
-		}
-		foreach (string p5 in await (from userIndividualPermission in _db.UserIndividualPermissions.AsNoTracking()
-			where userIndividualPermission.UserId == userId && userIndividualPermission.AssignmentStatus == "ACTIVE" && userIndividualPermission.GrantType == "DENY" && userIndividualPermission.EffectiveFrom <= now && (userIndividualPermission.EffectiveTo == null || userIndividualPermission.EffectiveTo > now) && (userIndividualPermission.ScopeType == "GLOBAL" || userIndividualPermission.CompanyId == companyId)
-			select userIndividualPermission.PermissionCode).ToListAsync(ct))
-		{
-			grantedSet.Remove(p5);
-		}
-		grantedSet.IntersectWith(activePermSet);
-		return new EffectivePermissionsResponse(userId, companyId, grantedSet.OrderBy((string result) => result).ToList());
+		IReadOnlyList<string> codes = await _permissionEvaluator.GetEffectivePermissionsAsync(userId, companyId, ct);
+		return new EffectivePermissionsResponse(userId, companyId, codes.OrderBy(c => c, StringComparer.Ordinal).ToList());
 	}
 
 	private DateTime UtcNow()

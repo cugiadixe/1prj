@@ -180,10 +180,20 @@ public sealed record EffectivePermissionsResponse(
 
 // -- Current User Permissions ----------------------------------------------
 
+/// <summary>
+/// Một quyền của người đang đăng nhập, KÈM PHẠM VI THẬT được cấp.
+///
+/// Trước đây record này mang <c>Scope</c> = <c>data_scope</c> của DANH MỤC — đó là nhãn tĩnh của
+/// mã quyền, không phải phạm vi người dùng được cấp. Hệ quả: giao diện không phân biệt được người
+/// có quyền toàn cục với người chỉ có quyền một công ty, và 9 mã bị hỏi sai phạm vi nên phép kiểm
+/// luôn trả false — cả nhóm menu Thanh toán cùng ~12 nút hành động chết vĩnh viễn.
+/// </summary>
+/// <param name="IsGlobal">Được cấp toàn cục — nhìn được dữ liệu mọi công ty.</param>
+/// <param name="CompanyIds">Các công ty được cấp cụ thể (rỗng khi <paramref name="IsGlobal"/>).</param>
 public sealed record CurrentUserPermissionDto(
     string PermissionCode,
-    string Scope,
-    long? CompanyId
+    bool IsGlobal,
+    IReadOnlyList<long> CompanyIds
 );
 
 public sealed record CurrentUserPermissionsResponseDto(

@@ -264,8 +264,16 @@ public class PermissionEvaluatorTests
         Assert.False(result);
     }
 
+    /// <summary>
+    /// Lần cấp ở phạm vi TOÀN CỤC phải dùng được ở MỌI công ty.
+    ///
+    /// Test này trước đây khẳng định điều ngược lại (cấp toàn cục mà hỏi kèm công ty thì trượt),
+    /// vì mô hình cũ dùng cột data_scope của DANH MỤC để chặn cứng. Hệ quả là quyền khai GLOBAL
+    /// chỉ có hai nấc — mất sạch, hoặc thấy hết — không có nấc "chỉ công ty mình".
+    /// Phạm vi nay là thuộc tính của LẦN CẤP, và data_scope không còn tham gia quyết định.
+    /// </summary>
     [Fact]
-    public async Task Evaluate_GlobalPermission_RequiresNoCompany()
+    public async Task Evaluate_GlobalGrant_AppliesToEveryCompany()
     {
         SetupPermissions(new[] { new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" } });
         SetupIndividualPermissions(new[] {
@@ -274,10 +282,94 @@ public class PermissionEvaluatorTests
         SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
         SetupRoleAssignments(new List<UserRoleAssignment>());
         SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
-        
-        // Providing company ID should fail because it's GLOBAL scope check
-        var result = await _sut.EvaluateAsync(1, "PERM1", 100);
-        Assert.False(result);
+
+        Assert.True(await _sut.EvaluateAsync(1, "PERM1", 100));
+        Assert.True(await _sut.EvaluateAsync(1, "PERM1", 999));
+        Assert.True(await _sut.EvaluateAsync(1, "PERM1", null));
+
+        var scope = await _sut.ResolveAsync(1, "PERM1");
+        Assert.True(scope.Granted);
+        Assert.True(scope.IsUnrestricted);
+    }
+
+    /// <summary>
+    /// Lần cấp theo CÔNG TY chỉ có tác dụng ở đúng công ty đó, và
+    /// <see cref="PermissionScopeResult.AllowedCompanyIds"/> phải nói rõ là công ty nào để nơi
+    /// gọi lọc dữ liệu — đây là thứ mô hình cũ (chỉ trả bool) không diễn đạt được.
+    /// </summary>
+    [Fact]
+    public async Task Resolve_CompanyGrant_ReportsExactCompanies()
+    {
+        SetupPermissions(new[] { new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" } });
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "COMPANY", CompanyId = 100 },
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "COMPANY", CompanyId = 300 }
+        });
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
+
+        var scope = await _sut.ResolveAsync(1, "PERM1");
+
+        Assert.True(scope.Granted);
+        Assert.False(scope.IsUnrestricted);
+        Assert.Equal(new long[] { 100, 300 }, scope.AllowedCompanyIds);
+        Assert.True(scope.Allows(100));
+        Assert.False(scope.Allows(200));
+    }
+
+    /// <summary>
+    /// Lệnh CẤM theo công ty phải cắn được cả người được cấp TOÀN CỤC.
+    /// Mô hình cũ không làm được: DENY phạm vi công ty hoàn toàn câm với quyền khai GLOBAL —
+    /// cấm mà không cấm được.
+    /// </summary>
+    [Fact]
+    public async Task Resolve_CompanyDeny_BitesGlobalGrant()
+    {
+        SetupPermissions(new[] { new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" } });
+        SetupIndividualPermissions(new[] {
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "ALLOW", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "GLOBAL" },
+            new UserIndividualPermission { UserId = 1, PermissionCode = "PERM1", GrantType = "DENY", AssignmentStatus = "ACTIVE", EffectiveFrom = DateTime.MinValue, ScopeType = "COMPANY", CompanyId = 200 }
+        });
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupDepartmentAssignments(new List<UserDepartmentAssignment>());
+
+        var scope = await _sut.ResolveAsync(1, "PERM1");
+
+        Assert.True(scope.Granted);
+        Assert.True(scope.IsGlobal);
+        Assert.Contains(200L, scope.ExcludedCompanyIds);
+        Assert.False(scope.Allows(200));
+        Assert.True(scope.Allows(100));
+        Assert.False(await _sut.EvaluateAsync(1, "PERM1", 200));
+    }
+
+    /// <summary>
+    /// Quyền chuẩn của phòng ban chỉ áp cho công ty CỦA PHÒNG ĐÓ.
+    /// Mô hình cũ bỏ lọc công ty ở nhánh này khi không có ngữ cảnh công ty, biến "gán vào phòng
+    /// ban = có quyền" thành "gán vào phòng ban bất kỳ = có quyền ở mọi công ty".
+    /// </summary>
+    [Fact]
+    public async Task Resolve_DepartmentBaseline_IsScopedToDepartmentCompany()
+    {
+        SetupPermissions(new[] { new Permission { PermissionCode = "PERM1", IsActive = true, DataScope = "GLOBAL" } });
+        SetupIndividualPermissions(new List<UserIndividualPermission>());
+        SetupAdminGroupAssignments(new List<UserAdminGroupAssignment>());
+        SetupRoleAssignments(new List<UserRoleAssignment>());
+        SetupDepartmentAssignments(new[] { CreateAssignment(1, 10, 200, DateTime.MinValue) });
+        SetupDepartmentPermissions(new[] {
+            new DepartmentPermission { DepartmentId = 10, PermissionCode = "PERM1" }
+        });
+
+        var scope = await _sut.ResolveAsync(1, "PERM1");
+
+        Assert.True(scope.Granted);
+        Assert.False(scope.IsGlobal);
+        Assert.Equal(new long[] { 200 }, scope.AllowedCompanyIds);
+        Assert.False(scope.Allows(100));
+        // Không có ngữ cảnh công ty thì quyền từ phòng ban KHÔNG tự thành quyền toàn cục.
+        Assert.False(await _sut.EvaluateAsync(1, "PERM1", null));
     }
 
     [Fact]

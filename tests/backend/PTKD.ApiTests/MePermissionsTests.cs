@@ -75,17 +75,21 @@ public class MePermissionsTests : IClassFixture<SafeTestWebApplicationFactory>
         var loginResponse = await loginRes.Content.ReadFromJsonAsync<LoginResponse>();
         var accessToken = loginResponse!.AccessToken;
 
-        // 1. Without X-Company-Id -> GLOBAL only
+        // 1. Không kèm X-Company-Id.
+        //    Mô hình mới: payload mang PHẠM VI THẬT của từng lần cấp (isGlobal + companyIds),
+        //    không còn là data_scope của danh mục, nên KHÔNG phụ thuộc header nữa.
         var req1 = new HttpRequestMessage(HttpMethod.Get, "/api/v2/auth/me/permissions");
         req1.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         var res1 = await _client.SendAsync(req1);
         Assert.Equal(HttpStatusCode.OK, res1.StatusCode);
         var result1 = await res1.Content.ReadFromJsonAsync<CurrentUserPermissionsResponseDto>();
         var perms = result1!.Permissions;
-        Assert.Contains(perms, p => p.PermissionCode == "TEST_PERM_1" && p.Scope == "GLOBAL");
+        Assert.Contains(perms, p => p.PermissionCode == "TEST_PERM_1" && p.IsGlobal && p.CompanyIds.Count == 0);
         Assert.DoesNotContain(perms, p => p.PermissionCode == "TEST_PERM_2");
 
-        // 2. With X-Company-Id -> GLOBAL + COMPANY
+        // 2. Kèm X-Company-Id: kết quả phải GIỐNG HỆT lần 1.
+        //    Đây là điểm chính của mô hình mới — trước đây hai lần gọi cho hai kết quả khác nhau
+        //    và đó là nguồn của lỗi "menu hiện nhưng bấm vào 403".
         var req2 = new HttpRequestMessage(HttpMethod.Get, "/api/v2/auth/me/permissions");
         req2.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         req2.Headers.Add("X-Company-Id", "1");
@@ -94,8 +98,8 @@ public class MePermissionsTests : IClassFixture<SafeTestWebApplicationFactory>
         var result2 = await res2.Content.ReadFromJsonAsync<CurrentUserPermissionsResponseDto>();
         var perms2 = result2!.Permissions;
 
-        Assert.Contains(perms2, p => p.PermissionCode == "TEST_PERM_1" && p.Scope == "GLOBAL");
-        Assert.DoesNotContain(perms2, p => p.PermissionCode == "TEST_PERM_2"); // DENY-wins
+        Assert.Contains(perms2, p => p.PermissionCode == "TEST_PERM_1" && p.IsGlobal);
+        Assert.DoesNotContain(perms2, p => p.PermissionCode == "TEST_PERM_2"); // DENY thắng
     }
 
     private async Task<(long UserId, long AccountId)> SeedUserAndAccountAsync(string username, string password)
