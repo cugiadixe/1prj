@@ -168,6 +168,42 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
         });
     }
 
+    /// <summary>
+    /// Các công ty người dùng đang được phân công (hiệu lực). Dùng để chặn xem chéo công ty.
+    /// </summary>
+    private static async Task<List<long>> GetMyCompanyIdsAsync(IOrganizationDbContext context, long actorUserId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        return await context.UserCompanyAssignments
+            .AsNoTracking()
+            .Where(a => a.UserId == actorUserId
+                        && a.AssignmentStatus == "ACTIVE"
+                        && a.EffectiveFrom <= now
+                        && (a.EffectiveTo == null || a.EffectiveTo > now))
+            .Select(a => a.CompanyId)
+            .Distinct()
+            .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Người này có được xem hồ sơ thuộc công ty đó không.
+    /// Có WORKFLOW_VIEW_ALL_COMPANIES thì xem được tất cả; không thì chỉ công ty mình được phân
+    /// công. Hồ sơ không gắn công ty (NULL) chỉ dành cho người có quyền xuyên công ty, vì không
+    /// xác định được nó thuộc về ai.
+    /// </summary>
+    private async Task<bool> IsInstanceCompanyAccessibleAsync(
+        IOrganizationDbContext context, long actorUserId, long? instanceCompanyId, CancellationToken ct)
+    {
+        if (await _permissionEvaluator.EvaluateAsync(actorUserId, "WORKFLOW_VIEW_ALL_COMPANIES", null, ct))
+            return true;
+
+        if (instanceCompanyId is null)
+            return false;
+
+        var myCompanyIds = await GetMyCompanyIdsAsync(context, actorUserId, ct);
+        return myCompanyIds.Contains(instanceCompanyId.Value);
+    }
+
     public async Task<WorkflowInstanceDto?> GetInstanceByIdAsync(long instanceId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
@@ -184,9 +220,16 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 .AnyAsync(a => a.UserId == actorUserId && a.Step.WorkflowInstanceId == instanceId, ct);
             if (!isAssignee)
             {
-                var canView = await _permissionEvaluator.EvaluateAsync(actorUserId, "WORKFLOW_VIEW", instance.CompanyId, ct)
+                var hasWorkflowView = await _permissionEvaluator.EvaluateAsync(actorUserId, "WORKFLOW_VIEW", instance.CompanyId, ct)
                     || await _permissionEvaluator.EvaluateAsync(actorUserId, "WORKFLOW_VIEW", null, ct);
-                if (!canView)
+
+                // Có WORKFLOW_VIEW là CHƯA ĐỦ: quyền đó khai báo phạm vi GLOBAL và có thể đến từ
+                // chuẩn phòng ban, nên ai cũng có thể đọc hồ sơ của công ty khác. Mà id hồ sơ là
+                // IDENTITY(1,1) — TUẦN TỰ — nên "phải biết id" không phải rào cản: duyệt 1,2,3…
+                // là quét sạch. Chi tiết hồ sơ có kèm tên + mã khách hàng.
+                var companyAllowed = await IsInstanceCompanyAccessibleAsync(context, actorUserId, instance.CompanyId, ct);
+
+                if (!hasWorkflowView || !companyAllowed)
                     throw new BusinessRuleValidationException("WF_INSTANCE_VIEW_UNAUTHORIZED", "You do not have permission to view this workflow instance.");
             }
         }
@@ -700,16 +743,7 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
 
         if (!canSeeAllCompanies)
         {
-            var now = DateTime.UtcNow;
-            var myCompanyIds = await context.UserCompanyAssignments
-                .AsNoTracking()
-                .Where(a => a.UserId == actorUserId
-                            && a.AssignmentStatus == "ACTIVE"
-                            && a.EffectiveFrom <= now
-                            && (a.EffectiveTo == null || a.EffectiveTo > now))
-                .Select(a => a.CompanyId)
-                .Distinct()
-                .ToListAsync(ct);
+            var myCompanyIds = await GetMyCompanyIdsAsync(context, actorUserId, ct);
 
             // Hồ sơ không gắn công ty (company_id NULL) cũng bị loại: không xác định được nó
             // thuộc về ai nên không có cơ sở cho người dùng thường xem. Người cần xem phải được
