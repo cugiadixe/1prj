@@ -27,24 +27,24 @@ public class GravesController : ControllerBase
     }
 
     [HttpGet]
-    [RequirePermission(PermissionCodes.GraveView, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> Search([FromQuery] GraveSearchRequest request, CancellationToken ct)
     {
-        var result = await _graveService.SearchGravesAsync(request, ct);
+        var result = await _graveService.SearchGravesAsync(request, GetActorUserId(), ct);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    [RequirePermission(PermissionCodes.GraveView, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {
-        var grave = await _graveService.GetGraveByIdAsync(id, ct);
+        var grave = await _graveService.GetGraveByIdAsync(id, GetActorUserId(), ct);
         if (grave == null) return NotFound();
         return Ok(grave);
     }
 
     [HttpPost]
-    [RequirePermission(PermissionCodes.GraveCreate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveCreate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> Create([FromBody] CreateGraveRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -53,7 +53,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateGraveRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -62,7 +62,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpPost("{id}/occupants")]
-    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> AddOccupant(long id, [FromBody] CreateGraveOccupantRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -71,7 +71,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpPut("{id}/occupants/{occupantId}")]
-    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> UpdateOccupant(long id, long occupantId, [FromBody] UpdateGraveOccupantRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -82,7 +82,7 @@ public class GravesController : ControllerBase
     // ─── Liên hệ khẩn cấp động ───
 
     [HttpPost("{id}/emergency-contacts")]
-    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> AddEmergencyContact(long id, [FromBody] CreateGraveEmergencyContactRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -91,7 +91,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpPut("{id}/emergency-contacts/{contactId}")]
-    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> UpdateEmergencyContact(long id, long contactId, [FromBody] UpdateGraveEmergencyContactRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -100,7 +100,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpDelete("{id}/emergency-contacts/{contactId}")]
-    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> RemoveEmergencyContact(long id, long contactId, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -109,7 +109,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpPost("{id}/transfer-owner")]
-    [RequirePermission(PermissionCodes.GraveTransferOwnership, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveTransferOwnership, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> TransferOwner(long id, [FromBody] TransferOwnershipRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -118,7 +118,7 @@ public class GravesController : ControllerBase
     }
 
     [HttpPost("owner-death")]
-    [RequirePermission(PermissionCodes.GraveTransferOwnership, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveTransferOwnership, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> ProcessOwnerDeath([FromBody] OwnerDeathRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -127,25 +127,25 @@ public class GravesController : ControllerBase
     }
 
     [HttpGet("{id}/ownership-history")]
-    [RequirePermission(PermissionCodes.GraveView, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetOwnershipHistory(long id, CancellationToken ct)
     {
-        var history = await _graveService.GetOwnershipHistoryAsync(id, ct);
+        var history = await _graveService.GetOwnershipHistoryAsync(id, GetActorUserId(), ct);
         return Ok(history);
     }
 
     // ─── Ảnh / tài liệu đính kèm ───
 
     [HttpGet("{id}/attachments")]
-    [RequirePermission(PermissionCodes.GraveView, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> ListAttachments(long id, CancellationToken ct)
     {
-        var items = await _attachmentService.ListAsync(id, ct);
+        var items = await _attachmentService.ListAsync(id, GetActorUserId(), ct);
         return Ok(items);
     }
 
     [HttpPost("{id}/attachments")]
-    [RequirePermission(PermissionCodes.GraveAttachmentManage, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveAttachmentManage, PermissionScope.ServiceFiltered)]
     [RequestSizeLimit(12_000_000)]
     public async Task<IActionResult> UploadAttachment(
         long id,
@@ -166,20 +166,20 @@ public class GravesController : ControllerBase
     }
 
     [HttpGet("{id}/attachments/{attachmentId}/content")]
-    [RequirePermission(PermissionCodes.GraveView, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetAttachmentContent(long id, long attachmentId, [FromQuery] bool thumbnail, CancellationToken ct)
     {
-        var content = await _attachmentService.OpenContentAsync(attachmentId, thumbnail, ct);
+        var content = await _attachmentService.OpenContentAsync(id, attachmentId, GetActorUserId(), thumbnail, ct);
         if (content == null) return NotFound();
         return File(content.Stream, content.ContentType);
     }
 
     [HttpDelete("{id}/attachments/{attachmentId}")]
-    [RequirePermission(PermissionCodes.GraveAttachmentManage, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.GraveAttachmentManage, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> DeleteAttachment(long id, long attachmentId, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
-        await _attachmentService.DeleteAsync(attachmentId, actorUserId, ct);
+        await _attachmentService.DeleteAsync(id, attachmentId, actorUserId, ct);
         return NoContent();
     }
 

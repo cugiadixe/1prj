@@ -60,6 +60,24 @@ public class PermissionAuthorizationFilter : IAsyncAuthorizationFilter
             return;
         }
 
+        // ServiceFiltered: cổng chỉ xác nhận người gọi CÓ mã quyền này (ở bất kỳ phạm vi nào);
+        // tầng service lọc dữ liệu theo công ty. Không đòi toàn cục, không đòi header.
+        if (attribute.Scope == PermissionScope.ServiceFiltered)
+        {
+            try
+            {
+                var serviceScope = await _permissionEvaluator.ResolveAsync(
+                    userId, attribute.PermissionCode, context.HttpContext.RequestAborted);
+                if (!serviceScope.Granted)
+                    Forbid(context, "Bạn không có quyền thực hiện thao tác này.");
+            }
+            catch
+            {
+                Forbid(context, "Không kiểm tra được quyền.");
+            }
+            return;
+        }
+
         long? companyId = null;
 
         if (attribute.Scope == PermissionScope.Company)

@@ -8,12 +8,17 @@ using Microsoft.EntityFrameworkCore;
 using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Graves.DTOs;
+using PTKD.Application.Security.Authorization;
+using PTKD.Application.Security.Authorization.Interfaces;
 using PTKD.Domain.Entities;
 
 namespace PTKD.Application.Graves.Services;
 
 public class GraveAttachmentService : IGraveAttachmentService
 {
+    private const string ViewPermission = "GRAVE_VIEW";
+    private const string AttachmentManagePermission = "GRAVE_ATTACHMENT_MANAGE";
+
     private const long MaxSizeBytes = 10 * 1024 * 1024; // 10MB
     private static readonly Dictionary<string, string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -29,11 +34,16 @@ public class GraveAttachmentService : IGraveAttachmentService
 
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly IGraveFileStorage _storage;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
-    public GraveAttachmentService(IOrganizationDbContextFactory dbContextFactory, IGraveFileStorage storage)
+    public GraveAttachmentService(
+        IOrganizationDbContextFactory dbContextFactory,
+        IGraveFileStorage storage,
+        IPermissionEvaluator permissionEvaluator)
     {
         _dbContextFactory = dbContextFactory;
         _storage = storage;
+        _permissionEvaluator = permissionEvaluator;
     }
 
     public async Task<GraveAttachmentDto> UploadAsync(long graveId, string category, long? ownershipHistoryId,
@@ -49,6 +59,10 @@ public class GraveAttachmentService : IGraveAttachmentService
         await using var context = _dbContextFactory.CreateDbContext();
         if (!await context.Graves.AnyAsync(g => g.Id == graveId, ct))
             throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
+
+        var manageScope = await _permissionEvaluator.ResolveAsync(actorUserId, AttachmentManagePermission, ct);
+        await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, manageScope, "GRAVE_ATTACHMENT_FORBIDDEN_COMPANY", ct);
+
         if (ownershipHistoryId.HasValue &&
             !await context.GraveOwnershipHistories.AnyAsync(h => h.Id == ownershipHistoryId.Value && h.GraveId == graveId, ct))
             throw new EntityNotFoundException("GRAVE_OWNERSHIP_HISTORY_NOT_FOUND", "Ownership history not found.");
@@ -66,9 +80,15 @@ public class GraveAttachmentService : IGraveAttachmentService
         return MapToDto(attachment);
     }
 
-    public async Task<IReadOnlyList<GraveAttachmentDto>> ListAsync(long graveId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<GraveAttachmentDto>> ListAsync(long graveId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
+
+        // Không xem được mộ (khác công ty) -> không liệt kê đính kèm của nó.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!await GraveCompanyScope.CanAccessGraveAsync(context, graveId, scope, ct))
+            return Array.Empty<GraveAttachmentDto>();
+
         var items = await context.GraveAttachments.AsNoTracking()
             .Where(a => a.GraveId == graveId)
             .OrderByDescending(a => a.CreatedAt)
@@ -76,11 +96,19 @@ public class GraveAttachmentService : IGraveAttachmentService
         return items.Select(MapToDto).ToList();
     }
 
-    public async Task<AttachmentContent?> OpenContentAsync(long attachmentId, bool thumbnail, CancellationToken ct = default)
+    public async Task<AttachmentContent?> OpenContentAsync(long graveId, long attachmentId, long actorUserId, bool thumbnail, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var a = await context.GraveAttachments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == attachmentId, ct);
+
+        // Đính kèm PHẢI thuộc đúng mộ trên đường dẫn (trước đây bỏ qua graveId -> tải chéo được),
+        // VÀ người gọi phải xem được mộ đó theo công ty.
+        var a = await context.GraveAttachments.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == attachmentId && x.GraveId == graveId, ct);
         if (a == null) return null;
+
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!await GraveCompanyScope.CanAccessGraveAsync(context, graveId, scope, ct))
+            return null;
 
         var stream = thumbnail && a.HasThumbnail
             ? _storage.OpenReadThumbnail(a.GraveId, a.StoredName)
@@ -91,12 +119,15 @@ public class GraveAttachmentService : IGraveAttachmentService
         return new AttachmentContent(stream, contentType, a.FileNameOriginal);
     }
 
-    public async Task DeleteAsync(long attachmentId, long actorUserId, CancellationToken ct = default)
+    public async Task DeleteAsync(long graveId, long attachmentId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var a = await context.GraveAttachments.FirstOrDefaultAsync(x => x.Id == attachmentId, ct);
+        var a = await context.GraveAttachments.FirstOrDefaultAsync(x => x.Id == attachmentId && x.GraveId == graveId, ct);
         if (a == null)
             throw new EntityNotFoundException("GRAVE_ATTACHMENT_NOT_FOUND", "Attachment not found.");
+
+        var manageScope = await _permissionEvaluator.ResolveAsync(actorUserId, AttachmentManagePermission, ct);
+        await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, manageScope, "GRAVE_ATTACHMENT_FORBIDDEN_COMPANY", ct);
 
         _storage.Delete(a.GraveId, a.StoredName);
         context.GraveAttachments.Remove(a);

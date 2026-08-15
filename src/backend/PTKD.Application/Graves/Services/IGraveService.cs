@@ -6,8 +6,8 @@ namespace PTKD.Application.Graves.Services;
 
 public interface IGraveService
 {
-    Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, CancellationToken ct = default);
-    Task<GraveDetailDto?> GetGraveByIdAsync(long id, CancellationToken ct = default);
+    Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, long actorUserId, CancellationToken ct = default);
+    Task<GraveDetailDto?> GetGraveByIdAsync(long id, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> CreateGraveAsync(CreateGraveRequest request, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> UpdateGraveAsync(long id, UpdateGraveRequest request, long actorUserId, CancellationToken ct = default);
     Task<GraveOccupantDto> AddOccupantAsync(long graveId, CreateGraveOccupantRequest request, long actorUserId, CancellationToken ct = default);
@@ -29,5 +29,5 @@ public interface IGraveService
     Task<OwnerDeathResultDto> ProcessOwnerDeathAsync(OwnerDeathRequest request, long actorUserId, CancellationToken ct = default);
 
     /// <summary>Lịch sử chuyển quyền sở hữu của một phần mộ (mới nhất trước).</summary>
-    Task<System.Collections.Generic.IReadOnlyList<OwnershipHistoryItemDto>> GetOwnershipHistoryAsync(long graveId, CancellationToken ct = default);
+    Task<System.Collections.Generic.IReadOnlyList<OwnershipHistoryItemDto>> GetOwnershipHistoryAsync(long graveId, long actorUserId, CancellationToken ct = default);
 }

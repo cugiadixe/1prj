@@ -9,6 +9,8 @@ using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Graves.DTOs;
 using PTKD.Application.Security.Audit;
+using PTKD.Application.Security.Authorization;
+using PTKD.Application.Security.Authorization.Interfaces;
 using PTKD.Domain.Entities;
 using PTKD.Domain.ValueObjects;
 
@@ -26,24 +28,37 @@ public class GraveService : IGraveService
     private static readonly HashSet<string> AllowedTransferTypes =
         new(new[] { "SALE", "GIFT", "RELOCATION", "INHERITANCE", "DEATH", "CORRECTION" });
 
+    // Mã quyền dạng chuỗi (PermissionCodes nằm ở tầng PTKD.Api, không tham chiếu ngược được).
+    private const string ViewPermission = "GRAVE_VIEW";
+    private const string CreatePermission = "GRAVE_CREATE";
+    private const string UpdatePermission = "GRAVE_UPDATE";
+    private const string TransferPermission = "GRAVE_TRANSFER_OWNERSHIP";
+
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
     private readonly PTKD.Application.Relationships.Services.IRelationshipDerivationService _derivationService;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
     public GraveService(
         IOrganizationDbContextFactory dbContextFactory,
         ITransactionalAuditWriter auditWriter,
-        PTKD.Application.Relationships.Services.IRelationshipDerivationService derivationService)
+        PTKD.Application.Relationships.Services.IRelationshipDerivationService derivationService,
+        IPermissionEvaluator permissionEvaluator)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
         _derivationService = derivationService;
+        _permissionEvaluator = permissionEvaluator;
     }
 
-    public async Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var query = context.Graves.AsNoTracking().AsQueryable();
+
+        // Lọc theo công ty NGAY trong truy vấn (dữ liệu tới 50k+ mộ, không nạp hết về rồi lọc):
+        // mộ -> nghĩa trang -> công ty, chỉ giữ công ty người gọi được cấp GRAVE_VIEW.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        var query = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope);
 
         if (!string.IsNullOrWhiteSpace(request.Zone))
             query = query.Where(g => g.Zone == request.Zone);
@@ -110,7 +125,20 @@ public class GraveService : IGraveService
         };
     }
 
-    public async Task<GraveDetailDto?> GetGraveByIdAsync(long id, CancellationToken ct = default)
+    public async Task<GraveDetailDto?> GetGraveByIdAsync(long id, long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        // Mộ thuộc công ty người gọi không có quyền -> coi như không thấy (404), không lộ tồn tại.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!await GraveCompanyScope.CanAccessGraveAsync(context, id, scope, ct))
+            return null;
+
+        return await LoadGraveDetailAsync(id, ct);
+    }
+
+    /// <summary>Nạp chi tiết mộ KHÔNG kiểm quyền — chỉ gọi sau khi nơi gọi đã xác thực truy cập.</summary>
+    private async Task<GraveDetailDto?> LoadGraveDetailAsync(long id, CancellationToken ct)
     {
         await using var context = _dbContextFactory.CreateDbContext();
         var grave = await context.Graves
@@ -176,6 +204,15 @@ public class GraveService : IGraveService
 
             var cemeteryId = await ResolveCemeteryIdAsync(context, request.CemeteryId, ct);
 
+            // Mộ thuộc công ty QUA nghĩa trang: chỉ cho tạo nếu quyền GRAVE_CREATE của người gọi
+            // phủ tới công ty của nghĩa trang này.
+            var createScope = await _permissionEvaluator.ResolveAsync(actorUserId, CreatePermission, ct);
+            var cemeteryCompanyId = await context.Cemeteries
+                .Where(c => c.Id == cemeteryId).Select(c => c.CompanyId).FirstAsync(ct);
+            if (!GraveCompanyScope.AllowsCompany(createScope, cemeteryCompanyId))
+                throw new PermissionDeniedException("GRAVE_CREATE_FORBIDDEN_COMPANY",
+                    "Bạn không có quyền tạo mộ ở công ty của nghĩa trang này.");
+
             var grave = new Grave(
                 cemeteryId,
                 request.GraveCode, request.Zone, request.PlotNumber, request.GraveType, request.Status,
@@ -213,7 +250,7 @@ public class GraveService : IGraveService
 
             await transaction.CommitAsync(ct);
 
-            return (await GetGraveByIdAsync(grave.Id, ct))!;
+            return (await LoadGraveDetailAsync(grave.Id, ct))!;
         });
     }
 
@@ -233,6 +270,9 @@ public class GraveService : IGraveService
             var grave = await context.Graves.FirstOrDefaultAsync(g => g.Id == id, ct);
             if (grave == null)
                 throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
+
+            var updateScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, id, updateScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
 
             if (!grave.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("GRAVE_INVALID_ROW_VERSION", "The grave has been modified by another process.");
@@ -272,7 +312,7 @@ public class GraveService : IGraveService
 
             await transaction.CommitAsync(ct);
 
-            return (await GetGraveByIdAsync(grave.Id, ct))!;
+            return (await LoadGraveDetailAsync(grave.Id, ct))!;
         });
     }
 
@@ -288,6 +328,9 @@ public class GraveService : IGraveService
 
             if (!await context.Graves.AnyAsync(g => g.Id == graveId, ct))
                 throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
+
+            var addOccScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, addOccScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
 
             var occupant = new GraveOccupant(
                 graveId, request.FullName, request.Gender, request.Dob,
@@ -331,6 +374,9 @@ public class GraveService : IGraveService
             var occupant = await context.GraveOccupants.FirstOrDefaultAsync(o => o.Id == occupantId && o.GraveId == graveId, ct);
             if (occupant == null)
                 throw new EntityNotFoundException("GRAVE_OCCUPANT_NOT_FOUND", "Grave occupant not found.");
+
+            var updOccScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, updOccScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
 
             if (!occupant.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("GRAVE_INVALID_ROW_VERSION", "The occupant has been modified by another process.");
@@ -385,6 +431,9 @@ public class GraveService : IGraveService
             if (!await context.Customers.AnyAsync(c => c.Id == request.ContactCustomerId, ct))
                 throw new EntityNotFoundException("GRAVE_EC_CUSTOMER_NOT_FOUND", "Contact customer not found.");
 
+            var addEcScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, addEcScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
+
             // Ưu tiên = kế tiếp cuối danh sách đang hoạt động (gọi lần lượt theo priority).
             var maxPriority = await context.GraveEmergencyContacts
                 .Where(c => c.GraveId == graveId && c.IsActive)
@@ -432,6 +481,10 @@ public class GraveService : IGraveService
                 .FirstOrDefaultAsync(c => c.Id == contactId && c.GraveId == graveId && c.IsActive, ct);
             if (contact == null)
                 throw new EntityNotFoundException("GRAVE_EC_NOT_FOUND", "Emergency contact not found.");
+
+            var updEcScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, updEcScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
+
             if (!contact.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("GRAVE_INVALID_ROW_VERSION", "The emergency contact has been modified by another process.");
             if (!await context.Customers.AnyAsync(c => c.Id == request.ContactCustomerId, ct))
@@ -481,6 +534,9 @@ public class GraveService : IGraveService
                 .FirstOrDefaultAsync(c => c.Id == contactId && c.GraveId == graveId, ct);
             if (contact == null)
                 throw new EntityNotFoundException("GRAVE_EC_NOT_FOUND", "Emergency contact not found.");
+
+            var rmEcScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, rmEcScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
 
             // Xóa cứng để giải phóng slot priority (chỉ số UQ theo grave_id+priority).
             context.GraveEmergencyContacts.Remove(contact);
@@ -555,6 +611,10 @@ public class GraveService : IGraveService
             var grave = await context.Graves.FirstOrDefaultAsync(g => g.Id == graveId, ct);
             if (grave == null)
                 throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
+
+            var transferScope = await _permissionEvaluator.ResolveAsync(actorUserId, TransferPermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, transferScope, "GRAVE_TRANSFER_FORBIDDEN_COMPANY", ct);
+
             if (!grave.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("GRAVE_INVALID_ROW_VERSION", "The grave has been modified by another process.");
 
@@ -615,7 +675,7 @@ public class GraveService : IGraveService
 
             return new TransferOwnershipResultDto
             {
-                Grave = (await GetGraveByIdAsync(graveId, ct))!,
+                Grave = (await LoadGraveDetailAsync(graveId, ct))!,
                 OwnershipHistoryId = history.Id,
                 OccupantsRederived = rederived,
                 OccupantsNeedingConfirmation = needConfirm
@@ -627,6 +687,22 @@ public class GraveService : IGraveService
     {
         if (request.DeceasedCustomerId == request.HeirCustomerId)
             throw new BusinessRuleValidationException("GRAVE_HEIR_SAME_AS_DECEASED", "Heir must differ from the deceased.");
+
+        // 0) CHẶN TRƯỚC theo công ty: mọi mộ người mất sở hữu phải nằm trong phạm vi chuyển quyền
+        //    của người gọi. Kiểm trước khi đánh dấu qua đời để không rơi vào trạng thái nửa vời
+        //    (đã đánh dấu chết mà lại 403 giữa chừng khi chuyển tới một mộ ngoài phạm vi).
+        var deathScope = await _permissionEvaluator.ResolveAsync(actorUserId, TransferPermission, ct);
+        await using (var checkCtx = _dbContextFactory.CreateDbContext())
+        {
+            var graveCompanyIds = await checkCtx.Graves.AsNoTracking()
+                .Where(g => g.OwnerCustomerId == request.DeceasedCustomerId)
+                .Select(g => g.Cemetery!.CompanyId)
+                .Distinct()
+                .ToListAsync(ct);
+            if (graveCompanyIds.Any(cid => !deathScope.Allows(cid)))
+                throw new PermissionDeniedException("GRAVE_OWNER_DEATH_FORBIDDEN_COMPANY",
+                    "Người mất sở hữu mộ ở công ty bạn không có quyền chuyển. Cần quyền chuyển quyền ở tất cả công ty liên quan.");
+        }
 
         // 1) Đánh dấu khách hàng qua đời (transaction riêng)
         await using (var tempCtx = _dbContextFactory.CreateDbContext())
@@ -702,9 +778,15 @@ public class GraveService : IGraveService
         };
     }
 
-    public async Task<IReadOnlyList<OwnershipHistoryItemDto>> GetOwnershipHistoryAsync(long graveId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OwnershipHistoryItemDto>> GetOwnershipHistoryAsync(long graveId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
+
+        // Không thấy mộ (khác công ty) -> không thấy lịch sử chuyển quyền của nó.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!await GraveCompanyScope.CanAccessGraveAsync(context, graveId, scope, ct))
+            return Array.Empty<OwnershipHistoryItemDto>();
+
         var items = await context.GraveOwnershipHistories.AsNoTracking()
             .Where(h => h.GraveId == graveId)
             .OrderByDescending(h => h.TransferredAt)

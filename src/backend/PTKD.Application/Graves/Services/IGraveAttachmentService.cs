@@ -13,12 +13,16 @@ public interface IGraveAttachmentService
         string fileName, string contentType, long size, Stream content,
         string? description, long actorUserId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<GraveAttachmentDto>> ListAsync(long graveId, CancellationToken ct = default);
+    Task<IReadOnlyList<GraveAttachmentDto>> ListAsync(long graveId, long actorUserId, CancellationToken ct = default);
 
-    /// <summary>Trả metadata + stream để controller phát file (gốc hoặc thumbnail). Null nếu không có.</summary>
-    Task<AttachmentContent?> OpenContentAsync(long attachmentId, bool thumbnail, CancellationToken ct = default);
+    /// <summary>
+    /// Trả metadata + stream để controller phát file (gốc hoặc thumbnail). Null nếu không có.
+    /// <paramref name="graveId"/> BẮT BUỘC: đính kèm phải thuộc đúng mộ đó, và người gọi phải xem
+    /// được mộ đó (theo công ty). Trước đây bỏ qua graveId nên tải chéo được đính kèm mộ khác.
+    /// </summary>
+    Task<AttachmentContent?> OpenContentAsync(long graveId, long attachmentId, long actorUserId, bool thumbnail, CancellationToken ct = default);
 
-    Task DeleteAsync(long attachmentId, long actorUserId, CancellationToken ct = default);
+    Task DeleteAsync(long graveId, long attachmentId, long actorUserId, CancellationToken ct = default);
 }
 
 public sealed record AttachmentContent(Stream Stream, string ContentType, string FileName);
