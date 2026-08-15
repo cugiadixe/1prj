@@ -13,6 +13,7 @@ public class GraveConfiguration : IEntityTypeConfiguration<Grave>
 
         builder.Property(g => g.Id).HasColumnName("id");
         builder.Property(g => g.GraveCode).HasColumnName("grave_code").HasMaxLength(50);
+        builder.Property(g => g.CemeteryId).HasColumnName("cemetery_id");
         builder.Property(g => g.Zone).HasColumnName("zone").HasMaxLength(10);
         builder.Property(g => g.PlotNumber).HasColumnName("plot_number").HasMaxLength(20);
         builder.Property(g => g.RowLabel).HasColumnName("row_label").HasMaxLength(20);
@@ -35,6 +36,11 @@ public class GraveConfiguration : IEntityTypeConfiguration<Grave>
         builder.HasOne(g => g.Owner)
             .WithMany()
             .HasForeignKey(g => g.OwnerCustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(g => g.Cemetery)
+            .WithMany(c => c.Graves)
+            .HasForeignKey(g => g.CemeteryId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(g => g.Occupants)

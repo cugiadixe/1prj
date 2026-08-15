@@ -54,6 +54,7 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<CardReprintRequest> CardReprintRequests => Set<CardReprintRequest>();
     public DbSet<CarePackageRequest> CarePackageRequests => Set<CarePackageRequest>();
     public DbSet<CarePackageRequestItem> CarePackageRequestItems => Set<CarePackageRequestItem>();
+    public DbSet<Cemetery> Cemeteries => Set<Cemetery>();
     public DbSet<Grave> Graves => Set<Grave>();
     public DbSet<GraveOccupant> GraveOccupants => Set<GraveOccupant>();
     public DbSet<CustomerCarePackage> CustomerCarePackages => Set<CustomerCarePackage>();

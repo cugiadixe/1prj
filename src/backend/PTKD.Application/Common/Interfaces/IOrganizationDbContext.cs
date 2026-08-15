@@ -47,6 +47,7 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<CardReprintRequest> CardReprintRequests { get; }
     DbSet<CarePackageRequest> CarePackageRequests { get; }
     DbSet<CarePackageRequestItem> CarePackageRequestItems { get; }
+    DbSet<Cemetery> Cemeteries { get; }
     DbSet<Grave> Graves { get; }
     DbSet<GraveOccupant> GraveOccupants { get; }
     DbSet<CustomerCarePackage> CustomerCarePackages { get; }

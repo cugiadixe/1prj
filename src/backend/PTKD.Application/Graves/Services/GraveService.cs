@@ -174,7 +174,10 @@ public class GraveService : IGraveService
 
             await EnsureOwnerExistsAsync(context, request.OwnerCustomerId, ct);
 
+            var cemeteryId = await ResolveCemeteryIdAsync(context, request.CemeteryId, ct);
+
             var grave = new Grave(
+                cemeteryId,
                 request.GraveCode, request.Zone, request.PlotNumber, request.GraveType, request.Status,
                 request.RowLabel, request.ColLabel, request.AreaM2, request.CotCount, request.OwnerCustomerId,
                 request.EmergencyContactName, request.EmergencyContactPhone, request.EmergencyContactRelationship,
@@ -739,6 +742,37 @@ public class GraveService : IGraveService
         if (ownerCustomerId.HasValue &&
             !await context.Customers.AnyAsync(c => c.Id == ownerCustomerId.Value, ct))
             throw new EntityNotFoundException("GRAVE_OWNER_NOT_FOUND", "Owner customer not found.");
+    }
+
+    /// <summary>
+    /// Mộ thuộc công ty QUA nghĩa trang, nên mỗi mộ phải có nghĩa trang. Nếu người tạo chỉ rõ thì
+    /// kiểm nghĩa trang tồn tại + còn hoạt động; nếu bỏ trống thì hệ tự chọn khi có ĐÚNG một nghĩa
+    /// trang, còn nhiều nghĩa trang thì bắt buộc chọn để không gán mộ nhầm công ty.
+    /// </summary>
+    private static async Task<long> ResolveCemeteryIdAsync(IOrganizationDbContext context, long? requestedCemeteryId, CancellationToken ct)
+    {
+        if (requestedCemeteryId.HasValue)
+        {
+            var valid = await context.Cemeteries
+                .AnyAsync(c => c.Id == requestedCemeteryId.Value && c.IsActive, ct);
+            if (!valid)
+                throw new BusinessRuleValidationException("GRAVE_INVALID_CEMETERY", "Nghĩa trang không tồn tại hoặc đã ngừng hoạt động.");
+            return requestedCemeteryId.Value;
+        }
+
+        var activeCemeteryIds = await context.Cemeteries
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.Id)
+            .Select(c => c.Id)
+            .Take(2)
+            .ToListAsync(ct);
+
+        if (activeCemeteryIds.Count == 0)
+            throw new BusinessRuleValidationException("GRAVE_NO_CEMETERY", "Chưa khai báo nghĩa trang nào. Vui lòng tạo nghĩa trang trước khi tạo mộ.");
+        if (activeCemeteryIds.Count > 1)
+            throw new BusinessRuleValidationException("GRAVE_CEMETERY_REQUIRED", "Có nhiều nghĩa trang; vui lòng chọn nghĩa trang cho mộ.");
+
+        return activeCemeteryIds[0];
     }
 
     private static void ValidateEnums(string zone, string graveType, string status)

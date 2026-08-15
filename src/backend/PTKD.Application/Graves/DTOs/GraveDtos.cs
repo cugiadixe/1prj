@@ -94,6 +94,11 @@ public class GraveOccupantDto
 public class CreateGraveRequest
 {
     public string GraveCode { get; set; } = null!;
+    /// <summary>
+    /// Nghĩa trang chứa mộ (mộ thuộc công ty qua nghĩa trang). Bỏ trống khi hệ chỉ có MỘT nghĩa
+    /// trang thì hệ tự chọn; khi có nhiều nghĩa trang thì bắt buộc chọn.
+    /// </summary>
+    public long? CemeteryId { get; set; }
     public string Zone { get; set; } = null!;
     public string PlotNumber { get; set; } = null!;
     public string? RowLabel { get; set; }

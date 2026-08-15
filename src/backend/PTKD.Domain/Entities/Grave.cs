@@ -20,6 +20,7 @@ public class Grave
 
     public long Id { get; private set; }
     public string GraveCode { get; private set; } = null!;
+    public long CemeteryId { get; private set; }   // mộ thuộc công ty QUA nghĩa trang
     public string Zone { get; private set; } = null!;
     public string PlotNumber { get; private set; } = null!;
     public string? RowLabel { get; private set; }
@@ -41,16 +42,19 @@ public class Grave
     public long? UpdatedByUserId { get; private set; }
 
     public Customer? Owner { get; private set; }
+    public Cemetery? Cemetery { get; private set; }
     public ICollection<GraveOccupant> Occupants { get; private set; } = new List<GraveOccupant>();
 
     private Grave() { }
 
     public Grave(
+        long cemeteryId,
         string graveCode, string zone, string plotNumber, string graveType, string status,
         string? rowLabel, string? colLabel, decimal? areaM2, int cotCount, long? ownerCustomerId,
         string? emergencyContactName, string? emergencyContactPhone, string? emergencyContactRelationship,
         string? notes)
     {
+        CemeteryId = cemeteryId;
         GraveCode = graveCode ?? throw new ArgumentNullException(nameof(graveCode));
         Zone = zone ?? throw new ArgumentNullException(nameof(zone));
         PlotNumber = plotNumber ?? throw new ArgumentNullException(nameof(plotNumber));
