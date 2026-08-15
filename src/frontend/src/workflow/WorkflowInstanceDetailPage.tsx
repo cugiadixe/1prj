@@ -145,12 +145,25 @@ const WorkflowInstanceDetailPage: React.FC = () => {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (vals: { reason: string; comment?: string }) =>
-      rejectStep(numericId, activeStepId!, {
-        reason: vals.reason,
-        comment: vals.comment || null,
-        targetVersion: activeStepRowVersion,
-      }),
+    mutationFn: (vals: { reason: string; comment?: string }) => {
+      // Từ chối nay gác bằng quyền theo công ty, nên phải khai công ty CỦA CHÍNH HỒ SƠ —
+      // không dùng công ty đang chọn trên thanh công cụ, vì hai thứ đó có thể khác nhau.
+      if (instance?.companyId == null) {
+        return Promise.reject(
+          new Error('Hồ sơ này chưa gắn công ty nên không thể từ chối. Liên hệ quản trị hệ thống.'),
+        );
+      }
+      return rejectStep(
+        numericId,
+        activeStepId!,
+        {
+          reason: vals.reason,
+          comment: vals.comment || null,
+          targetVersion: activeStepRowVersion,
+        },
+        instance.companyId,
+      );
+    },
     onSuccess: () => {
       onSuccess();
       queryClient.invalidateQueries({ queryKey: ['workflow-instance-actions', numericId] });

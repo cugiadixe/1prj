@@ -28,9 +28,9 @@ public class CustomerCarePackagesController : ControllerBase
     public async Task<IActionResult> List([FromQuery] long? customerId, [FromQuery] long? graveId, CancellationToken ct)
     {
         if (customerId.HasValue)
-            return Ok(await _service.ListByCustomerAsync(customerId.Value, ct));
+            return Ok(await _service.ListByCustomerAsync(customerId.Value, GetActorUserId(), ct));
         if (graveId.HasValue)
-            return Ok(await _service.ListByGraveAsync(graveId.Value, ct));
+            return Ok(await _service.ListByGraveAsync(graveId.Value, GetActorUserId(), ct));
         return BadRequest(new { error = "customerId hoặc graveId là bắt buộc." });
     }
 

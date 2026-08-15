@@ -9,6 +9,8 @@ using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.CustomerCarePackages.DTOs;
 using PTKD.Application.Security.Audit;
+using PTKD.Application.Security.Authorization;
+using PTKD.Application.Security.Authorization.Interfaces;
 using PTKD.Application.Workflows.DTOs;
 using PTKD.Application.Workflows.Services;
 using PTKD.Domain.Entities;
@@ -19,23 +21,34 @@ public class CustomerCarePackageService : ICustomerCarePackageService
 {
     private const string AssignProcessCode = "ASSIGN_CARE_PACKAGE";
 
+    private const string ViewPermission = "CUSTOMER_CARE_PACKAGE_VIEW";
+    private const string ManagePermission = "CUSTOMER_CARE_PACKAGE_MANAGE";
+
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
     private readonly IWorkflowRuntimeService _workflowRuntimeService;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
     public CustomerCarePackageService(
         IOrganizationDbContextFactory dbContextFactory,
         ITransactionalAuditWriter auditWriter,
-        IWorkflowRuntimeService workflowRuntimeService)
+        IWorkflowRuntimeService workflowRuntimeService,
+        IPermissionEvaluator permissionEvaluator)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
         _workflowRuntimeService = workflowRuntimeService;
+        _permissionEvaluator = permissionEvaluator;
     }
 
-    public async Task<CustomerCarePackageDto[]> ListByCustomerAsync(long customerId, CancellationToken ct = default)
+    public async Task<CustomerCarePackageDto[]> ListByCustomerAsync(long customerId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
+
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!await CustomerCompanyScope.CanAccessCustomerAsync(context, customerId, scope, ct))
+            return Array.Empty<CustomerCarePackageDto>();
+
         var items = await context.CustomerCarePackages
             .AsNoTracking()
             .Where(p => p.CustomerId == customerId)
@@ -46,15 +59,25 @@ public class CustomerCarePackageService : ICustomerCarePackageService
         return items;
     }
 
-    public async Task<CustomerCarePackageDto[]> ListByGraveAsync(long graveId, CancellationToken ct = default)
+    public async Task<CustomerCarePackageDto[]> ListByGraveAsync(long graveId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
+
         var items = await context.CustomerCarePackages
             .AsNoTracking()
             .Where(p => p.GraveId == graveId)
             .OrderByDescending(p => p.Id)
             .Select(MapExpression())
             .ToArrayAsync(ct);
+
+        // Một mộ có thể mang gói của nhiều khách, nên lọc theo TỪNG khách chứ không lọc theo mộ.
+        // Mộ hiện chưa có chiều công ty trong dữ liệu, đó là việc riêng chưa làm được ở đây.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        var accessible = await CustomerCompanyScope.FilterAccessibleCustomerIdsAsync(
+            context, items.Select(i => i.CustomerId).Distinct().ToList(), scope, ct);
+
+        items = items.Where(i => accessible.Contains(i.CustomerId)).ToArray();
+
         await EnrichAsync(context, items, ct);
         return items;
     }
@@ -247,6 +270,15 @@ public class CustomerCarePackageService : ICustomerCarePackageService
             var package = await context.CustomerCarePackages.FirstOrDefaultAsync(p => p.Id == id, ct);
             if (package == null)
                 throw new EntityNotFoundException("CCP_NOT_FOUND", "Không tìm thấy gói chăm sóc của khách.");
+
+            // Bản ghi đích phải thuộc công ty người gọi được phép. Ba kiểm tra nghiệp vụ bên dưới
+            // (mộ thuộc sở hữu khách, số cốt khớp, không trùng gói) đều là quan hệ NỘI BỘ giữa
+            // gói và mộ, không ràng buộc gì với công ty của người gọi — nên thiếu chốt này thì
+            // gán được mộ cho gói của công ty khác chỉ bằng cách đoán id.
+            var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ManagePermission, ct);
+            await CustomerCompanyScope.EnsureCustomerAccessibleAsync(
+                context, package.CustomerId, scope, "CCP_COMPANY_FORBIDDEN", ct);
+
             if (package.Status == CustomerCarePackage.StatusCancelled)
                 throw new BusinessRuleValidationException("CCP_CANCELLED", "Gói đã hủy, không thể gán mộ.");
 
@@ -299,6 +331,12 @@ public class CustomerCarePackageService : ICustomerCarePackageService
             var package = await context.CustomerCarePackages.FirstOrDefaultAsync(p => p.Id == id, ct);
             if (package == null)
                 throw new EntityNotFoundException("CCP_NOT_FOUND", "Không tìm thấy gói chăm sóc của khách.");
+
+            // Không có chốt này thì huỷ được gói ĐANG HIỆU LỰC của công ty khác chỉ bằng cách
+            // đoán id — và Cancel() bên dưới không có chốt trạng thái nào chặn lại.
+            var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ManagePermission, ct);
+            await CustomerCompanyScope.EnsureCustomerAccessibleAsync(
+                context, package.CustomerId, scope, "CCP_COMPANY_FORBIDDEN", ct);
 
             package.Cancel(actorUserId);
             await context.SaveChangesAsync(ct);

@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Security.Audit;
+using PTKD.Application.Security.Authorization;
+using PTKD.Application.Security.Authorization.Interfaces;
 using PTKD.Application.Tags.DTOs;
 using PTKD.Domain.Entities;
 using PTKD.Domain.ValueObjects;
@@ -24,11 +26,16 @@ public class TagService : ITagService
 
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
-    public TagService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter)
+    public TagService(
+        IOrganizationDbContextFactory dbContextFactory,
+        ITransactionalAuditWriter auditWriter,
+        IPermissionEvaluator permissionEvaluator)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
+        _permissionEvaluator = permissionEvaluator;
     }
 
     public async Task<IReadOnlyList<TagDto>> ListTagsAsync(string tagType, bool includeInactive, CancellationToken ct = default)
@@ -188,6 +195,17 @@ public class TagService : ITagService
             await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
 
             await EnsureEntityExistsAsync(context, entityId, tagType, ct);
+
+            // Đây là thao tác ĐẶT LẠI TOÀN BỘ, không phải thêm — nên thiếu chốt công ty thì một
+            // lệnh gọi xoá sạch thẻ phân loại khách hàng của công ty khác chỉ bằng cách đoán id.
+            // Mộ chưa có chiều công ty trong dữ liệu nên chỉ chốt được ở phía khách hàng; phần
+            // mộ sẽ siết cùng đợt dựng thực thể nghĩa trang.
+            if (tagType == Tag.TypeCustomer)
+            {
+                var scope = await _permissionEvaluator.ResolveAsync(actorUserId, "TAG_MANAGE", ct);
+                await CustomerCompanyScope.EnsureCustomerAccessibleAsync(
+                    context, entityId, scope, "TAG_COMPANY_FORBIDDEN", ct);
+            }
 
             // 1) Xác thực các tagId truyền vào (đúng loại + đang hoạt động)
             var validIds = new HashSet<long>();

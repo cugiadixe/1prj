@@ -106,7 +106,11 @@ public class WorkflowRuntimeController : ControllerBase
         return Ok(result);
     }
 
+    // Trước đây endpoint này KHÔNG gác quyền gì cả: mã WORKFLOW_REJECT đã có trong danh mục và
+    // giao diện vẫn kiểm nó, nhưng giao diện là LỚP CHẶN DUY NHẤT — ai được phân công duyệt đều
+    // gọi thẳng API từ chối được, dù không được cấp quyền đó.
     [HttpPost("instances/{instanceId}/steps/{stepId}/reject")]
+    [RequirePermission(PermissionCodes.WorkflowReject, PermissionScope.Company)]
     public async Task<IActionResult> RejectStep(long instanceId, long stepId, [FromBody] ApprovalActionRequest request, CancellationToken ct)
     {
         var result = await _runtimeService.RejectStepAsync(instanceId, stepId, request, GetActorUserId(), ct);

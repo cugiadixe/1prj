@@ -79,10 +79,14 @@ export async function rejectStep(
   instanceId: number,
   stepId: number,
   request: ApprovalActionRequest,
+  companyId: number,
 ): Promise<WorkflowInstance> {
+  // Endpoint từ chối nay gác bằng quyền WORKFLOW_REJECT ở phạm vi công ty, nên bắt buộc gửi
+  // header. Trước đây endpoint không gác gì và giao diện là lớp chặn duy nhất.
   const { data } = await axiosClient.post<WorkflowInstance>(
     `${BASE}/instances/${instanceId}/steps/${stepId}/reject`,
     request,
+    { headers: { 'X-Company-Id': String(companyId) } },
   );
   return data;
 }

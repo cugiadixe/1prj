@@ -88,11 +88,15 @@ describe('workflowRuntimeApi', () => {
     expect(mockAxios.get).toHaveBeenCalledWith('/workflows/instances/1/actions');
   });
 
-  it('rejectStep calls POST /workflows/instances/:id/steps/:stepId/reject', async () => {
+  it('rejectStep gửi kèm X-Company-Id vì endpoint gác quyền theo công ty', async () => {
     const req = { reason: 'bad data', comment: null, targetVersion: 'AA' };
     mockAxios.post.mockResolvedValue({ data: { id: 1 } });
-    await rejectStep(1, 2, req);
-    expect(mockAxios.post).toHaveBeenCalledWith('/workflows/instances/1/steps/2/reject', req);
+    await rejectStep(1, 2, req, 35);
+    expect(mockAxios.post).toHaveBeenCalledWith(
+      '/workflows/instances/1/steps/2/reject',
+      req,
+      { headers: { 'X-Company-Id': '35' } },
+    );
   });
 
   it('retryExecution calls POST /workflows/instances/:id/retry-execution', async () => {

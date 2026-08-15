@@ -851,7 +851,13 @@ public class WorkflowRuntimeService : IWorkflowRuntimeService
                 var canView = await _permissionEvaluator.EvaluateAsync(userId, "WORKFLOW_VIEW", instance.CompanyId, ct)
                     || await _permissionEvaluator.EvaluateAsync(userId, "WORKFLOW_VIEW", null, ct);
 
-                if (!canView)
+                // Có WORKFLOW_VIEW là CHƯA ĐỦ — phải kiểm cả công ty, giống hai đường kia.
+                // Đây là đường THỨ BA và nó bị bỏ sót ở đợt vá trước: lịch sử phê duyệt có kèm
+                // TÊN người đã duyệt cùng lý do/nhận xét, và id hồ sơ là IDENTITY(1,1) tuần tự
+                // nên duyệt 1,2,3… là quét sạch.
+                var companyAllowed = await IsInstanceCompanyAccessibleAsync(context, userId, instance.CompanyId, ct);
+
+                if (!canView || !companyAllowed)
                     throw new BusinessRuleValidationException("WF_ACTION_HISTORY_UNAUTHORIZED", "You do not have permission to view this instance's action history.");
             }
         }
