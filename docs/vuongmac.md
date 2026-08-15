@@ -44,7 +44,66 @@ quyết định gộp `main`.
 > **Chặn trước khi làm:** mỗi quy trình cần anh cho biết **ai duyệt, cấp nào** — đây là quyết
 > định nghiệp vụ, AI không tự đặt.
 
-### ⛔ Việc dở dang: rà soát an ninh chưa chạy được
+### 🔴 KẾT QUẢ RÀ SOÁT AN NINH — VẤN ĐỀ HỆ THỐNG, CẦN QUYẾT ĐỊNH THIẾT KẾ
+
+> Đây là mục **quan trọng nhất** trong tài liệu này. Đề nghị đọc trước khi làm bất cứ việc gì khác.
+
+**Đã vá (2 lỗ hổng, đều do endpoint thêm trong phiên này):**
+- `806aee6` — `GET /workflows/instances` lộ hồ sơ mọi công ty kèm tên + mã khách hàng.
+- `2227ea9` — `GET /workflows/instances/{id}` cùng lỗi. Đính chính: id là `IDENTITY(1,1)` **tuần tự**
+  nên "phải biết id" KHÔNG phải rào cản — duyệt 1,2,3… là quét sạch.
+- Cách vá: mặc định chỉ thấy công ty mình được phân công; ai cần nhìn xuyên công ty phải có
+  riêng quyền `WORKFLOW_VIEW_ALL_COMPANIES` (V0036, đánh dấu nhạy cảm).
+
+**ĐÃ XÁC NHẬN nhưng CHƯA VÁ (2, mức cao):**
+1. `GET /api/v2/customer-care-packages?customerId={id}` và `?graveId={id}` — đọc chéo công ty:
+   trả về **tên khách hàng, mã mộ, số cốt, đơn giá, tổng tiền** của công ty khác. `customerId`
+   tuần tự nên quét `1..N` là sạch.
+2. `POST /api/v2/customer-care-packages/{id}/cancel` — **GHI chéo công ty**: huỷ được gói đang
+   hiệu lực của công ty khác. Nặng thêm: `CustomerCarePackage.Cancel()` **không có chốt trạng
+   thái nào**, trong khi `MarkRejected`/`AssignGrave` cùng entity đều có.
+
+**CHƯA KIỂM CHỨNG (18 nghi vấn — KHÔNG phải "đã an toàn").** Vòng kiểm chứng đối kháng chỉ chạy
+được 5/23; 18 luồng còn lại chết vì hết hạn mức phiên. Trong số chưa kiểm có 5 mức HIGH:
+- `GET /api/v2/customers` (+ `/{id}`, `/company-contexts`, `/lookups/*`)
+- `GET /api/v2/graves` và toàn bộ `GravesController`
+- `POST /api/v2/customer-care-packages/{id}/assign-grave` (ghi chéo, cùng khuôn với cancel)
+- `POST /workflows/instances/{id}/steps/{stepId}/reassign`
+- **Tầng nền:** `PermissionAuthorizationFilter` lấy `X-Company-Id` NGUYÊN VĂN từ client, chỉ kiểm
+  có mặt + parse được số, **không kiểm người gọi có thuộc công ty đó không** (đã tự đọc mã nguồn
+  xác nhận, dòng 59-88). Nếu một grant nào đó có `ScopeType='GLOBAL'` thì nó thoả mãn MỌI companyId
+  người gọi tự khai.
+
+#### ❓ QUYẾT ĐỊNH THIẾT KẾ CẦN ANH ĐƯA RA
+
+Khuôn dạng lặp lại ở **ít nhất 5 module** (khách hàng · mộ · gói chăm sóc · gộp KH · loại dịch vụ),
+tất cả đều khai quyền `data_scope = 'GLOBAL'` rồi không lọc dữ liệu theo công ty.
+
+**Câu hỏi gốc: những quyền đó lẽ ra phải là phạm vi CÔNG TY chứ không phải TOÀN CỤC?**
+
+| Hướng | Nội dung | Đánh đổi |
+|---|---|---|
+| **A. Sửa gốc** | Chuyển các quyền đọc/ghi dữ liệu nghiệp vụ sang `data_scope='COMPANY'`, và ép lọc dữ liệu theo công ty ở tầng truy vấn | Đúng bản chất, chặn cả lỗi tương lai. Nhưng đụng nhiều module, phải cấp lại quyền, rủi ro làm gãy pilot |
+| **B. Vá theo module** | Áp mẫu như đã làm cho quy trình: lọc theo công ty người dùng + quyền riêng để nhìn xuyên công ty | Bám sát cái đã chứng minh chạy được. Nhưng phải nhớ áp cho MỌI module, dễ sót, và mỗi module thêm một quyền mới |
+| **C. Chặn ở tầng nền** | Ép `X-Company-Id` phải thuộc về người gọi + thêm bộ lọc công ty ở tầng dữ liệu (query filter) | Một chỗ chặn cho tất cả. Nhưng là refactor lớn nhất và dễ gãy nhất |
+
+> **Khuyến nghị:** làm **C (phần kiểm `X-Company-Id`) ngay** — nhỏ, một chỗ, chặn cả một lớp lỗi.
+> Rồi **B cho hai lỗ đã xác nhận ở gói chăm sóc**. Còn **A** thì bàn riêng, có kế hoạch, không làm vội.
+>
+> **Trước khi làm bất cứ hướng nào: cần chạy lại vòng kiểm chứng cho 18 nghi vấn còn lại** (hạn mức
+> reset 7:30). Vá theo phỏng đoán còn tệ hơn chưa vá.
+
+**Vì sao AI dừng, không tự vá tiếp:** vá lẻ 2 endpoint trong khi 18 nghi vấn chưa kiểm và khuôn dạng
+lặp ở 5 module sẽ tạo **cảm giác an toàn giả**; và cách vá đúng phụ thuộc vào quyết định A/B/C ở trên,
+nếu chọn A thì mọi bản vá lẻ thành công cốc.
+
+**Ghi nhận tự phê:** cả 2 lỗ hổng đã vá đều **do chính AI tạo ra trong phiên này**, và đều **lọt qua
+vòng soát code trước đó** — vì lúc đó soát *"code có đúng ý định không"* chứ không soát *"ý định có
+an toàn không"*. Rà an ninh phải là bước RIÊNG, không gộp vào soát code.
+
+---
+
+### ⛔ Việc dở dang: rà soát an ninh chưa chạy được (vòng 1)
 
 Cuối phiên đã cho chạy rà soát *"backend có thật sự chặn xem chéo công ty không"* (sau khi gỡ
 guard frontend). **Cả 4 luồng đều thất bại do hết hạn mức phiên làm việc — KHÔNG có kết quả.**
