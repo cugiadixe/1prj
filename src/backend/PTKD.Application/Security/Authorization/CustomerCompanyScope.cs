@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Security.Authorization.Models;
+using PTKD.Domain.Entities;
 
 namespace PTKD.Application.Security.Authorization;
 
@@ -17,6 +18,37 @@ namespace PTKD.Application.Security.Authorization;
 /// </summary>
 public static class CustomerCompanyScope
 {
+    /// <summary>
+    /// Gắn mệnh đề lọc công ty vào truy vấn KHÁCH HÀNG, dùng cho danh sách phân trang trong CSDL
+    /// (300K+ khách, không nạp hết rồi lọc). Ngữ nghĩa khớp <see cref="CanAccessCustomerAsync"/>:
+    /// thấy khách nếu quyền phủ ÍT NHẤT một công ty của khách; khách mồ côi chỉ người toàn cục thấy.
+    /// </summary>
+    public static IQueryable<Customer> ApplyScope(
+        IQueryable<Customer> query,
+        IOrganizationDbContext context,
+        PermissionScopeResult scope)
+    {
+        if (!scope.Granted)
+            return query.Where(_ => false);
+
+        if (scope.IsUnrestricted)
+        {
+            var excluded = scope.ExcludedCompanyIds;
+            if (excluded.Count == 0)
+                return query; // thấy tất cả, không cần join
+
+            // Thấy mọi khách TRỪ khách chỉ gắn công ty bị cấm; khách mồ côi vẫn thấy (toàn cục).
+            return query.Where(c =>
+                !context.CustomerCompanyContexts.Any(cc => cc.CustomerId == c.Id)
+                || context.CustomerCompanyContexts.Any(cc => cc.CustomerId == c.Id && !excluded.Contains(cc.CompanyId)));
+        }
+
+        var allowed = scope.AllowedCompanyIds; // đã loại công ty bị cấm
+        // Chỉ khách gắn ít nhất một công ty được phủ; khách mồ côi KHÔNG thấy (chỉ toàn cục thấy).
+        return query.Where(c =>
+            context.CustomerCompanyContexts.Any(cc => cc.CustomerId == c.Id && allowed.Contains(cc.CompanyId)));
+    }
+
     /// <summary>
     /// Lọc một tập id khách hàng xuống còn những khách người gọi được phép.
     /// Dùng cho danh sách đã nạp về (tập nhỏ), tránh phải dựng bộ lọc tổng quát bằng cây biểu thức.

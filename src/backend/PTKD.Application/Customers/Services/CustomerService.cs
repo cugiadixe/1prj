@@ -8,6 +8,8 @@ using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
 using PTKD.Application.Customers.DTOs;
 using PTKD.Application.Security.Audit;
+using PTKD.Application.Security.Authorization;
+using PTKD.Application.Security.Authorization.Interfaces;
 using PTKD.Domain.Entities;
 using PTKD.Domain.ValueObjects;
 
@@ -15,17 +17,43 @@ namespace PTKD.Application.Customers.Services;
 
 public class CustomerService : ICustomerService
 {
+    // Mã quyền dạng chuỗi (PermissionCodes nằm ở tầng PTKD.Api, không tham chiếu ngược được).
+    private const string ViewBasicPermission = "CUSTOMER_VIEW_BASIC";
+    private const string CreateFinalPermission = "CUSTOMER_CREATE_FINAL";
+    private const string MasterUpdatePermission = "CUSTOMER_MASTER_UPDATE";
+
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
+    private readonly IPermissionEvaluator _permissionEvaluator;
 
-    public CustomerService(IOrganizationDbContextFactory dbContextFactory, ITransactionalAuditWriter auditWriter)
+    public CustomerService(
+        IOrganizationDbContextFactory dbContextFactory,
+        ITransactionalAuditWriter auditWriter,
+        IPermissionEvaluator permissionEvaluator)
     {
         _dbContextFactory = dbContextFactory;
         _auditWriter = auditWriter;
+        _permissionEvaluator = permissionEvaluator;
     }
 
     public async Task<CustomerDetailDto> CreateCustomerAsync(CreateCustomerRequest request, long actorUserId, CancellationToken ct = default)
     {
+        // Khách gắn công ty nào thì người tạo phải có quyền tạo ở công ty đó. Khách CHƯA gắn công ty
+        // (mồ côi) chỉ người toàn cục tạo được — nếu không sẽ đẻ ra khách chính người tạo cũng không
+        // thấy lại được, và là lỗ để lách phạm vi.
+        var createScope = await _permissionEvaluator.ResolveAsync(actorUserId, CreateFinalPermission, ct);
+        if (request.InitialCompanyId.HasValue)
+        {
+            if (!createScope.Allows(request.InitialCompanyId.Value))
+                throw new PermissionDeniedException("CUS_CREATE_FORBIDDEN_COMPANY",
+                    "Bạn không có quyền tạo khách hàng ở công ty này.");
+        }
+        else if (!createScope.IsUnrestricted)
+        {
+            throw new PermissionDeniedException("CUS_CREATE_ORPHAN_FORBIDDEN",
+                "Vui lòng chọn công ty cho khách hàng (chỉ quyền toàn cục mới tạo được khách chưa gắn công ty).");
+        }
+
         await using var tempContext = _dbContextFactory.CreateDbContext();
         var strategy = tempContext.CreateExecutionStrategy();
 
@@ -110,6 +138,9 @@ public class CustomerService : ICustomerService
             if (customer == null)
                 throw new EntityNotFoundException("CUS_CUSTOMER_NOT_FOUND", "Customer not found.");
 
+            var updateScope = await _permissionEvaluator.ResolveAsync(actorUserId, MasterUpdatePermission, ct);
+            await CustomerCompanyScope.EnsureCustomerAccessibleAsync(context, id, updateScope, "CUS_UPDATE_FORBIDDEN_COMPANY", ct);
+
             if (!customer.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("CUS_INVALID_ROW_VERSION", "The customer has been modified by another process.");
 
@@ -172,9 +203,15 @@ public class CustomerService : ICustomerService
         });
     }
 
-    public async Task<CustomerDetailDto?> GetCustomerByIdAsync(long id, bool canViewSensitive, CancellationToken ct = default)
+    public async Task<CustomerDetailDto?> GetCustomerByIdAsync(long id, bool canViewSensitive, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
+
+        // Khách thuộc công ty người gọi không có quyền -> coi như không thấy (404).
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+        if (!await CustomerCompanyScope.CanAccessCustomerAsync(context, id, scope, ct))
+            return null;
+
         var customer = await context.Customers
             .AsNoTracking()
             .Include(c => c.Profile)
@@ -195,13 +232,15 @@ public class CustomerService : ICustomerService
         return dto;
     }
 
-    public async Task<PagedResult<CustomerListItemDto>> SearchCustomersAsync(CustomerSearchRequest request, bool canViewSensitive, CancellationToken ct = default)
+    public async Task<PagedResult<CustomerListItemDto>> SearchCustomersAsync(CustomerSearchRequest request, bool canViewSensitive, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var query = context.Customers
-            .AsNoTracking()
-            .Include(c => c.Profile)
-            .AsQueryable();
+
+        // Lọc theo công ty NGAY trong truy vấn (300K+ khách): chỉ khách gắn công ty người gọi được
+        // cấp CUSTOMER_VIEW_BASIC. Áp trước mọi bộ lọc khác để count/paging đều tôn trọng phạm vi.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+        var query = CustomerCompanyScope.ApplyScope(
+            context.Customers.AsNoTracking().Include(c => c.Profile), context, scope);
 
         if (!string.IsNullOrWhiteSpace(request.CustomerStatus))
             query = query.Where(c => c.CustomerStatus == request.CustomerStatus);
@@ -279,7 +318,9 @@ public class CustomerService : ICustomerService
 
         if (!anyFilter)
         {
-            totalCount = await context.Customers.CountAsync(ct);
+            // Đếm trên `query` (đã áp phạm vi công ty), KHÔNG phải toàn bảng — nếu không người
+            // quyền-công-ty sẽ thấy tổng số của cả hệ dù danh sách đã bị lọc.
+            totalCount = await query.CountAsync(ct);
             items = await projectedQuery
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
@@ -303,14 +344,21 @@ public class CustomerService : ICustomerService
         };
     }
 
-    public async Task<CompanyLookupDto[]> GetAssignedCompanyLookupsAsync(CancellationToken ct = default)
+    public async Task<CompanyLookupDto[]> GetAssignedCompanyLookupsAsync(long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var companyIds = await context.CustomerCompanyContexts
-            .AsNoTracking()
-            .Select(c => c.CompanyId)
-            .Distinct()
-            .ToListAsync(ct);
+
+        // Chỉ liệt kê công ty người gọi được phủ — trước đây trả MỌI công ty, thành bản đồ chỉ
+        // đường cho việc quét chéo.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+
+        var companyIds = (await context.CustomerCompanyContexts
+                .AsNoTracking()
+                .Select(c => c.CompanyId)
+                .Distinct()
+                .ToListAsync(ct))
+            .Where(scope.Allows)
+            .ToList();
         if (companyIds.Count == 0) return Array.Empty<CompanyLookupDto>();
 
         return await context.Companies
@@ -321,15 +369,23 @@ public class CustomerService : ICustomerService
             .ToArrayAsync(ct);
     }
 
-    public async Task<StaffLookupDto[]> GetAssignedStaffLookupsAsync(CancellationToken ct = default)
+    public async Task<StaffLookupDto[]> GetAssignedStaffLookupsAsync(long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var staffIds = await context.CustomerCompanyContexts
-            .AsNoTracking()
-            .Where(c => c.AssignedStaffId != null)
-            .Select(c => c.AssignedStaffId!.Value)
+
+        // Chỉ nhân sự được gán trong các công ty người gọi được phủ.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+
+        var staffIds = (await context.CustomerCompanyContexts
+                .AsNoTracking()
+                .Where(c => c.AssignedStaffId != null)
+                .Select(c => new { c.AssignedStaffId, c.CompanyId })
+                .Distinct()
+                .ToListAsync(ct))
+            .Where(x => scope.Allows(x.CompanyId))
+            .Select(x => x.AssignedStaffId!.Value)
             .Distinct()
-            .ToListAsync(ct);
+            .ToList();
         if (staffIds.Count == 0) return Array.Empty<StaffLookupDto>();
 
         return await context.Users
@@ -340,13 +396,15 @@ public class CustomerService : ICustomerService
             .ToArrayAsync(ct);
     }
 
-    public async Task<DuplicateCheckResult> CheckDuplicatesAsync(DuplicateCheckRequest request, CancellationToken ct = default)
+    public async Task<DuplicateCheckResult> CheckDuplicatesAsync(DuplicateCheckRequest request, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
 
-        var query = context.Customers
-            .AsNoTracking()
-            .Include(c => c.Profile)
+        // Chỉ báo trùng trong phạm vi công ty người gọi thấy được (kết quả có PII: tên/mã/SĐT/CCCD).
+        // Đánh đổi: người quyền-công-ty sẽ không được cảnh báo trùng với khách ở công ty khác.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+        var query = CustomerCompanyScope.ApplyScope(
+                context.Customers.AsNoTracking().Include(c => c.Profile), context, scope)
             .Where(c => c.Profile.IsActive);
 
         if (!string.IsNullOrWhiteSpace(request.Cccd))
@@ -372,9 +430,15 @@ public class CustomerService : ICustomerService
         return new DuplicateCheckResult { HasDuplicates = matches.Length > 0, Matches = matches };
     }
 
-    public async Task<CustomerCompanyContextDto[]> GetCompanyContextsAsync(long customerId, CancellationToken ct = default)
+    public async Task<CustomerCompanyContextDto[]> GetCompanyContextsAsync(long customerId, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
+
+        // Không thấy khách -> không thấy các công ty của khách đó.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+        if (!await CustomerCompanyScope.CanAccessCustomerAsync(context, customerId, scope, ct))
+            return System.Array.Empty<CustomerCompanyContextDto>();
+
         var contexts = await context.CustomerCompanyContexts
             .AsNoTracking()
             .Where(c => c.CustomerId == customerId)
@@ -421,6 +485,14 @@ public class CustomerService : ICustomerService
 
             if (!await context.Companies.AnyAsync(c => c.Id == request.CompanyId && c.IsActive, ct))
                 throw new EntityNotFoundException("CUS_COMPANY_NOT_FOUND", "Company not found or inactive.");
+
+            // Gắn khách vào một công ty MỚI: phải có quyền trên khách hiện tại VÀ trên công ty đích
+            // (nếu không, người quyền-công-ty-A có thể kéo khách sang công ty B mình không thuộc).
+            var addScope = await _permissionEvaluator.ResolveAsync(actorUserId, CreateFinalPermission, ct);
+            await CustomerCompanyScope.EnsureCustomerAccessibleAsync(context, customerId, addScope, "CUS_CONTEXT_FORBIDDEN_COMPANY", ct);
+            if (!addScope.Allows(request.CompanyId))
+                throw new PermissionDeniedException("CUS_CONTEXT_TARGET_FORBIDDEN",
+                    "Bạn không có quyền gắn khách hàng vào công ty này.");
 
             if (await context.CustomerCompanyContexts.AnyAsync(c => c.CustomerId == customerId && c.CompanyId == request.CompanyId, ct))
                 throw new BusinessRuleValidationException("CUS_DUPLICATE_COMPANY_CONTEXT", "Customer already has a context for this company.");
@@ -469,6 +541,12 @@ public class CustomerService : ICustomerService
 
             if (companyContext == null)
                 throw new EntityNotFoundException("CUS_CONTEXT_NOT_FOUND", "Company context not found.");
+
+            var ctxScope = await _permissionEvaluator.ResolveAsync(actorUserId, MasterUpdatePermission, ct);
+            await CustomerCompanyScope.EnsureCustomerAccessibleAsync(context, customerId, ctxScope, "CUS_CONTEXT_FORBIDDEN_COMPANY", ct);
+            if (!ctxScope.Allows(companyContext.CompanyId))
+                throw new PermissionDeniedException("CUS_CONTEXT_TARGET_FORBIDDEN",
+                    "Bạn không có quyền sửa liên kết công ty này.");
 
             if (!companyContext.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("CUS_INVALID_ROW_VERSION", "The company context has been modified by another process.");

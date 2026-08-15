@@ -46,7 +46,7 @@ public class CustomerMergeController : ControllerBase
         }
 
         var request = new DuplicateCheckRequest { Cccd = cccd, Phone = phone };
-        var result = await _customerService.CheckDuplicatesAsync(request, ct);
+        var result = await _customerService.CheckDuplicatesAsync(request, userId, ct);
         return Ok(result);
     }
 

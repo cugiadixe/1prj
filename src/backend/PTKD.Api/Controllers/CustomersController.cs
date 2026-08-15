@@ -27,42 +27,42 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet]
-    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> Search([FromQuery] CustomerSearchRequest request, CancellationToken ct)
     {
         var canViewSensitive = await HasPermissionAsync(PermissionCodes.CustomerViewSensitive, ct);
-        var result = await _customerService.SearchCustomersAsync(request, canViewSensitive, ct);
+        var result = await _customerService.SearchCustomersAsync(request, canViewSensitive, GetActorUserId(), ct);
         return Ok(result);
     }
 
     [HttpGet("lookups/companies")]
-    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetCompanyLookups(CancellationToken ct)
     {
-        var companies = await _customerService.GetAssignedCompanyLookupsAsync(ct);
+        var companies = await _customerService.GetAssignedCompanyLookupsAsync(GetActorUserId(), ct);
         return Ok(companies);
     }
 
     [HttpGet("lookups/staff")]
-    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetStaffLookups(CancellationToken ct)
     {
-        var staff = await _customerService.GetAssignedStaffLookupsAsync(ct);
+        var staff = await _customerService.GetAssignedStaffLookupsAsync(GetActorUserId(), ct);
         return Ok(staff);
     }
 
     [HttpGet("{id}")]
-    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {
         var canViewSensitive = await HasPermissionAsync(PermissionCodes.CustomerViewSensitive, ct);
-        var customer = await _customerService.GetCustomerByIdAsync(id, canViewSensitive, ct);
+        var customer = await _customerService.GetCustomerByIdAsync(id, canViewSensitive, GetActorUserId(), ct);
         if (customer == null) return NotFound();
         return Ok(customer);
     }
 
     [HttpPost]
-    [RequirePermission(PermissionCodes.CustomerCreateFinal, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerCreateFinal, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -71,7 +71,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [RequirePermission(PermissionCodes.CustomerMasterUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerMasterUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateCustomerRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -80,15 +80,15 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("{id}/company-contexts")]
-    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetCompanyContexts(long id, CancellationToken ct)
     {
-        var contexts = await _customerService.GetCompanyContextsAsync(id, ct);
+        var contexts = await _customerService.GetCompanyContextsAsync(id, GetActorUserId(), ct);
         return Ok(contexts);
     }
 
     [HttpPost("{id}/company-contexts")]
-    [RequirePermission(PermissionCodes.CustomerCreateFinal, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerCreateFinal, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> CreateCompanyContext(long id, [FromBody] CreateCustomerCompanyContextRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -97,7 +97,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id}/company-contexts/{contextId}")]
-    [RequirePermission(PermissionCodes.CustomerMasterUpdate, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerMasterUpdate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> UpdateCompanyContext(long id, long contextId, [FromBody] UpdateCustomerCompanyContextRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
@@ -106,10 +106,10 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("duplicate-check")]
-    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.Global)]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> DuplicateCheck([FromQuery] DuplicateCheckRequest request, CancellationToken ct)
     {
-        var result = await _customerService.CheckDuplicatesAsync(request, ct);
+        var result = await _customerService.CheckDuplicatesAsync(request, GetActorUserId(), ct);
         return Ok(result);
     }
 
