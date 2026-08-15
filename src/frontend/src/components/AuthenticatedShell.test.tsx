@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -160,6 +161,69 @@ describe('AuthenticatedShell Navigation Gating', () => {
     mockHasPermission.mockReturnValue(false);
     renderShell('/workflow');
     expect(screen.queryByTestId('nav-workflow-authorities')).not.toBeInTheDocument();
+  });
+});
+
+describe('AuthenticatedShell sidebar accordion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: { username: 'testuser', displayName: 'Test User' },
+      logout: vi.fn(),
+    });
+    mockUseCompany.mockReturnValue({
+      companies: [],
+      currentCompanyId: null,
+      switchCompany: vi.fn(),
+    });
+    mockHasPermission = vi.fn().mockReturnValue(true);
+    mockGetMyApprovals.mockResolvedValue([]);
+  });
+
+  // Nhóm cha đã từng mở thì antd giữ lại DOM con (chỉ ẩn đi), nên không kiểm bằng
+  // "con còn trong DOM không" mà kiểm cờ mở/đóng ngay trên thẻ nhóm cha.
+  const submenuOf = (testId: string) =>
+    screen.getByTestId(testId).closest('.ant-menu-submenu') as HTMLElement;
+
+  it('collapses the previously open group when another parent group is opened', async () => {
+    const user = userEvent.setup();
+    renderShell('/');
+
+    await user.click(screen.getByTestId('nav-customers-group'));
+    await waitFor(() => expect(submenuOf('nav-customers-group')).toHaveClass('ant-menu-submenu-open'));
+
+    await user.click(screen.getByTestId('nav-workflow-group'));
+    await waitFor(() => expect(submenuOf('nav-workflow-group')).toHaveClass('ant-menu-submenu-open'));
+    expect(submenuOf('nav-customers-group')).not.toHaveClass('ant-menu-submenu-open');
+  });
+
+  it('closes the group when its own header is clicked again', async () => {
+    const user = userEvent.setup();
+    renderShell('/');
+
+    await user.click(screen.getByTestId('nav-security-group'));
+    await waitFor(() => expect(submenuOf('nav-security-group')).toHaveClass('ant-menu-submenu-open'));
+
+    await user.click(screen.getByTestId('nav-security-group'));
+    await waitFor(() => expect(submenuOf('nav-security-group')).not.toHaveClass('ant-menu-submenu-open'));
+  });
+
+  it('restores the open group after the sider is collapsed and expanded', async () => {
+    const user = userEvent.setup();
+    renderShell('/security/roles');
+    expect(submenuOf('nav-security-group')).toHaveClass('ant-menu-submenu-open');
+
+    await user.click(screen.getByTestId('sider-toggle'));
+    await user.click(screen.getByTestId('sider-toggle'));
+
+    await waitFor(() => expect(submenuOf('nav-security-group')).toHaveClass('ant-menu-submenu-open'));
+  });
+
+  it('opens only the group that contains the current route', () => {
+    renderShell('/security/roles');
+    expect(submenuOf('nav-security-group')).toHaveClass('ant-menu-submenu-open');
+    expect(submenuOf('nav-customers-group')).not.toHaveClass('ant-menu-submenu-open');
+    expect(submenuOf('nav-workflow-group')).not.toHaveClass('ant-menu-submenu-open');
   });
 });
 

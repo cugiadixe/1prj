@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Button, Layout, Menu, Typography, Select, Avatar, Dropdown, theme } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { getMyApprovals } from '../workflow/workflowRuntimeApi';
@@ -46,6 +46,26 @@ const { Header, Content, Sider } = Layout;
  */
 const navLabel = (testId: string, text: string) => <span data-testid={testId}>{text}</span>;
 
+/**
+ * Nhóm menu cha ứng với từng khu vực đường dẫn.
+ *
+ * Vì sao tách ra hằng số: dùng cho cả 3 việc — mở sẵn nhóm chứa trang đang xem,
+ * mở lại nhóm khi điều hướng sang khu vực khác, và nhận biết đâu là nhóm cấp gốc
+ * để thu các nhóm còn lại (kiểu accordion).
+ */
+const MENU_GROUPS: ReadonlyArray<{ key: string; prefixes: string[] }> = [
+  { key: 'customers-group', prefixes: ['/customers'] },
+  { key: 'payments-group', prefixes: ['/payments', '/reconciliation'] },
+  { key: 'services-group', prefixes: ['/services', '/care-packages'] },
+  { key: 'workflow-group', prefixes: ['/workflow'] },
+  { key: 'security-group', prefixes: ['/security'] },
+];
+
+const ROOT_GROUP_KEYS = MENU_GROUPS.map(g => g.key);
+
+const groupKeyForPath = (path: string): string | null =>
+  MENU_GROUPS.find(g => g.prefixes.some(p => path.startsWith(p)))?.key ?? null;
+
 const AuthenticatedShell: React.FC = () => {
   const { logout, user } = useAuth();
   const { hasPermission } = usePermissions();
@@ -54,6 +74,47 @@ const AuthenticatedShell: React.FC = () => {
   const { companies, currentCompanyId, switchCompany } = useCompany();
   const [collapsed, setCollapsed] = useState(false);
   const { token } = theme.useToken();
+
+  // Nhóm menu đang mở. Điều khiển bằng state (không phải defaultOpenKeys) để ép
+  // luật accordion: cùng lúc chỉ một nhóm cha xoè ra.
+  const currentGroupKey = groupKeyForPath(location.pathname);
+  const [openKeys, setOpenKeys] = useState<string[]>(currentGroupKey ? [currentGroupKey] : []);
+
+  // Điều hướng sang khu vực khác (bấm chuông, nút trong trang, gõ URL...) thì mở
+  // nhóm chứa trang đó. Nếu nhóm đã mở sẵn thì giữ nguyên — tránh việc người dùng
+  // vừa tự thu nhóm lại bị bung ra.
+  useEffect(() => {
+    if (!currentGroupKey) return;
+    setOpenKeys(prev => (prev.includes(currentGroupKey) ? prev : [currentGroupKey]));
+  }, [currentGroupKey]);
+
+  // Thu gọn thanh bên: antd đổi menu sang dạng popup và tự xoá sạch openKeys (báo về
+  // qua onOpenChange). Cất lại nhóm đang mở để bung thanh bên ra thì trả về đúng chỗ cũ —
+  // không có đoạn này, thu vào mở ra là mọi nhóm đóng hết.
+  const openKeysBeforeCollapse = useRef<string[]>(openKeys);
+  useEffect(() => {
+    if (collapsed) {
+      // Hiệu ứng của Menu (con) chạy trước hiệu ứng này, nên `openKeys` ở đây vẫn là
+      // giá trị trước khi bị xoá.
+      openKeysBeforeCollapse.current = openKeys;
+    } else {
+      setOpenKeys(openKeysBeforeCollapse.current);
+    }
+    // Chỉ chụp/khôi phục đúng lúc đóng-mở thanh bên, nên không đưa openKeys vào deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapsed]);
+
+  /**
+   * Mở một nhóm cha thì thu mọi nhóm cha khác; thao tác đóng thì giữ nguyên phần còn lại.
+   */
+  const handleOpenChange: MenuProps['onOpenChange'] = keys => {
+    const justOpened = keys.find(key => !openKeys.includes(key as string)) as string | undefined;
+    if (justOpened && ROOT_GROUP_KEYS.includes(justOpened)) {
+      setOpenKeys([justOpened]);
+      return;
+    }
+    setOpenKeys(keys as string[]);
+  };
 
   // Đếm việc chờ duyệt cho chuông thông báo. Tự làm mới định kỳ + khi quay lại cửa sổ.
   const { data: pendingApprovals } = useQuery({
@@ -283,15 +344,6 @@ const AuthenticatedShell: React.FC = () => {
   ].filter(Boolean) as MenuProps['items'];
 
   const selectedKeys = [location.pathname];
-  const openKeys = (() => {
-    const path = location.pathname;
-    if (path.startsWith('/customers')) return ['customers-group'];
-    if (path.startsWith('/payments') || path.startsWith('/reconciliation')) return ['payments-group'];
-    if (path.startsWith('/services') || path.startsWith('/care-packages')) return ['services-group'];
-    if (path.startsWith('/workflow')) return ['workflow-group'];
-    if (path.startsWith('/security')) return ['security-group'];
-    return [];
-  })();
 
   const userMenuItems: MenuProps['items'] = [
     {
@@ -356,7 +408,8 @@ const AuthenticatedShell: React.FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={selectedKeys}
-          defaultOpenKeys={openKeys}
+          openKeys={openKeys}
+          onOpenChange={handleOpenChange}
           items={menuItems}
           style={{ borderRight: 0 }}
           data-testid="sidebar-menu"
@@ -381,6 +434,7 @@ const AuthenticatedShell: React.FC = () => {
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
             style={{ fontSize: 16 }}
+            data-testid="sider-toggle"
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {companies.length > 0 && (
