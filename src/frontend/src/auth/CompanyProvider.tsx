@@ -1,17 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthProvider';
 import { apiFetchMyCompanies } from './authApi';
 import type { UserCompanyDto } from './authApi';
-
-interface CompanyContextType {
-    companies: UserCompanyDto[];
-    currentCompanyId: number | null;
-    isLoading: boolean;
-    switchCompany: (companyId: number) => void;
-}
-
-const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+import { CompanyContext } from './companyContext';
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
     const { isAuthenticated, mustChangePassword, refreshPermissions } = useAuth();
@@ -40,7 +32,12 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
                     // Exactly one company → auto-select (Phase 1B.1-M rule)
                     setCurrentCompanyId(response.companies[0].companyId);
                 } else {
-                    // Zero or multiple companies → require manual selection
+                    // Zero or multiple companies → require manual selection.
+                    //
+                    // GIỮ NGUYÊN luật 1B.1-M một cách CÓ Ý THỨC: chọn nhầm công ty nay là lỗi an
+                    // ninh chứ không chỉ là bất tiện, nên bắt người dùng chọn có chủ đích là đúng.
+                    // Triệu chứng "menu biến mất khi chưa chọn công ty" được xử lý ở chỗ khác —
+                    // usePermissions lùi về nghĩa "có quyền ở đâu đó" khi chưa có ngữ cảnh công ty.
                     setCurrentCompanyId(null);
                 }
             } catch {

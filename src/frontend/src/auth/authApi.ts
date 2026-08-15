@@ -98,10 +98,20 @@ export async function apiChangePassword(
   });
 }
 
+/**
+ * Một quyền của người đang đăng nhập, kèm PHẠM VI THẬT được cấp.
+ *
+ * Trước đây record này mang `scope` = data_scope của DANH MỤC — nhãn tĩnh của mã quyền chứ không
+ * phải phạm vi người dùng được cấp. Vì thế giao diện phải ĐOÁN phạm vi khi gọi hasPermission, và
+ * 9 mã đoán sai nên phép kiểm luôn trả false: cả nhóm menu Thanh toán cùng ~12 nút hành động
+ * chết vĩnh viễn mà không có thông báo lỗi nào.
+ */
 export interface CurrentUserPermissionDto {
   permissionCode: string;
-  scope: string;
-  companyId: number | null;
+  /** Được cấp toàn cục — dùng được ở mọi công ty. */
+  isGlobal: boolean;
+  /** Các công ty được cấp cụ thể. Rỗng khi isGlobal. */
+  companyIds: number[];
 }
 
 export interface CurrentUserPermissionsResponseDto {

@@ -384,7 +384,7 @@ const AccountDetailPage: React.FC = () => {
             ← Quay lại danh sách
           </Button>
         </Space>
-        {hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') && account && (
+        {hasPermission('SECURITY_ADMIN_MANAGE') && account && (
           <Space>
             <Link to={`/security/permissions/assignments?userId=${account.userId}`}>
               <Button data-testid="link-permission-assignment">

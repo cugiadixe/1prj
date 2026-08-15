@@ -111,7 +111,7 @@ const CustomerDetailPage: React.FC = () => {
       ),
     },
     { title: 'Ghi chú', dataIndex: 'internalNotes', key: 'internalNotes', render: (v: string | null) => v ?? '—' },
-    ...(hasPermission('CUSTOMER_MASTER_UPDATE', 'GLOBAL')
+    ...(hasPermission('CUSTOMER_MASTER_UPDATE')
       ? [
           {
             title: 'Thao tác',
@@ -140,12 +140,12 @@ const CustomerDetailPage: React.FC = () => {
           <Button>
             <Link to="/customers">Quay lại danh sách</Link>
           </Button>
-          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') && (
+          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') && (
             <Button data-testid="request-change-btn" onClick={() => setShowChangeForm(true)}>
               Yêu cầu thay đổi
             </Button>
           )}
-          {hasPermission('CUSTOMER_MASTER_UPDATE', 'GLOBAL') && (
+          {hasPermission('CUSTOMER_MASTER_UPDATE') && (
             <Button type="primary" data-testid="edit-customer-btn">
               <Link to={`/customers/${id}/edit`}>Sửa</Link>
             </Button>
@@ -209,7 +209,7 @@ const CustomerDetailPage: React.FC = () => {
       <EntityTagsSection
         tagType="CUSTOMER"
         tags={customer.tags}
-        canManage={hasPermission('TAG_MANAGE', 'GLOBAL')}
+        canManage={hasPermission('TAG_MANAGE')}
         onSave={(req) => setCustomerTags(id, req)}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ['customer', id] })}
         testId="customer-tags-section"
@@ -219,7 +219,7 @@ const CustomerDetailPage: React.FC = () => {
 
       <Card title="Công ty / nhân viên phụ trách" data-testid="company-contexts-card">
         <Space style={{ marginBottom: 8 }}>
-          {hasPermission('CUSTOMER_CREATE_FINAL', 'GLOBAL') && (
+          {hasPermission('CUSTOMER_CREATE_FINAL') && (
             <Button type="primary" size="small" data-testid="add-context-btn" disabled>
               Thêm công ty phụ trách
             </Button>

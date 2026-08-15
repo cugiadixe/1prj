@@ -6,6 +6,7 @@ import React, {
   useState,
 } from 'react';
 import axiosClient from '../api/axiosClient';
+import { CompanyContext } from './companyContext';
 import {
   apiFetchMyPermissions,
   apiLogin,
@@ -39,19 +40,39 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
+/**
+ * Kiểm quyền theo mô hình phạm vi mới.
+ *
+ * Chữ ký cũ là `hasPermission(code, scope, companyId)` trong đó `scope` là chuỗi 'GLOBAL' /
+ * 'COMPANY' mà nơi gọi phải TỰ ĐOÁN cho khớp data_scope của danh mục. Đoán sai thì phép kiểm
+ * lặng lẽ trả false — 9 mã đang đoán sai, làm chết cả nhóm menu Thanh toán và ~12 nút hành động.
+ * Nay bỏ hẳn tham số đó: phạm vi là dữ liệu do backend trả về, không phải thứ giao diện tự khai.
+ *
+ * Mặc định kiểm theo CÔNG TY ĐANG CHỌN. Khi chưa chọn công ty nào thì kiểm theo nghĩa
+ * "có quyền này ở đâu đó" — để menu không biến mất trong lúc chờ chọn công ty.
+ */
 export function usePermissions() {
   const { permissions } = useAuth();
+  // Không dùng useCompany() vì hook đó ném lỗi khi thiếu provider; ở đây thiếu provider là
+  // trường hợp hợp lệ (test dựng component lẻ), và ngữ cảnh công ty chỉ là thông tin bổ sung.
+  const companyContext = useContext(CompanyContext);
+  const currentCompanyId = companyContext?.currentCompanyId ?? null;
+
   const hasPermission = useCallback(
-    (code: string, scope?: string, companyId?: number) => {
-      return permissions.some(
-        (p) =>
-          p.permissionCode === code &&
-          (!scope || p.scope === scope) &&
-          (companyId === undefined || p.companyId === companyId),
-      );
+    (code: string, companyId?: number) => {
+      const entry = permissions.find((p) => p.permissionCode === code);
+      if (!entry) return false;
+      if (entry.isGlobal) return true;
+
+      const target = companyId ?? currentCompanyId;
+      if (target === null || target === undefined) {
+        return entry.companyIds.length > 0;
+      }
+      return entry.companyIds.includes(target);
     },
-    [permissions],
+    [permissions, currentCompanyId],
   );
+
   return { permissions, hasPermission };
 }
 

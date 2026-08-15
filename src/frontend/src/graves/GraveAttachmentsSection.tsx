@@ -14,7 +14,7 @@ const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'
 
 const GraveAttachmentsSection: React.FC<{ graveId: number }> = ({ graveId }) => {
   const { hasPermission } = usePermissions();
-  const canManage = hasPermission('GRAVE_ATTACHMENT_MANAGE', 'GLOBAL');
+  const canManage = hasPermission('GRAVE_ATTACHMENT_MANAGE');
   const queryClient = useQueryClient();
 
   const { data: attachments, isLoading } = useQuery({

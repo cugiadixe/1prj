@@ -99,9 +99,9 @@ const PaymentDetailPage: React.FC = () => {
 
   const isDraft = data.status === 'DRAFT';
   const isConfirmed = data.status === 'CONFIRMED';
-  const canConfirm = isDraft && hasPermission('PAYMENT_CONFIRM', 'GLOBAL');
-  const canDelete = isDraft && hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL');
-  const canCorrect = isConfirmed && hasPermission('PAYMENT_CORRECT_CONFIRMED', 'GLOBAL');
+  const canConfirm = isDraft && hasPermission('PAYMENT_CONFIRM');
+  const canDelete = isDraft && hasPermission('PAYMENT_CREATE_DRAFT');
+  const canCorrect = isConfirmed && hasPermission('PAYMENT_CORRECT_CONFIRMED');
 
   const itemColumns = [
     { title: 'Mã dịch vụ', dataIndex: 'serviceId', key: 'serviceId' },

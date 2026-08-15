@@ -198,9 +198,9 @@ const WorkflowInstanceDetailPage: React.FC = () => {
   const canWithdraw = isRequester && (instance.instanceStatus === 'PENDING_APPROVAL' || instance.instanceStatus === 'RETURNED');
   // Cho phép chạy lại cả hồ sơ kẹt ở "Chờ thực thi"/"Đang thực thi" (hồ sơ mồ côi), không chỉ "Thất bại".
   const canRetry =
-    hasPermission('WORKFLOW_RETRY_EXECUTION', 'GLOBAL') &&
+    hasPermission('WORKFLOW_RETRY_EXECUTION') &&
     ['FAILED', 'PENDING_EXECUTION', 'EXECUTING'].includes(instance.instanceStatus);
-  const canReject = hasPermission('WORKFLOW_REJECT', 'GLOBAL');
+  const canReject = hasPermission('WORKFLOW_REJECT');
 
   const openApproveModal = (step: WorkflowInstanceStep) => {
     setActiveStepId(step.id);
@@ -275,7 +275,7 @@ const WorkflowInstanceDetailPage: React.FC = () => {
         const isAssignee = record.assignees.some(a => a.userId === currentUserId);
         const canApprove = isAssignee && !isRequester;
         const canReturn = isAssignee;
-        const canReassign = hasPermission('WORKFLOW_REASSIGN_PENDING', 'COMPANY');
+        const canReassign = hasPermission('WORKFLOW_REASSIGN_PENDING');
 
         return (
           <Space>

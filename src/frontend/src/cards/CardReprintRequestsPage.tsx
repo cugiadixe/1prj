@@ -66,7 +66,7 @@ const CardReprintRequestsPage: React.FC = () => {
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Yêu cầu in lại thẻ</Title>
         <Space>
-          {hasPermission('CARD_REPRINT_REQUEST_CREATE', 'GLOBAL') && (
+          {hasPermission('CARD_REPRINT_REQUEST_CREATE') && (
             <Button type="primary" data-testid="create-card-reprint-btn">
               <Link to="/cards/reprints/new">Tạo yêu cầu</Link>
             </Button>

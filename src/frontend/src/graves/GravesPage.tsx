@@ -94,7 +94,7 @@ const GravesPage: React.FC = () => {
     <div data-testid="graves-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Quản lý mộ</Title>
-        {hasPermission('GRAVE_CREATE', 'GLOBAL') && (
+        {hasPermission('GRAVE_CREATE') && (
           <Button type="primary" data-testid="create-grave-btn">
             <Link to="/graves/new">Thêm mộ</Link>
           </Button>

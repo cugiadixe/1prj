@@ -23,8 +23,8 @@ interface Props {
 const CustomerCarePackagesSection: React.FC<Props> = ({ customerId }) => {
   const { hasPermission } = usePermissions();
   const { currentCompanyId } = useCompany();
-  const canManage = hasPermission('CUSTOMER_CARE_PACKAGE_MANAGE', 'GLOBAL');
-  const canView = hasPermission('CUSTOMER_CARE_PACKAGE_VIEW', 'GLOBAL');
+  const canManage = hasPermission('CUSTOMER_CARE_PACKAGE_MANAGE');
+  const canView = hasPermission('CUSTOMER_CARE_PACKAGE_VIEW');
   const queryClient = useQueryClient();
 
   const [assignForm] = Form.useForm();

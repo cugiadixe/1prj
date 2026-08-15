@@ -21,7 +21,7 @@ const ServiceListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const hasViewPerm = hasPermission('SERVICE_VIEW', 'COMPANY');
+  const hasViewPerm = hasPermission('SERVICE_VIEW');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['services', companyFilter, customerIdFilter, statusFilter, page, pageSize],
@@ -109,7 +109,7 @@ const ServiceListPage: React.FC = () => {
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Bảng tổng hợp dịch vụ</Title>
         <Space>
-          {hasPermission('SERVICE_CREATE_STANDARD', 'COMPANY') && (
+          {hasPermission('SERVICE_CREATE_STANDARD') && (
             <Button type="primary" data-testid="create-service-btn">
               <Link to="/services/new">Tạo dịch vụ</Link>
             </Button>

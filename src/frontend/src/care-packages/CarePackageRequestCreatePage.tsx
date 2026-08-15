@@ -16,7 +16,7 @@ const CarePackageRequestCreatePage: React.FC = () => {
   const [form] = Form.useForm();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (!hasPermission('CARE_PACKAGE_CREATE', 'COMPANY')) {
+  if (!hasPermission('CARE_PACKAGE_CREATE')) {
     return (
       <Alert
         type="error"

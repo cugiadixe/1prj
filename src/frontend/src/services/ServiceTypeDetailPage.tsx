@@ -80,7 +80,7 @@ const ServiceTypeDetailPage: React.FC = () => {
         <Title level={4} style={{ margin: 0 }}>Chi tiết gói dịch vụ</Title>
         <Space>
           <Button onClick={() => navigate('/services/types')}>Quay lại danh sách</Button>
-          {hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') && (
+          {hasPermission('SERVICE_TYPE_MANAGE') && (
             <>
               <Button type="primary" data-testid="edit-service-type-btn">
                 <Link to={`/services/types/${serviceTypeId}/edit`}>Sửa</Link>

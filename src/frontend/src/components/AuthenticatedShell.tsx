@@ -138,7 +138,7 @@ const AuthenticatedShell: React.FC = () => {
       label: navLabel('nav-home', 'Trang chủ'),
       onClick: () => navigate('/'),
     },
-    hasPermission('CUSTOMER_VIEW_BASIC', 'GLOBAL') ? {
+    hasPermission('CUSTOMER_VIEW_BASIC') ? {
       key: 'customers-group',
       icon: <TeamOutlined />,
       label: navLabel('nav-customers-group', 'Khách hàng'),
@@ -149,25 +149,25 @@ const AuthenticatedShell: React.FC = () => {
           icon: <TeamOutlined />,
           onClick: () => navigate('/customers'),
         },
-        hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') ? {
+        hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') ? {
           key: '/customers/proposals',
           label: navLabel('nav-customers-proposals', 'Đề xuất KH mới'),
           icon: <FileSearchOutlined />,
           onClick: () => navigate('/customers/proposals'),
         } : null,
-        hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') ? {
+        hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') ? {
           key: '/customers/change-requests',
           label: navLabel('nav-customers-change-requests', 'Yêu cầu thay đổi'),
           icon: <SwapOutlined />,
           onClick: () => navigate('/customers/change-requests'),
         } : null,
-        hasPermission('CUSTOMER_MERGE_REQUEST_VIEW', 'GLOBAL') ? {
+        hasPermission('CUSTOMER_MERGE_REQUEST_VIEW') ? {
           key: '/customers/merge-requests',
           label: navLabel('nav-customers-merge-requests', 'Gộp khách hàng'),
           icon: <SwapOutlined />,
           onClick: () => navigate('/customers/merge-requests'),
         } : null,
-        hasPermission('CUSTOMER_MERGE_REQUEST_CREATE', 'GLOBAL') ? {
+        hasPermission('CUSTOMER_MERGE_REQUEST_CREATE') ? {
           key: '/customers/merge/search',
           label: navLabel('nav-customers-merge-search', 'Tìm trùng lặp'),
           icon: <FileSearchOutlined />,
@@ -175,30 +175,30 @@ const AuthenticatedShell: React.FC = () => {
         } : null,
       ].filter(Boolean),
     } : null,
-    hasPermission('GRAVE_VIEW', 'GLOBAL') ? {
+    hasPermission('GRAVE_VIEW') ? {
       key: '/graves',
       icon: <EnvironmentOutlined />,
       label: navLabel('nav-graves', 'Quản lý mộ'),
       onClick: () => navigate('/graves'),
     } : null,
-    hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') || hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') ? {
+    hasPermission('PAYMENT_CREATE_DRAFT') || hasPermission('RECONCILIATION_PREPARE') ? {
       key: 'payments-group',
       icon: <DollarOutlined />,
       label: navLabel('nav-payments-group', 'Thanh toán'),
       children: [
-        hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') ? {
+        hasPermission('PAYMENT_CREATE_DRAFT') ? {
           key: '/payments',
           label: navLabel('nav-payments', 'Giao dịch'),
           icon: <DollarOutlined />,
           onClick: () => navigate('/payments'),
         } : null,
-        hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') ? {
+        hasPermission('RECONCILIATION_PREPARE') ? {
           key: '/reconciliation/daily',
           label: navLabel('nav-reconciliation-daily', 'Đối soát ngày'),
           icon: <ReconciliationOutlined />,
           onClick: () => navigate('/reconciliation/daily'),
         } : null,
-        hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') ? {
+        hasPermission('RECONCILIATION_PREPARE') ? {
           key: '/reconciliation/monthly',
           label: navLabel('nav-reconciliation-monthly', 'Đối soát tháng'),
           icon: <ReconciliationOutlined />,
@@ -206,18 +206,18 @@ const AuthenticatedShell: React.FC = () => {
         } : null,
       ].filter(Boolean),
     } : null,
-    hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') || hasPermission('SERVICE_VIEW', 'COMPANY') ? {
+    hasPermission('SERVICE_TYPE_MANAGE') || hasPermission('SERVICE_VIEW') ? {
       key: 'services-group',
       icon: <ToolOutlined />,
       label: navLabel('nav-services-group', 'Dịch vụ'),
       children: [
-        hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') ? {
+        hasPermission('SERVICE_TYPE_MANAGE') ? {
           key: '/services/types',
           label: navLabel('nav-services-types', 'Gói dịch vụ'),
           icon: <SettingOutlined />,
           onClick: () => navigate('/services/types'),
         } : null,
-        hasPermission('SERVICE_VIEW', 'COMPANY') ? {
+        hasPermission('SERVICE_VIEW') ? {
           key: '/services',
           label: navLabel('nav-services', 'Bảng tổng hợp dịch vụ'),
           icon: <ToolOutlined />,
@@ -254,25 +254,25 @@ const AuthenticatedShell: React.FC = () => {
           icon: <AuditOutlined />,
           onClick: () => navigate('/workflow/my-requests'),
         },
-        hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
+        hasPermission('WORKFLOW_VIEW') ? {
           key: '/workflow',
           label: navLabel('nav-workflow', 'Quản trị quy trình'),
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow'),
         } : null,
-        hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
+        hasPermission('WORKFLOW_VIEW') ? {
           key: '/workflow/bindings',
           label: navLabel('nav-workflow-bindings', 'Liên kết quy trình'),
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow/bindings'),
         } : null,
-        hasPermission('WORKFLOW_VIEW', 'GLOBAL') ? {
+        hasPermission('WORKFLOW_VIEW') ? {
           key: '/workflow/instances',
           label: navLabel('nav-workflow-instances', 'Tất cả hồ sơ'),
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/workflow/instances'),
         } : null,
-        hasPermission('APPROVAL_AUTHORITY_MANAGE', 'GLOBAL') ? {
+        hasPermission('APPROVAL_AUTHORITY_MANAGE') ? {
           key: '/workflow/authorities',
           label: navLabel('nav-workflow-authorities', 'Thẩm quyền phê duyệt'),
           icon: <SafetyCertificateOutlined />,
@@ -280,48 +280,48 @@ const AuthenticatedShell: React.FC = () => {
         } : null,
       ].filter(Boolean),
     },
-    hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') || hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL') || hasPermission('SECURITY_AUDIT_VIEW', 'GLOBAL') ? {
+    hasPermission('SECURITY_ADMIN_MANAGE') || hasPermission('SECURITY_ACCOUNT_MANAGE') || hasPermission('SECURITY_AUDIT_VIEW') ? {
       key: 'security-group',
       icon: <SafetyOutlined />,
       label: navLabel('nav-security-group', 'Bảo mật'),
       children: [
-        hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL') ? {
+        hasPermission('SECURITY_ACCOUNT_MANAGE') ? {
           key: '/security/accounts',
           label: navLabel('nav-security-accounts', 'Tài khoản'),
           icon: <UserOutlined />,
           onClick: () => navigate('/security/accounts'),
         } : null,
-        hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
+        hasPermission('SECURITY_ADMIN_MANAGE') ? {
           key: '/security/permissions/assignments',
           label: navLabel('nav-security-permissions-assignments', 'Phân quyền'),
           icon: <KeyOutlined />,
           onClick: () => navigate('/security/permissions/assignments'),
         } : null,
-        hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
+        hasPermission('SECURITY_ADMIN_MANAGE') ? {
           key: '/security/roles',
           label: navLabel('nav-security-roles', 'Vai trò'),
           icon: <IdcardOutlined />,
           onClick: () => navigate('/security/roles'),
         } : null,
-        hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
+        hasPermission('SECURITY_ADMIN_MANAGE') ? {
           key: '/security/admin-groups',
           label: navLabel('nav-security-admin-groups', 'Nhóm quản trị'),
           icon: <LockOutlined />,
           onClick: () => navigate('/security/admin-groups'),
         } : null,
-        hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
+        hasPermission('SECURITY_ADMIN_MANAGE') ? {
           key: '/security/departments/permissions',
           label: navLabel('nav-security-departments-permissions', 'Quyền phòng ban'),
           icon: <BankOutlined />,
           onClick: () => navigate('/security/departments/permissions'),
         } : null,
-        hasPermission('SECURITY_ADMIN_MANAGE', 'GLOBAL') ? {
+        hasPermission('SECURITY_ADMIN_MANAGE') ? {
           key: '/security/effective-permissions',
           label: navLabel('nav-security-effective-permissions', 'Kiểm tra quyền'),
           icon: <SafetyOutlined />,
           onClick: () => navigate('/security/effective-permissions'),
         } : null,
-        hasPermission('SECURITY_AUDIT_VIEW', 'GLOBAL') ? {
+        hasPermission('SECURITY_AUDIT_VIEW') ? {
           key: '/security/audit',
           label: navLabel('nav-security-audit', 'Nhật ký kiểm toán'),
           icon: <AuditOutlined />,
@@ -329,7 +329,7 @@ const AuthenticatedShell: React.FC = () => {
         } : null,
       ].filter(Boolean),
     } : null,
-    hasPermission('TAG_MANAGE', 'GLOBAL') ? {
+    hasPermission('TAG_MANAGE') ? {
       key: '/tags',
       icon: <TagsOutlined />,
       label: navLabel('nav-tags', 'Quản lý thẻ'),

@@ -121,11 +121,11 @@ const CarePackageRequestDetailPage: React.FC = () => {
     'Đã kích hoạt gói chăm sóc'
   );
 
-  const canSubmit = data.status === 'Draft' && data.requiresApproval && hasPermission('CARE_PACKAGE_CREATE', 'COMPANY');
-  const canApprove = data.status === 'PendingApproval' && hasPermission('CARE_PACKAGE_APPROVE', 'COMPANY');
-  const canReject = data.status === 'PendingApproval' && hasPermission('CARE_PACKAGE_REJECT', 'COMPANY');
-  const canCreatePayment = data.status === 'PaymentEligible' && hasPermission('CARE_PACKAGE_CREATE_PAYMENT', 'COMPANY');
-  const canActivate = data.status === 'Paid' && hasPermission('CARE_PACKAGE_CREATE', 'COMPANY');
+  const canSubmit = data.status === 'Draft' && data.requiresApproval && hasPermission('CARE_PACKAGE_CREATE');
+  const canApprove = data.status === 'PendingApproval' && hasPermission('CARE_PACKAGE_APPROVE');
+  const canReject = data.status === 'PendingApproval' && hasPermission('CARE_PACKAGE_REJECT');
+  const canCreatePayment = data.status === 'PaymentEligible' && hasPermission('CARE_PACKAGE_CREATE_PAYMENT');
+  const canActivate = data.status === 'Paid' && hasPermission('CARE_PACKAGE_CREATE');
 
   const itemColumns = [
     { title: 'Mã mộ', dataIndex: 'graveId', key: 'graveId', render: (v: string | null) => v || '—' },

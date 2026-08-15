@@ -71,7 +71,7 @@ const ServiceTypeListPage: React.FC = () => {
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Gói dịch vụ</Title>
         <Space>
-          {hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL') && (
+          {hasPermission('SERVICE_TYPE_MANAGE') && (
             <Button type="primary" data-testid="create-service-type-btn">
               <Link to="/services/types/new">Tạo loại dịch vụ</Link>
             </Button>

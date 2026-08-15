@@ -62,7 +62,7 @@ const WorkflowDefinitionsPage: React.FC = () => {
     <div data-testid="workflow-definitions-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Định nghĩa quy trình</Title>
-        {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
+        {hasPermission('WORKFLOW_CONFIG_MANAGE') && (
           <Button type="primary" data-testid="create-definition-btn">
             <Link to="/workflow/definitions/new">Tạo định nghĩa</Link>
           </Button>

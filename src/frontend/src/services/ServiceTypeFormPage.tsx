@@ -89,7 +89,7 @@ const ServiceTypeFormPage: React.FC = () => {
     }
   };
 
-  const hasManagePerm = hasPermission('SERVICE_TYPE_MANAGE', 'GLOBAL');
+  const hasManagePerm = hasPermission('SERVICE_TYPE_MANAGE');
 
   if (!hasManagePerm || isPermissionDenied(initialError)) {
     return (

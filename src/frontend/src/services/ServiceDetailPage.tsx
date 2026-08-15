@@ -20,7 +20,7 @@ const ServiceDetailPage: React.FC = () => {
   const [renewVisible, setRenewVisible] = useState(false);
   const [overrideVisible, setOverrideVisible] = useState(false);
 
-  const hasViewPerm = hasPermission('SERVICE_VIEW', 'COMPANY');
+  const hasViewPerm = hasPermission('SERVICE_VIEW');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['service', serviceId],
@@ -53,8 +53,8 @@ const ServiceDetailPage: React.FC = () => {
   }
 
   // Dịch vụ xem chéo công ty: backend đã kiểm quyền SERVICE_VIEW theo công ty của dịch vụ.
-  const isRenewable = data.status === 'ACTIVE' && hasPermission('SERVICE_RENEW_STANDARD', 'COMPANY');
-  const isOverridable = data.status === 'ACTIVE' && hasPermission('SERVICE_PRICE_OVERRIDE_REQUEST', 'COMPANY');
+  const isRenewable = data.status === 'ACTIVE' && hasPermission('SERVICE_RENEW_STANDARD');
+  const isOverridable = data.status === 'ACTIVE' && hasPermission('SERVICE_PRICE_OVERRIDE_REQUEST');
 
   return (
     <div data-testid="service-detail-page">

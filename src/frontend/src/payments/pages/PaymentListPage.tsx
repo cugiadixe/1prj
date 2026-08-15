@@ -75,7 +75,7 @@ const PaymentListPage: React.FC = () => {
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Thanh toán</Title>
         <Space>
-          {hasPermission('PAYMENT_CREATE_DRAFT', 'GLOBAL') && (
+          {hasPermission('PAYMENT_CREATE_DRAFT') && (
             <Button type="primary" data-testid="create-payment-btn">
               <Link to="/payments/new">Tạo phiếu nháp</Link>
             </Button>

@@ -120,11 +120,11 @@ const CardReprintRequestDetailPage: React.FC = () => {
   else if (data.status === 'PRINTED') statusColor = 'geekblue';
   else if (data.status === 'RELEASED') statusColor = 'green';
 
-  const canSubmit = data.status === 'DRAFT' && hasPermission('CARD_REPRINT_REQUEST_CREATE', 'GLOBAL');
-  const canApproveReject = data.status === 'PENDING_APPROVAL' && hasPermission('CARD_REPRINT_APPROVE', 'GLOBAL');
-  const canCreatePayment = data.status === 'APPROVED' && hasPermission('CARD_REPRINT_REQUEST_CREATE', 'GLOBAL');
-  const canMarkPrinted = data.status === 'PAID' && hasPermission('CARD_REPRINT_REQUEST_MARK_PRINTED', 'GLOBAL');
-  const canMarkReleased = data.status === 'PRINTED' && hasPermission('CARD_REPRINT_REQUEST_MARK_PRINTED', 'GLOBAL');
+  const canSubmit = data.status === 'DRAFT' && hasPermission('CARD_REPRINT_REQUEST_CREATE');
+  const canApproveReject = data.status === 'PENDING_APPROVAL' && hasPermission('CARD_REPRINT_APPROVE');
+  const canCreatePayment = data.status === 'APPROVED' && hasPermission('CARD_REPRINT_REQUEST_CREATE');
+  const canMarkPrinted = data.status === 'PAID' && hasPermission('CARD_REPRINT_REQUEST_MARK_PRINTED');
+  const canMarkReleased = data.status === 'PRINTED' && hasPermission('CARD_REPRINT_REQUEST_MARK_PRINTED');
 
   return (
     <div data-testid="card-reprint-detail-page">

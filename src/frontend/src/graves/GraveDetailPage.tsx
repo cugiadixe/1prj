@@ -45,7 +45,7 @@ const GraveDetailPage: React.FC = () => {
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const canUpdate = hasPermission('GRAVE_UPDATE', 'GLOBAL');
+  const canUpdate = hasPermission('GRAVE_UPDATE');
 
   const [form] = Form.useForm();
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,7 +61,7 @@ const GraveDetailPage: React.FC = () => {
   const { data: gravePackages } = useQuery({
     queryKey: ['grave-ccp', id],
     queryFn: () => listByGrave(id),
-    enabled: !Number.isNaN(id) && hasPermission('CUSTOMER_CARE_PACKAGE_VIEW', 'GLOBAL'),
+    enabled: !Number.isNaN(id) && hasPermission('CUSTOMER_CARE_PACKAGE_VIEW'),
   });
 
   const saveMutation = useMutation({
@@ -93,7 +93,7 @@ const GraveDetailPage: React.FC = () => {
   });
 
   // ─── Quan hệ chủ mộ ↔ người mất: lọc theo giới tính chủ mộ + tự suy nghịch đảo ───
-  const canViewCustomer = hasPermission('CUSTOMER_VIEW_BASIC', 'GLOBAL');
+  const canViewCustomer = hasPermission('CUSTOMER_VIEW_BASIC');
   const { data: ownerProfile } = useQuery({
     queryKey: ['grave-owner-profile', data?.ownerCustomerId],
     queryFn: () => getCustomerById(data!.ownerCustomerId!),
@@ -202,7 +202,7 @@ const GraveDetailPage: React.FC = () => {
   });
 
   // ─── Chuyển quyền sở hữu ───
-  const canTransfer = hasPermission('GRAVE_TRANSFER_OWNERSHIP', 'GLOBAL');
+  const canTransfer = hasPermission('GRAVE_TRANSFER_OWNERSHIP');
   const [transferForm] = Form.useForm();
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferFile, setTransferFile] = useState<File | null>(null);
@@ -483,7 +483,7 @@ const GraveDetailPage: React.FC = () => {
       <EntityTagsSection
         tagType="GRAVE"
         tags={data.tags}
-        canManage={hasPermission('TAG_MANAGE', 'GLOBAL')}
+        canManage={hasPermission('TAG_MANAGE')}
         onSave={(req) => setGraveTags(id, req)}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ['grave', id] })}
         testId="grave-tags-section"

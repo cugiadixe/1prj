@@ -14,7 +14,7 @@ const CardReprintRequestCreatePage: React.FC = () => {
   const [form] = Form.useForm();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  if (!hasPermission('CARD_REPRINT_REQUEST_CREATE', 'GLOBAL')) {
+  if (!hasPermission('CARD_REPRINT_REQUEST_CREATE')) {
     return (
       <Alert
         type="error"

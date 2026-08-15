@@ -237,8 +237,8 @@ const WorkflowVersionDetailPage: React.FC = () => {
   const isDraft = version.versionStatus === 'DRAFT';
   const isPublished = version.versionStatus === 'PUBLISHED';
   const isActive = version.versionStatus === 'ACTIVE';
-  const canManage = hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL');
-  const canPublish = hasPermission('WORKFLOW_PUBLISH', 'GLOBAL');
+  const canManage = hasPermission('WORKFLOW_CONFIG_MANAGE');
+  const canPublish = hasPermission('WORKFLOW_PUBLISH');
 
   const handleStepSubmit = (values: Record<string, unknown>) => {
     if (editingStep) {

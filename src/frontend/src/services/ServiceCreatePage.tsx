@@ -48,7 +48,7 @@ const ServiceCreatePage: React.FC = () => {
     });
   };
 
-  const hasCreatePerm = hasPermission('SERVICE_CREATE_STANDARD', 'COMPANY');
+  const hasCreatePerm = hasPermission('SERVICE_CREATE_STANDARD');
 
   if (!currentCompanyId) {
     return (

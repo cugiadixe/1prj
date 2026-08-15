@@ -115,12 +115,12 @@ const CustomersPage: React.FC = () => {
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Khách hàng</Title>
         <Space>
-          {hasPermission('CUSTOMER_CREATE_FINAL', 'GLOBAL') && (
+          {hasPermission('CUSTOMER_CREATE_FINAL') && (
             <Button type="primary" data-testid="create-customer-btn">
               <Link to="/customers/new">Tạo khách hàng</Link>
             </Button>
           )}
-          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE', 'GLOBAL') && (
+          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') && (
             <Button type="default" data-testid="submit-customer-proposal-btn">
               <Link to="/customers/proposals/new">Gửi đề xuất</Link>
             </Button>

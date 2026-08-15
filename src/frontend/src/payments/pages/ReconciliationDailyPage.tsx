@@ -110,7 +110,7 @@ const ReconciliationDailyPage: React.FC = () => {
             {data.transactionCount}
 
             <Space style={{ marginLeft: 32 }}>
-              {data.period && data.period.status === 'PREPARED' && hasPermission('RECONCILIATION_CONFIRM', 'GLOBAL') && (
+              {data.period && data.period.status === 'PREPARED' && hasPermission('RECONCILIATION_CONFIRM') && (
                 <Button
                   type="primary"
                   data-testid="confirm-recon-btn"
@@ -120,7 +120,7 @@ const ReconciliationDailyPage: React.FC = () => {
                   Xác nhận đối soát
                 </Button>
               )}
-              {data.period && data.period.status !== 'CONFIRMED' && data.period.status !== 'PREPARED' && hasPermission('RECONCILIATION_PREPARE', 'GLOBAL') && (
+              {data.period && data.period.status !== 'CONFIRMED' && data.period.status !== 'PREPARED' && hasPermission('RECONCILIATION_PREPARE') && (
                 <Button
                   type="primary"
                   data-testid="prepare-recon-btn"

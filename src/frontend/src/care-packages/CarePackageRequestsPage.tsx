@@ -87,7 +87,7 @@ const CarePackageRequestsPage: React.FC = () => {
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Yêu cầu gói chăm sóc</Title>
         <Space>
-          {hasPermission('CARE_PACKAGE_CREATE', 'COMPANY') && (
+          {hasPermission('CARE_PACKAGE_CREATE') && (
             <Button type="primary" data-testid="create-care-package-btn">
               <Link to="/care-packages/new">Tạo yêu cầu</Link>
             </Button>

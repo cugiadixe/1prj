@@ -146,7 +146,7 @@ const TagCatalog: React.FC<{ tagType: TagType }> = ({ tagType }) => {
 
 const TagManagementPage: React.FC = () => {
   const { hasPermission } = usePermissions();
-  if (!hasPermission('TAG_MANAGE', 'GLOBAL')) {
+  if (!hasPermission('TAG_MANAGE')) {
     return <Alert type="error" message="Bạn không có quyền quản lý thẻ." data-testid="permission-denied" />;
   }
 

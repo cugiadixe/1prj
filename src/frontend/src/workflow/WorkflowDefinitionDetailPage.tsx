@@ -98,12 +98,12 @@ const WorkflowDefinitionDetailPage: React.FC = () => {
           Quy trình: {definition.definitionName}
         </Title>
         <Space>
-          {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
+          {hasPermission('WORKFLOW_CONFIG_MANAGE') && (
             <Button data-testid="edit-definition-btn">
               <Link to={`/workflow/definitions/${id}/edit`}>Sửa</Link>
             </Button>
           )}
-          {hasPermission('WORKFLOW_CONFIG_MANAGE', 'GLOBAL') && (
+          {hasPermission('WORKFLOW_CONFIG_MANAGE') && (
             <Button type="primary" data-testid="create-version-btn">
               <Link to={`/workflow/definitions/${id}/versions/new`}>Phiên bản mới</Link>
             </Button>

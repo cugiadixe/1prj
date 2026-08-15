@@ -185,8 +185,8 @@ describe('AuthProvider', () => {
       vi.spyOn(authApi, 'apiLogin').mockResolvedValue(mockLoginResponse(false));
       vi.spyOn(authApi, 'apiFetchMyPermissions').mockResolvedValue({
         permissions: [
-          { permissionCode: 'SECURITY_ACCOUNT_MANAGE', scope: 'GLOBAL', companyId: null },
-          { permissionCode: 'TEST_PERM', scope: 'COMPANY', companyId: 10 }
+          { permissionCode: 'SECURITY_ACCOUNT_MANAGE', isGlobal: true, companyIds: [] },
+          { permissionCode: 'TEST_PERM', isGlobal: false, companyIds: [10] }
         ]
       });
 
@@ -197,9 +197,9 @@ describe('AuthProvider', () => {
           <div>
             <button data-testid="do-login" onClick={() => login('u', 'p')}>Login</button>
             <span data-testid="perm-length">{permissions.length}</span>
-            <span data-testid="has-global">{String(hasPermission('SECURITY_ACCOUNT_MANAGE', 'GLOBAL'))}</span>
-            <span data-testid="has-company-10">{String(hasPermission('TEST_PERM', 'COMPANY', 10))}</span>
-            <span data-testid="has-company-20">{String(hasPermission('TEST_PERM', 'COMPANY', 20))}</span>
+            <span data-testid="has-global">{String(hasPermission('SECURITY_ACCOUNT_MANAGE'))}</span>
+            <span data-testid="has-company-10">{String(hasPermission('TEST_PERM', 10))}</span>
+            <span data-testid="has-company-20">{String(hasPermission('TEST_PERM', 20))}</span>
             <span data-testid="has-any">{String(hasPermission('SECURITY_ACCOUNT_MANAGE'))}</span>
           </div>
         );

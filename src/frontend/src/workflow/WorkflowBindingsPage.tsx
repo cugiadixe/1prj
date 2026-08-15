@@ -198,7 +198,7 @@ const WorkflowBindingsPage: React.FC = () => {
         <Tag color={val ? 'green' : 'red'}>{val ? 'Hoạt động' : 'Ngừng hoạt động'}</Tag>
       ),
     },
-    ...(hasPermission('WORKFLOW_BIND_PROCESS', 'GLOBAL')
+    ...(hasPermission('WORKFLOW_BIND_PROCESS')
       ? [
           {
             title: 'Thao tác',
@@ -239,7 +239,7 @@ const WorkflowBindingsPage: React.FC = () => {
     <div data-testid="workflow-bindings-page">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Liên kết quy trình</Title>
-        {hasPermission('WORKFLOW_BIND_PROCESS', 'GLOBAL') && (
+        {hasPermission('WORKFLOW_BIND_PROCESS') && (
           <Button type="primary" onClick={openCreate} data-testid="create-binding-btn">
             Tạo liên kết
           </Button>
