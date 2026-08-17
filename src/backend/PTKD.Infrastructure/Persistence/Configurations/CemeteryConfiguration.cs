@@ -17,6 +17,7 @@ public class CemeteryConfiguration : IEntityTypeConfiguration<Cemetery>
         builder.Property(c => c.Name).HasColumnName("name").HasMaxLength(200);
         builder.Property(c => c.Address).HasColumnName("address").HasMaxLength(500);
         builder.Property(c => c.IsActive).HasColumnName("is_active");
+        builder.Property(c => c.CardWatermarkCode).HasColumnName("card_watermark_code").HasMaxLength(64);
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.CreatedByUserId).HasColumnName("created_by_user_id");
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");

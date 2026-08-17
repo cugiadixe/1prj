@@ -53,9 +53,9 @@ public class CardsController : ControllerBase
     /// <summary>Xuất PDF thẻ mộ (khổ B5 gập đôi, 4 mặt) để xem trước / in.</summary>
     [HttpGet("{id}/document.pdf")]
     [RequirePermission(PermissionCodes.CardIssue, PermissionScope.Company)]
-    public async Task<IActionResult> Document(long id, [FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)
+    public async Task<IActionResult> Document(long id, [FromHeader(Name = "X-Company-Id")] long companyId, [FromQuery] string? watermark, CancellationToken ct)
     {
-        var pdf = await _documentService.RenderCardPdfAsync(id, companyId, ct);
+        var pdf = await _documentService.RenderCardPdfAsync(id, companyId, watermark, ct);
         return File(pdf, "application/pdf", $"the-mo-{id}.pdf");
     }
 

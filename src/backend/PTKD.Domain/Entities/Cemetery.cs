@@ -15,6 +15,8 @@ public class Cemetery
     public string Name { get; private set; } = null!;
     public string? Address { get; private set; }
     public bool IsActive { get; private set; }
+    /// <summary>Mã mẫu hoa văn chìm (watermark) áp cho thẻ mộ của nghĩa trang này. NULL/rỗng = không hoa văn.</summary>
+    public string? CardWatermarkCode { get; private set; }
     public byte[] RowVersion { get; private set; } = null!;
 
     public DateTime CreatedAt { get; private set; }
@@ -48,6 +50,13 @@ public class Cemetery
     public void SetStatus(bool isActive, long? updatedByUserId)
     {
         IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedByUserId = updatedByUserId;
+    }
+
+    public void SetCardWatermark(string? code, long? updatedByUserId)
+    {
+        CardWatermarkCode = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
         UpdatedAt = DateTime.UtcNow;
         UpdatedByUserId = updatedByUserId;
     }

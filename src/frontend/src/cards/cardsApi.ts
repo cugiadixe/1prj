@@ -38,10 +38,14 @@ export const createCard = async (companyId: number, req: CreateCardRequest): Pro
   return data;
 };
 
-/** Tải PDF thẻ mộ (khổ B5 gập đôi, 4 mặt) dạng blob — có kèm token + X-Company-Id. */
-export const fetchCardPdf = async (companyId: number, id: number): Promise<Blob> => {
+/**
+ * Tải PDF thẻ mộ (khổ B5 gập đôi, 4 mặt) dạng blob — có kèm token + X-Company-Id.
+ * `watermark` khác rỗng sẽ ĐÈ hoa văn cấu hình của nghĩa trang (để xem thử).
+ */
+export const fetchCardPdf = async (companyId: number, id: number, watermark?: string): Promise<Blob> => {
   const { data } = await axiosClient.get(`${BASE_URL}/${id}/document.pdf`, {
     headers: companyHeaders(companyId),
+    params: watermark ? { watermark } : undefined,
     responseType: 'blob',
   });
   return data as Blob;

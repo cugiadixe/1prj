@@ -262,6 +262,11 @@ const AuthenticatedShell: React.FC = () => {
           label: navLabel('nav-cards-reprints', 'Yêu cầu in lại'),
           onClick: () => navigate('/cards/reprints'),
         },
+        {
+          key: '/cards/watermarks',
+          label: navLabel('nav-cards-watermarks', 'Hoa văn thẻ'),
+          onClick: () => navigate('/cards/watermarks'),
+        },
       ],
     },
     {

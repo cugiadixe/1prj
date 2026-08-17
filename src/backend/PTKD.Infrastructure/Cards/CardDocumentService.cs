@@ -53,7 +53,7 @@ public class CardDocumentService : ICardDocumentService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<byte[]> RenderCardPdfAsync(long cardId, long companyId, CancellationToken ct = default)
+    public async Task<byte[]> RenderCardPdfAsync(long cardId, long companyId, string? watermarkOverride = null, CancellationToken ct = default)
     {
         await using var db = _dbContextFactory.CreateDbContext();
 
@@ -84,7 +84,8 @@ public class CardDocumentService : ICardDocumentService
 
         EnsureFontResolver();
 
-        var model = new CardModel(card, grave, cemetery, company?.Name ?? "", occupants, owner);
+        var watermark = string.IsNullOrWhiteSpace(watermarkOverride) ? cemetery?.CardWatermarkCode : watermarkOverride;
+        var model = new CardModel(card, grave, cemetery, company?.Name ?? "", occupants, owner, watermark);
         return Render(model);
     }
 
@@ -101,7 +102,7 @@ public class CardDocumentService : ICardDocumentService
 
     private sealed record CardModel(
         Card Card, Grave? Grave, Cemetery? Cemetery, string CompanyName,
-        IReadOnlyList<GraveOccupant> Occupants, Profile? Owner);
+        IReadOnlyList<GraveOccupant> Occupants, Profile? Owner, string? WatermarkCode);
 
     // ── mm helpers ──
     private static double Mm(double v) => XUnit.FromMillimeter(v).Point;
@@ -125,6 +126,8 @@ public class CardDocumentService : ICardDocumentService
         p1.Height = XUnit.FromMillimeter(PageH);
         using (var g = XGraphics.FromPdfPage(p1))
         {
+            DrawWatermark(g, m, leftFace: true);
+            DrawWatermark(g, m, leftFace: false);
             DrawFoldLine(g);
             DrawFaceBorder(g, leftFace: true);
             DrawFaceBorder(g, leftFace: false);
@@ -138,6 +141,8 @@ public class CardDocumentService : ICardDocumentService
         p2.Height = XUnit.FromMillimeter(PageH);
         using (var g = XGraphics.FromPdfPage(p2))
         {
+            DrawWatermark(g, m, leftFace: true);
+            DrawWatermark(g, m, leftFace: false);
             DrawFoldLine(g);
             DrawFaceBorder(g, leftFace: true);
             DrawFaceBorder(g, leftFace: false);
@@ -148,6 +153,88 @@ public class CardDocumentService : ICardDocumentService
         using var ms = new MemoryStream();
         doc.Save(ms);
         return ms.ToArray();
+    }
+
+    // ── Hoa văn chìm (watermark) — vẽ TRƯỚC nội dung, màu nhạt ──
+    public const string WmLotusCode = "LOTUS";
+    public const string WmFrameCode = "FRAME_CLASSIC";
+    public const string WmDiagonalCode = "DIAGONAL_TEXT";
+    private static readonly XColor FaintColor = XColor.FromArgb(232, 226, 214);
+
+    private void DrawWatermark(XGraphics g, CardModel m, bool leftFace)
+    {
+        var code = m.WatermarkCode;
+        if (string.IsNullOrWhiteSpace(code)) return;
+        double x0 = leftFace ? 0 : FaceW;
+        switch (code.Trim().ToUpperInvariant())
+        {
+            case WmLotusCode: WmLotus(g, x0); break;
+            case WmFrameCode: WmFrame(g, x0); break;
+            case WmDiagonalCode: WmDiagonalText(g, x0, DiagonalWatermarkText(m)); break;
+        }
+    }
+
+    private static string DiagonalWatermarkText(CardModel m)
+    {
+        var name = m.Cemetery?.Name;
+        if (!string.IsNullOrWhiteSpace(name)) return name!.ToUpperInvariant();
+        return string.IsNullOrWhiteSpace(m.CompanyName) ? "INDEVCO" : m.CompanyName.ToUpperInvariant();
+    }
+
+    private static void WmDiagonalText(XGraphics g, double x0, string text)
+    {
+        var font = new XFont(FontFamily, 30, XFontStyleEx.Bold);
+        var brush = new XSolidBrush(FaintColor);
+        double cx = Mm(x0 + FaceW / 2), cy = Mm(PageH / 2);
+        var st = g.Save();
+        g.RotateAtTransform(-32, new XPoint(cx, cy));
+        for (int row = -3; row <= 3; row++)
+            g.DrawString(text, font, brush, new XRect(Mm(x0 - 20), cy + row * Mm(26) - Mm(8), Mm(FaceW + 40), Mm(16)), XStringFormats.Center);
+        g.Restore(st);
+    }
+
+    private static void WmLotus(XGraphics g, double x0)
+    {
+        var pen = new XPen(FaintColor, 0.8);
+        double cx = Mm(x0 + FaceW / 2), cy = Mm(PageH / 2);
+        double petalLen = Mm(42), petalWid = Mm(15);
+        var st = g.Save();
+        for (int i = 0; i < 8; i++)
+        {
+            var s2 = g.Save();
+            g.RotateAtTransform(i * 45, new XPoint(cx, cy));
+            g.DrawEllipse(pen, cx - petalWid / 2, cy - petalLen, petalWid, petalLen);
+            g.Restore(s2);
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            var s2 = g.Save();
+            g.RotateAtTransform(i * 45 + 22.5, new XPoint(cx, cy));
+            g.DrawEllipse(pen, cx - Mm(9) / 2, cy - Mm(26), Mm(9), Mm(26));
+            g.Restore(s2);
+        }
+        g.DrawEllipse(pen, cx - Mm(7), cy - Mm(7), Mm(14), Mm(14));
+        g.Restore(st);
+    }
+
+    private static void WmFrame(XGraphics g, double x0)
+    {
+        var pen = new XPen(FaintColor, 0.8);
+        var thin = new XPen(FaintColor, 0.5);
+        var brush = new XSolidBrush(FaintColor);
+        double l = x0 + 12, t = 12, r = x0 + FaceW - 12, b = PageH - 12;
+        g.DrawRectangle(pen, Mm(l), Mm(t), Mm(r - l), Mm(b - t));
+        g.DrawRectangle(thin, Mm(l + 2), Mm(t + 2), Mm(r - l - 4), Mm(b - t - 4));
+        void Corner(double cxm, double cym, bool left, bool top)
+        {
+            double s = 10;
+            int start = left ? (top ? 180 : 90) : (top ? 270 : 0);
+            g.DrawArc(pen, Mm(cxm - (left ? s : 0)), Mm(cym - (top ? s : 0)), Mm(s), Mm(s), start, 90);
+            g.DrawArc(thin, Mm(cxm - (left ? s / 2 : 0)), Mm(cym - (top ? s / 2 : 0)), Mm(s / 2), Mm(s / 2), start, 90);
+        }
+        Corner(l, t, true, true); Corner(r, t, false, true); Corner(l, b, true, false); Corner(r, b, false, false);
+        void Dot(double xm, double ym) => g.DrawEllipse(brush, Mm(xm - 1.5), Mm(ym - 1.5), Mm(3), Mm(3));
+        Dot((l + r) / 2, t); Dot((l + r) / 2, b); Dot(l, (t + b) / 2); Dot(r, (t + b) / 2);
     }
 
     private static void DrawFoldLine(XGraphics g)
