@@ -57,7 +57,9 @@ public class GraveAttachmentService : IGraveAttachmentService
             throw new BusinessRuleValidationException("GRAVE_ATTACHMENT_TOO_LARGE", "File rỗng hoặc vượt quá 10MB.");
 
         await using var context = _dbContextFactory.CreateDbContext();
-        if (!await context.Graves.AnyAsync(g => g.Id == graveId, ct))
+        // Lấy MÃ MỘ để đặt tên thư mục lưu file (thay vì id số).
+        var graveCode = await context.Graves.Where(g => g.Id == graveId).Select(g => g.GraveCode).FirstOrDefaultAsync(ct);
+        if (graveCode == null)
             throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
 
         var manageScope = await _permissionEvaluator.ResolveAsync(actorUserId, AttachmentManagePermission, ct);
@@ -68,7 +70,7 @@ public class GraveAttachmentService : IGraveAttachmentService
             throw new EntityNotFoundException("GRAVE_OWNERSHIP_HISTORY_NOT_FOUND", "Ownership history not found.");
 
         var storedName = Guid.NewGuid().ToString("N") + ext;
-        var result = await _storage.SaveAsync(graveId, storedName, content, contentType, generateThumbnail: true, ct);
+        var result = await _storage.SaveAsync(graveCode, storedName, content, contentType, generateThumbnail: true, ct);
 
         var attachment = new GraveAttachment(
             graveId, category, ownershipHistoryId,
@@ -110,9 +112,12 @@ public class GraveAttachmentService : IGraveAttachmentService
         if (!await GraveCompanyScope.CanAccessGraveAsync(context, graveId, scope, ct))
             return null;
 
+        var graveCode = await context.Graves.Where(g => g.Id == graveId).Select(g => g.GraveCode).FirstOrDefaultAsync(ct);
+        if (graveCode == null) return null;
+
         var stream = thumbnail && a.HasThumbnail
-            ? _storage.OpenReadThumbnail(a.GraveId, a.StoredName)
-            : _storage.OpenRead(a.GraveId, a.StoredName);
+            ? _storage.OpenReadThumbnail(graveCode, a.StoredName)
+            : _storage.OpenRead(graveCode, a.StoredName);
         if (stream == null) return null;
 
         var contentType = thumbnail && a.HasThumbnail ? "image/jpeg" : a.ContentType;
@@ -129,7 +134,9 @@ public class GraveAttachmentService : IGraveAttachmentService
         var manageScope = await _permissionEvaluator.ResolveAsync(actorUserId, AttachmentManagePermission, ct);
         await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, manageScope, "GRAVE_ATTACHMENT_FORBIDDEN_COMPANY", ct);
 
-        _storage.Delete(a.GraveId, a.StoredName);
+        var graveCode = await context.Graves.Where(g => g.Id == graveId).Select(g => g.GraveCode).FirstOrDefaultAsync(ct);
+        if (graveCode != null)
+            _storage.Delete(graveCode, a.StoredName);
         context.GraveAttachments.Remove(a);
         await context.SaveChangesAsync(ct);
     }
