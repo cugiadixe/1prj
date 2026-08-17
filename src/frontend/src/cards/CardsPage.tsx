@@ -3,11 +3,12 @@ import { Alert, Button, Modal, Select, Space, Table, Tag, Typography, notificati
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { usePermissions } from '../auth/AuthProvider';
+import { useCompany } from '../auth/CompanyProvider';
 import { searchGraves } from '../graves/gravesApi';
 import { useCards, useCreateCard } from './cardsHooks';
 import { useCreateCardReprintRequest, usePrintInitialCardReprint } from './hooks';
 import { getErrorMessage } from './errorMessages';
-import type { CardDto } from './cardsApi';
+import { fetchCardPdf, type CardDto } from './cardsApi';
 
 const { Title, Paragraph } = Typography;
 
@@ -20,6 +21,7 @@ const STATUS_COLOR: Record<string, string> = {
 const CardsPage: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
+  const { currentCompanyId } = useCompany();
   const canIssue = hasPermission('CARD_ISSUE');
 
   const { data: cards, isLoading, error } = useCards();
@@ -65,6 +67,22 @@ const CardsPage: React.FC = () => {
     }
   };
 
+  // Xem trước / In: tải PDF thẻ rồi mở tab mới (trình duyệt cho chọn máy in khi bấm In).
+  const onPreview = async (card: CardDto) => {
+    if (!currentCompanyId) return;
+    setBusyCardId(card.id);
+    try {
+      const blob = await fetchCardPdf(currentCompanyId, card.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      notification.error({ message: getErrorMessage(err) });
+    } finally {
+      setBusyCardId(null);
+    }
+  };
+
   // In lại (cần duyệt + phí): tạo yêu cầu REPRINT rồi mở trang chi tiết để Gửi duyệt.
   const onRequestReprint = async (card: CardDto) => {
     setBusyCardId(card.id);
@@ -94,6 +112,14 @@ const CardsPage: React.FC = () => {
       title: 'Thao tác', key: 'actions',
       render: (_: unknown, card: CardDto) => (
         <Space>
+          <Button
+            size="small"
+            loading={busyCardId === card.id}
+            onClick={() => onPreview(card)}
+            data-testid={`btn-preview-${card.id}`}
+          >
+            Xem/In thẻ
+          </Button>
           {card.printCount === 0 ? (
             <Button
               type="primary"

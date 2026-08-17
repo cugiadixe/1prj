@@ -10,6 +10,9 @@ import * as auth from '../auth/AuthProvider';
 vi.mock('./cardsHooks');
 vi.mock('./hooks');
 vi.mock('../auth/AuthProvider');
+vi.mock('../auth/CompanyProvider', () => ({
+  useCompany: () => ({ currentCompanyId: 1, companies: [], switchCompany: vi.fn() }),
+}));
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {

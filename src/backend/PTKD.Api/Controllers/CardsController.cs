@@ -17,10 +17,12 @@ namespace PTKD.Api.Controllers;
 public class CardsController : ControllerBase
 {
     private readonly ICardService _service;
+    private readonly ICardDocumentService _documentService;
 
-    public CardsController(ICardService service)
+    public CardsController(ICardService service, ICardDocumentService documentService)
     {
         _service = service;
+        _documentService = documentService;
     }
 
     [HttpPost]
@@ -46,6 +48,15 @@ public class CardsController : ControllerBase
         var result = await _service.GetByIdAsync(id, companyId, ct);
         if (result == null) return NotFound();
         return Ok(result);
+    }
+
+    /// <summary>Xuất PDF thẻ mộ (khổ B5 gập đôi, 4 mặt) để xem trước / in.</summary>
+    [HttpGet("{id}/document.pdf")]
+    [RequirePermission(PermissionCodes.CardIssue, PermissionScope.Company)]
+    public async Task<IActionResult> Document(long id, [FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)
+    {
+        var pdf = await _documentService.RenderCardPdfAsync(id, companyId, ct);
+        return File(pdf, "application/pdf", $"the-mo-{id}.pdf");
     }
 
     private long GetActorUserId()

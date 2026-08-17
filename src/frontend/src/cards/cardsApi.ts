@@ -37,3 +37,12 @@ export const createCard = async (companyId: number, req: CreateCardRequest): Pro
   const { data } = await axiosClient.post<CardDto>(BASE_URL, req, { headers: companyHeaders(companyId) });
   return data;
 };
+
+/** Tải PDF thẻ mộ (khổ B5 gập đôi, 4 mặt) dạng blob — có kèm token + X-Company-Id. */
+export const fetchCardPdf = async (companyId: number, id: number): Promise<Blob> => {
+  const { data } = await axiosClient.get(`${BASE_URL}/${id}/document.pdf`, {
+    headers: companyHeaders(companyId),
+    responseType: 'blob',
+  });
+  return data as Blob;
+};
