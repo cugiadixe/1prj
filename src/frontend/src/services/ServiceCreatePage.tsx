@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Alert, Button, DatePicker, Form, InputNumber, Space, Typography, message, Select } from 'antd';
+import { Alert, Button, DatePicker, Form, Space, Typography, message, Select } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
 import { useCompany } from '../auth/CompanyProvider';
 import { createService } from './servicesApi';
 import { searchServiceTypes } from './serviceTypesApi';
+import { searchCustomers } from '../customers/customersApi';
 import { getErrorMessage } from './errorMessages';
+import RemoteSelect, { type RemoteSelectOption } from '../components/RemoteSelect';
 import type { CreateServiceRequest } from './types';
 
 const { Title } = Typography;
@@ -36,6 +38,11 @@ const ServiceCreatePage: React.FC = () => {
       setFormError(getErrorMessage(err));
     },
   });
+
+  const fetchCustomers = async (search: string): Promise<RemoteSelectOption[]> => {
+    const res = await searchCustomers({ search, pageSize: 20 });
+    return res.items.map((c) => ({ value: c.id, label: `${c.fullName} (${c.customerCode})` }));
+  };
 
   const handleSubmit = (values: any) => {
     setFormError(null);
@@ -115,12 +122,13 @@ const ServiceCreatePage: React.FC = () => {
 
         <Form.Item
           name="customerId"
-          label="Mã khách hàng"
-          rules={[{ required: true, message: 'Vui lòng nhập mã khách hàng' }]}
+          label="Khách hàng"
+          rules={[{ required: true, message: 'Vui lòng chọn khách hàng' }]}
         >
-          <InputNumber
-            style={{ width: '100%' }}
-            min={1}
+          <RemoteSelect
+            placeholder="Tìm theo tên hoặc mã khách hàng"
+            queryKey={['service-create-customers']}
+            fetchOptions={fetchCustomers}
             data-testid="input-customer-id"
           />
         </Form.Item>

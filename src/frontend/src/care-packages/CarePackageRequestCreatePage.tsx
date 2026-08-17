@@ -3,7 +3,7 @@ import { Alert, Button, DatePicker, Form, Input, InputNumber, Space, Typography,
 import { useNavigate } from 'react-router-dom';
 import { useCreateCarePackageRequest } from './hooks';
 import { getErrorMessage } from './errorMessages';
-import RemoteSelect, { type RemoteSelectOption } from './RemoteSelect';
+import RemoteSelect, { type RemoteSelectOption } from '../components/RemoteSelect';
 import { usePermissions } from '../auth/AuthProvider';
 import { searchCustomers } from '../customers/customersApi';
 import { searchServiceTypes } from '../services/serviceTypesApi';
