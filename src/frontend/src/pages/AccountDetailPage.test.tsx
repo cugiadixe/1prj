@@ -58,10 +58,12 @@ function makeWrapper(accountId = '42') {
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/security/accounts/${accountId}`]}>
-        <Routes>
-          <Route path="/security/accounts" element={<div data-testid="list-page" />} />
-          <Route path="/security/accounts/:accountId" element={<>{children}</>} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/security/accounts" element={<div data-testid="list-page" />} />
+            <Route path="/security/accounts/:accountId" element={<>{children}</>} />
+          </Routes>
+        </AuthProvider>
       </MemoryRouter>
     </QueryClientProvider>
   );
