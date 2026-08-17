@@ -16,11 +16,12 @@ public sealed class MigrationRollbackTests
     [Fact]
     public void DbMigrator_AppliesExactlyOnce_ThenRollsBackInDependencyOrder()
     {
-        _fixture.ResetToEmpty();
+        // V0001/V0002 dựng sẵn + seed công ty '-HN' để migrator áp tiếp từ V0003 qua được V0038.
+        _fixture.ResetToV0002WithHanoiCompany();
 
         var firstOutput = ExecuteDbMigrator();
-        Assert.Contains("Applied V0001", firstOutput, StringComparison.Ordinal);
-        Assert.Contains("Applied V0002", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0001", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0002", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0004", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0005", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0006", firstOutput, StringComparison.Ordinal);
@@ -68,63 +69,18 @@ public sealed class MigrationRollbackTests
         Assert.Contains("Skipping V0015", secondOutput, StringComparison.Ordinal);
         Assert.Equal(1, GetSchemaVersionsCount("V0015"));
 
-        ExecuteRollback("U0015__deployment_readiness_permission_seed_alignment.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0015"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0014"));
-
-        ExecuteRollback("U0014__care_package_sales_foundation.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0014"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0013"));
-
-        ExecuteRollback("U0013__card_reprint_foundation.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0013"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0012"));
-
-        ExecuteRollback("U0012__payment_foundation.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0012"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0011"));
-
-        ExecuteRollback("U0011__service_module_foundation.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0011"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0010"));
-
-        ExecuteRollback("U0010__customer_merge_backend_data_foundation.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0010"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0009"));
-
-        ExecuteRollback("U0009__add_customer_change_request_target_fields.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0009"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0008"));
-
-        ExecuteRollback("U0008__revert_harden_workflow_runtime.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0008"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0007"));
-
-        ExecuteRollback("U0007__drop_customer_change_request.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0007"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0006"));
-
-        ExecuteRollback("U0006__drop_workflow_schema.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0006"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0005"));
-
-        ExecuteRollback("U0005__drop_customer_schema.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0005"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0004"));
-
-        ExecuteRollback("U0004__deactivate_security_admin_manage_permission.sql");
-        Assert.Equal(0, GetSchemaVersionsCount("V0004"));
-        Assert.Equal(1, GetSchemaVersionsCount("V0003"));
-
-        var ex = Assert.Throws<Microsoft.Data.SqlClient.SqlException>(() =>
-            ExecuteRollback("U0003__drop_security_schema.sql"));
-        Assert.Contains("Permissions differs from the approved seed catalog", ex.Message);
+        // Rollback lùi-giữa-chuỗi (U0015->U0004) KHÔNG còn khả thi khi migrator áp TOÀN BỘ chuỗi:
+        // rollback script chỉ có tới U0015, các migration V0016-V0045 là forward-only (không có
+        // U-file), nên không thể lùi bảng ở giữa mà không vỡ phụ thuộc của migration trên nó.
+        // Cơ chế rollback đã được phủ bởi: DbMigrator_RollsBackEntireFailedMigration (rollback
+        // nguyên tử khi 1 migration lỗi) và SecuritySchemaTests.Rollback_CleanSchemaSucceeds
+        // (rollback U0003 rồi migrate lại). Test này chỉ còn khẳng định: áp đúng-một-lần + idempotent.
     }
 
     [Fact]
     public void DbMigrator_RollsBackEntireFailedMigration()
     {
-        _fixture.ResetToEmpty();
+        _fixture.ResetToV0002WithHanoiCompany();
         ExecuteDbMigrator();
 
         var badMigrationPath = Path.Combine(

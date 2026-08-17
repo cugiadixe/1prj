@@ -27,6 +27,8 @@ public sealed class SecuritySchemaTests : IDisposable
 
     private static readonly string[] ExpectedPermissionCodes =
     [
+        "APPROVAL_AUTHORITY_MANAGE",
+        "CARD_ISSUE",
         "CARD_REPRINT_APPROVE",
         "CARD_REPRINT_REQUEST_CREATE",
         "CARD_REPRINT_REQUEST_MARK_PRINTED",
@@ -37,6 +39,8 @@ public sealed class SecuritySchemaTests : IDisposable
         "CARE_PACKAGE_CREATE_PAYMENT",
         "CARE_PACKAGE_REJECT",
         "CARE_PACKAGE_VIEW",
+        "CUSTOMER_CARE_PACKAGE_MANAGE",
+        "CUSTOMER_CARE_PACKAGE_VIEW",
         "CUSTOMER_CHANGE_REQUEST_CREATE",
         "CUSTOMER_CREATE_FINAL",
         "CUSTOMER_MASTER_UPDATE",
@@ -46,6 +50,13 @@ public sealed class SecuritySchemaTests : IDisposable
         "CUSTOMER_MERGE_REQUEST_VIEW",
         "CUSTOMER_VIEW_BASIC",
         "CUSTOMER_VIEW_SENSITIVE",
+        "GRAVE_ATTACHMENT_MANAGE",
+        "GRAVE_CREATE",
+        "GRAVE_EMERGENCY_CONTACT_MANAGE",
+        "GRAVE_OCCUPANT_MANAGE",
+        "GRAVE_TRANSFER_OWNERSHIP",
+        "GRAVE_UPDATE",
+        "GRAVE_VIEW",
         "ORGANIZATION_COMPANY_MANAGE",
         "ORGANIZATION_COMPANY_VIEW",
         "ORGANIZATION_DEPARTMENT_MANAGE",
@@ -55,8 +66,11 @@ public sealed class SecuritySchemaTests : IDisposable
         "PAYMENT_CORRECT_CONFIRMED",
         "PAYMENT_CREATE_DRAFT",
         "PAYMENT_PRINT",
+        "PAYMENT_VIEW",
         "RECONCILIATION_CONFIRM",
         "RECONCILIATION_PREPARE",
+        "RECONCILIATION_VIEW",
+        "SECURITY_ACCOUNT_DISABLE",
         "SECURITY_ACCOUNT_MANAGE",
         "SECURITY_ADMIN_GROUP_MANAGE",
         "SECURITY_ADMIN_GROUP_VIEW",
@@ -74,7 +88,10 @@ public sealed class SecuritySchemaTests : IDisposable
         "SERVICE_PRICE_OVERRIDE_REQUEST",
         "SERVICE_RENEW_STANDARD",
         "SERVICE_TYPE_MANAGE",
+        "SERVICE_TYPE_VIEW",
         "SERVICE_VIEW",
+        "SYSTEM_SETTING_MANAGE",
+        "TAG_MANAGE",
         "WORKFLOW_AUDIT_VIEW",
         "WORKFLOW_BIND_PROCESS",
         "WORKFLOW_CONFIG_MANAGE",
@@ -82,7 +99,8 @@ public sealed class SecuritySchemaTests : IDisposable
         "WORKFLOW_REASSIGN_PENDING",
         "WORKFLOW_REJECT",
         "WORKFLOW_RETRY_EXECUTION",
-        "WORKFLOW_VIEW"
+        "WORKFLOW_VIEW",
+        "WORKFLOW_VIEW_ALL_COMPANIES"
     ];
 
     private readonly TestDatabaseFixture _fixture;
@@ -95,11 +113,11 @@ public sealed class SecuritySchemaTests : IDisposable
     [Fact]
     public void Migrator_AppliesV0001V0002V0003ExactlyOnce_AndRecordsV0003()
     {
-        _fixture.ResetToEmpty();
+        _fixture.ResetToV0002WithHanoiCompany();
 
         var firstOutput = ExecuteDbMigrator();
-        Assert.Contains("Applied V0001", firstOutput, StringComparison.Ordinal);
-        Assert.Contains("Applied V0002", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0001", firstOutput, StringComparison.Ordinal);
+        Assert.Contains("Skipping V0002", firstOutput, StringComparison.Ordinal);
         Assert.Contains("Applied V0003", firstOutput, StringComparison.Ordinal);
 
         using (var connection = _fixture.OpenVerifiedConnection())
@@ -126,7 +144,7 @@ public sealed class SecuritySchemaTests : IDisposable
     [Fact]
     public void Migrator_FailedMigration_IsAtomic()
     {
-        _fixture.ResetToEmpty();
+        _fixture.ResetToV0002WithHanoiCompany();
         ExecuteDbMigrator();
 
         var badMigrationPath = Path.Combine(
@@ -274,7 +292,7 @@ public sealed class SecuritySchemaTests : IDisposable
     [Fact]
     public void Permissions_UseNaturalPrimaryKey_AndExactImmutableSeedCatalog()
     {
-        _fixture.ResetToEmpty();
+        _fixture.ResetToV0002WithHanoiCompany();
         ExecuteDbMigrator();
         using var connection = _fixture.OpenVerifiedConnection();
 
@@ -327,7 +345,7 @@ public sealed class SecuritySchemaTests : IDisposable
     [Fact]
     public void Permissions_V0004_ContainsSecurityAdminManage()
     {
-        _fixture.ResetToEmpty();
+        _fixture.ResetToV0002WithHanoiCompany();
         ExecuteDbMigrator();
 
         using var connection = _fixture.OpenVerifiedConnection();
@@ -744,6 +762,9 @@ public sealed class SecuritySchemaTests : IDisposable
             Assert.Equal(0, CountVersion(connection, "V0003"));
             Assert.Equal(1, CountVersion(connection, "V0002"));
         }
+
+        // Migrator sẽ áp lại V0003..V0045; seed '-HN' để V0038 (đòi công ty Hà Nội) qua được.
+        _fixture.SeedHanoiCompany();
 
         var output = ExecuteDbMigrator();
         Assert.Contains("Applied V0003", output, StringComparison.Ordinal);

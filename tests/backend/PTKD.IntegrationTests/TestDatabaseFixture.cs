@@ -497,6 +497,34 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    /// <summary>
+    /// Reset về V0002 (ghi V0001, V0002 vào SchemaVersions) rồi SEED một công ty mã '-HN'.
+    /// Dùng cho các test chạy DbMigrator FULL CHAIN: V0038 (chốt an toàn) đòi có sẵn công ty '-HN',
+    /// nhưng migrator chạy trên DB trống thì chưa có. Vì V0001/V0002 đã ghi SchemaVersions nên
+    /// migrator BỎ QUA chúng và áp tiếp từ V0003 — lúc này '-HN' đã tồn tại nên V0038 qua.
+    /// KHÔNG đổi migration production; chỉ dựng dữ liệu nền mà production vốn có (công ty được seed).
+    /// </summary>
+    public void ResetToV0002WithHanoiCompany()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0002();
+            SeedHanoiCompany();
+        }
+    }
+
+    /// <summary>Seed một công ty mã '-HN' (bảng Companies phải đã tồn tại — từ V0002 trở đi).</summary>
+    public void SeedHanoiCompany()
+    {
+        using var connection = OpenVerifiedConnection();
+        using var command = new SqlCommand(
+            "IF NOT EXISTS (SELECT 1 FROM dbo.Companies WHERE company_code LIKE '%-HN') " +
+            "INSERT INTO dbo.Companies (company_code, name, is_active, created_at) " +
+            "VALUES ('PTKD-HN', N'PTKD Hà Nội (test seed)', 1, SYSUTCDATETIME());",
+            connection);
+        command.ExecuteNonQuery();
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
