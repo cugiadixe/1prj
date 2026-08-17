@@ -29,9 +29,9 @@ public class SafeTestWebApplicationFactory : WebApplicationFactory<Program>
     /// </summary>
     private static readonly Lazy<bool> SchemaInitialized = new(() =>
     {
-        // V0014 + V0039: thêm schema miền thẻ (Cards.card_number, Card_Print_History) để model EF
-        // hiện tại khớp DB test. V0039 chỉ phụ thuộc bảng đã có ở V0014.
-        new TestDatabaseFixture().ResetToV0014WithCardV0039();
+        // Áp TOÀN BỘ migration tới bản mới nhất để DB test khớp schema hiện hành
+        // (care package V0018/V0030, pricing_basis V0045, seed quyền…), tránh lỗi thiếu cột/quyền.
+        new TestDatabaseFixture().ResetToLatest();
         return true;
     });
 
