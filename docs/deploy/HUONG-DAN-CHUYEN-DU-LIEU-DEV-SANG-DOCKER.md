@@ -14,10 +14,21 @@ Ký hiệu:
 
 ## ⚠️ Trước khi làm
 - **RESTORE sẽ GHI ĐÈ toàn bộ `PTKD_PROD` hiện tại.** Nếu `PTKD_PROD` đang có dữ liệu thật cần giữ → sao lưu nó trước (Bước 0b). Nếu `PTKD_PROD` chỉ trống/dữ liệu cũ bỏ được → bỏ qua 0b.
-- **Tắt app trước** để không ai ghi dữ liệu khi đang di trú:
-  ```powershell
-  docker compose stop backend frontend
-  ```
+
+- **Tắt app production để không ai ghi dữ liệu khi đang di trú.** Cách chạy:
+  1. Mở **Docker Desktop**, đợi báo "Engine running".
+  2. Mở **PowerShell** rồi vào thư mục dự án:
+     ```powershell
+     cd C:\Projects\PTKD-ERP
+     ```
+  3. Chạy:
+     ```powershell
+     docker compose stop backend frontend
+     ```
+  - **Kỳ vọng:** vài dòng `Stopping ... Stopped` rồi về dấu nhắc.
+  - **Lưu ý:** container `backend`/`frontend` hiện đang KHÔNG chạy (chỉ mỗi `db` chạy), nên lệnh này có thể chỉ báo *already stopped* / *no containers* — **không sao**, mục đích chỉ để chắc chắn không có gì ghi vào DB.
+
+- **Dữ liệu anh nhập gần đây nằm ở bản DEV** (dotnet cổng 5057 + web 5173, trỏ `PTKD_DEV`), không phải ở Docker. Trước khi backup, chỉ cần **ngừng nhập liệu trên bản dev** một lát là đủ — không cần tắt thêm gì, vì lệnh `BACKUP` của SQL Server chạy được cả khi DB đang mở (bản backup vẫn nhất quán tại thời điểm chạy). Mọi dữ liệu nhập SAU khi backup sẽ không có trong bản chuyển.
 
 ### (Tuỳ chọn) Bước 0b — sao lưu PTKD_PROD hiện tại cho chắc
 ```powershell
