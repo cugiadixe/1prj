@@ -3,6 +3,29 @@ using PTKD.Application.Tags.DTOs;
 
 namespace PTKD.Application.Graves.DTOs;
 
+/// <summary>Một dòng trong bảng "tổng hợp giấy tờ/tài liệu theo mộ".</summary>
+public class GraveAttachmentSummaryDto
+{
+    public long GraveId { get; set; }
+    public string GraveCode { get; set; } = null!;
+    public string Zone { get; set; } = null!;
+    public string GraveType { get; set; } = null!;
+    public string? OwnerName { get; set; }
+    public string? CemeteryName { get; set; }
+    public int PhotoCount { get; set; }         // Ảnh
+    public int TransferDocCount { get; set; }   // Văn bản chuyển nhượng
+    public int OtherCount { get; set; }         // Khác
+    public int TotalCount { get; set; }
+    public DateTime? LastUploadedAt { get; set; }
+}
+
+public class GraveAttachmentSummaryRequest
+{
+    public string? Search { get; set; }   // theo mã mộ
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}
+
 public class GraveListItemDto
 {
     public long Id { get; set; }

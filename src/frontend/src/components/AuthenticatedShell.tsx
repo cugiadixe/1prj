@@ -60,6 +60,7 @@ const MENU_GROUPS: ReadonlyArray<{ key: string; prefixes: string[] }> = [
   { key: 'workflow-group', prefixes: ['/workflow'] },
   { key: 'security-group', prefixes: ['/security'] },
   { key: 'org-group', prefixes: ['/organizations'] },
+  { key: 'graves-group', prefixes: ['/graves'] },
 ];
 
 const ROOT_GROUP_KEYS = MENU_GROUPS.map(g => g.key);
@@ -177,10 +178,23 @@ const AuthenticatedShell: React.FC = () => {
       ].filter(Boolean),
     } : null,
     hasPermission('GRAVE_VIEW') ? {
-      key: '/graves',
+      key: 'graves-group',
       icon: <EnvironmentOutlined />,
-      label: navLabel('nav-graves', 'Quản lý mộ'),
-      onClick: () => navigate('/graves'),
+      label: navLabel('nav-graves-group', 'Quản lý mộ'),
+      children: [
+        {
+          key: '/graves',
+          label: navLabel('nav-graves', 'Danh sách mộ'),
+          icon: <EnvironmentOutlined />,
+          onClick: () => navigate('/graves'),
+        },
+        {
+          key: '/graves/attachments-summary',
+          label: navLabel('nav-graves-attachments', 'Tổng hợp giấy tờ'),
+          icon: <EnvironmentOutlined />,
+          onClick: () => navigate('/graves/attachments-summary'),
+        },
+      ],
     } : null,
     hasPermission('PAYMENT_CREATE_DRAFT') || hasPermission('RECONCILIATION_PREPARE') ? {
       key: 'payments-group',

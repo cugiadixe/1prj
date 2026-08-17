@@ -7,6 +7,8 @@ namespace PTKD.Application.Graves.Services;
 public interface IGraveService
 {
     Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, long actorUserId, CancellationToken ct = default);
+    /// <summary>Bảng tổng hợp giấy tờ/tài liệu theo mộ (đếm theo loại), lọc theo công ty.</summary>
+    Task<PagedResult<GraveAttachmentSummaryDto>> GetAttachmentSummaryAsync(GraveAttachmentSummaryRequest request, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto?> GetGraveByIdAsync(long id, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> CreateGraveAsync(CreateGraveRequest request, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> UpdateGraveAsync(long id, UpdateGraveRequest request, long actorUserId, CancellationToken ct = default);

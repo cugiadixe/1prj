@@ -50,6 +50,7 @@ import CustomerMergeRequestCreatePage from './customers/CustomerMergeRequestCrea
 import CustomerMergeRequestsPage from './customers/CustomerMergeRequestsPage';
 import CustomerMergeRequestDetailPage from './customers/CustomerMergeRequestDetailPage';
 import GravesPage from './graves/GravesPage';
+import GraveAttachmentSummaryPage from './graves/GraveAttachmentSummaryPage';
 import GraveDetailPage from './graves/GraveDetailPage';
 import GraveCreatePage from './graves/GraveCreatePage';
 import GraveEditPage from './graves/GraveEditPage';
@@ -152,6 +153,7 @@ const App: React.FC = () => {
               <Route path="customers/merge-requests/:id" element={<CustomerMergeRequestDetailPage />} />
               {/* Quản lý mộ */}
               <Route path="graves" element={<GravesPage />} />
+              <Route path="graves/attachments-summary" element={<GraveAttachmentSummaryPage />} />
               <Route path="graves/new" element={<GraveCreatePage />} />
               <Route path="graves/:graveId" element={<GraveDetailPage />} />
               <Route path="graves/:graveId/edit" element={<GraveEditPage />} />

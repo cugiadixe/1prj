@@ -125,6 +125,81 @@ public class GraveService : IGraveService
         };
     }
 
+    public async Task<PagedResult<GraveAttachmentSummaryDto>> GetAttachmentSummaryAsync(GraveAttachmentSummaryRequest request, long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+
+        // Chỉ mộ trong phạm vi công ty + CÓ ít nhất một đính kèm.
+        var query = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope)
+            .Where(g => context.GraveAttachments.Any(a => a.GraveId == g.Id));
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var s = request.Search.Trim();
+            query = query.Where(g => g.GraveCode.Contains(s));
+        }
+
+        var total = await query.CountAsync(ct);
+
+        var pageGraves = await query
+            .OrderBy(g => g.GraveCode)
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(g => new
+            {
+                g.Id, g.GraveCode, g.Zone, g.GraveType,
+                OwnerName = g.Owner != null ? g.Owner.Profile.FullName : null,
+                CemeteryName = g.Cemetery != null ? g.Cemetery.Name : null
+            })
+            .ToListAsync(ct);
+
+        var ids = pageGraves.Select(x => x.Id).ToList();
+        var counts = ids.Count == 0
+            ? new List<GraveAttachmentCount>()
+            : await context.GraveAttachments.AsNoTracking()
+                .Where(a => ids.Contains(a.GraveId))
+                .GroupBy(a => a.GraveId)
+                .Select(grp => new GraveAttachmentCount
+                {
+                    GraveId = grp.Key,
+                    Photo = grp.Count(a => a.Category == GraveAttachment.CategoryPhoto),
+                    Transfer = grp.Count(a => a.Category == GraveAttachment.CategoryTransferDoc),
+                    Other = grp.Count(a => a.Category != GraveAttachment.CategoryPhoto && a.Category != GraveAttachment.CategoryTransferDoc),
+                    Total = grp.Count(),
+                    Last = grp.Max(a => (DateTime?)a.CreatedAt)
+                })
+                .ToListAsync(ct);
+        var byId = counts.ToDictionary(c => c.GraveId);
+
+        var items = pageGraves.Select(g =>
+        {
+            byId.TryGetValue(g.Id, out var c);
+            return new GraveAttachmentSummaryDto
+            {
+                GraveId = g.Id, GraveCode = g.GraveCode, Zone = g.Zone, GraveType = g.GraveType,
+                OwnerName = g.OwnerName, CemeteryName = g.CemeteryName,
+                PhotoCount = c?.Photo ?? 0, TransferDocCount = c?.Transfer ?? 0, OtherCount = c?.Other ?? 0,
+                TotalCount = c?.Total ?? 0, LastUploadedAt = c?.Last
+            };
+        }).ToArray();
+
+        return new PagedResult<GraveAttachmentSummaryDto>
+        {
+            Items = items, TotalCount = total, Page = request.Page, PageSize = request.PageSize
+        };
+    }
+
+    private sealed class GraveAttachmentCount
+    {
+        public long GraveId { get; set; }
+        public int Photo { get; set; }
+        public int Transfer { get; set; }
+        public int Other { get; set; }
+        public int Total { get; set; }
+        public DateTime? Last { get; set; }
+    }
+
     public async Task<GraveDetailDto?> GetGraveByIdAsync(long id, long actorUserId, CancellationToken ct = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();

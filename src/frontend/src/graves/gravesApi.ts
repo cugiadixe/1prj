@@ -38,6 +38,33 @@ export async function searchGraves(
   return data;
 }
 
+export interface GraveAttachmentSummary {
+  graveId: number;
+  graveCode: string;
+  zone: string;
+  graveType: string;
+  ownerName: string | null;
+  cemeteryName: string | null;
+  photoCount: number;
+  transferDocCount: number;
+  otherCount: number;
+  totalCount: number;
+  lastUploadedAt: string | null;
+}
+
+export async function getAttachmentSummary(
+  params: { search?: string; page?: number; pageSize?: number } = {},
+): Promise<PagedResult<GraveAttachmentSummary>> {
+  const { data } = await axiosClient.get<PagedResult<GraveAttachmentSummary>>(`${BASE}/attachments-summary`, {
+    params: {
+      search: params.search || undefined,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+    },
+  });
+  return data;
+}
+
 export async function getGraveById(id: number): Promise<GraveDetail> {
   const { data } = await axiosClient.get<GraveDetail>(`${BASE}/${id}`);
   return data;
