@@ -28,18 +28,25 @@ public class GraveFileStorage : IGraveFileStorage
         _logger = logger;
     }
 
-    // Đường dẫn gốc: ưu tiên cấu hình runtime (App_Settings), rồi appsettings, rồi mặc định.
-    private string ResolveBasePath()
+    // Gốc HIỆN TẠI (cho lưu mới): App_Settings runtime → appsettings → mặc định.
+    private string CurrentBasePath()
     {
         var configured = _settings.GetValue(PTKD.Application.Common.Interfaces.IAppSettingsService.FileStorageBasePathKey);
         if (!string.IsNullOrWhiteSpace(configured))
             return configured;
-        return _configuration["FileStorage:BasePath"]
-            ?? Path.Combine(Directory.GetCurrentDirectory(), "storage");
+        return DefaultBasePath();
     }
 
-    private string GraveDir(string graveKey) => Path.Combine(ResolveBasePath(), "graves", SafeKey(graveKey));
-    private string ThumbDir(string graveKey) => Path.Combine(GraveDir(graveKey), "thumb");
+    // Gốc MẶC ĐỊNH (appsettings → cwd/storage) — dùng cho file cũ chưa lưu gốc (StorageBasePath NULL).
+    private string DefaultBasePath()
+        => _configuration["FileStorage:BasePath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "storage");
+
+    // Gốc để đọc/xoá một file: gốc đã lưu của file đó; NULL → mặc định.
+    private string ResolveForExisting(string? basePath)
+        => string.IsNullOrWhiteSpace(basePath) ? DefaultBasePath() : basePath!;
+
+    private string GraveDir(string basePath, string graveKey) => Path.Combine(basePath, "graves", SafeKey(graveKey));
+    private string ThumbDir(string basePath, string graveKey) => Path.Combine(GraveDir(basePath, graveKey), "thumb");
     // Chỉ lấy tên file, chặn path traversal (storedName vốn là GUID do app sinh, đây là phòng thủ thêm)
     private static string Safe(string storedName) => Path.GetFileName(storedName);
 
@@ -55,7 +62,8 @@ public class GraveFileStorage : IGraveFileStorage
     public async Task<StoredFileResult> SaveAsync(string graveKey, string storedName, Stream content, string contentType, bool generateThumbnail, CancellationToken ct = default)
     {
         var name = Safe(storedName);
-        var dir = GraveDir(graveKey);
+        var basePath = CurrentBasePath();
+        var dir = GraveDir(basePath, graveKey);
         Directory.CreateDirectory(dir);
         var filePath = Path.Combine(dir, name);
 
@@ -71,8 +79,8 @@ public class GraveFileStorage : IGraveFileStorage
         {
             try
             {
-                Directory.CreateDirectory(ThumbDir(graveKey));
-                var thumbPath = Path.Combine(ThumbDir(graveKey), name + ".jpg");
+                Directory.CreateDirectory(ThumbDir(basePath, graveKey));
+                var thumbPath = Path.Combine(ThumbDir(basePath, graveKey), name + ".jpg");
                 using var image = await Image.LoadAsync(filePath, ct);
                 image.Mutate(x => x.Resize(new ResizeOptions
                 {
@@ -88,27 +96,30 @@ public class GraveFileStorage : IGraveFileStorage
             }
         }
 
-        return new StoredFileResult(size, hasThumbnail);
+        return new StoredFileResult(size, hasThumbnail, basePath);
     }
 
-    public Stream? OpenRead(string graveKey, string storedName)
+    public Stream? OpenRead(string? basePath, string graveKey, string storedName)
     {
-        var path = Path.Combine(GraveDir(graveKey), Safe(storedName));
+        var root = ResolveForExisting(basePath);
+        var path = Path.Combine(GraveDir(root, graveKey), Safe(storedName));
         return File.Exists(path) ? File.OpenRead(path) : null;
     }
 
-    public Stream? OpenReadThumbnail(string graveKey, string storedName)
+    public Stream? OpenReadThumbnail(string? basePath, string graveKey, string storedName)
     {
-        var path = Path.Combine(ThumbDir(graveKey), Safe(storedName) + ".jpg");
+        var root = ResolveForExisting(basePath);
+        var path = Path.Combine(ThumbDir(root, graveKey), Safe(storedName) + ".jpg");
         return File.Exists(path) ? File.OpenRead(path) : null;
     }
 
-    public void Delete(string graveKey, string storedName)
+    public void Delete(string? basePath, string graveKey, string storedName)
     {
+        var root = ResolveForExisting(basePath);
         var name = Safe(storedName);
-        var filePath = Path.Combine(GraveDir(graveKey), name);
+        var filePath = Path.Combine(GraveDir(root, graveKey), name);
         if (File.Exists(filePath)) File.Delete(filePath);
-        var thumbPath = Path.Combine(ThumbDir(graveKey), name + ".jpg");
+        var thumbPath = Path.Combine(ThumbDir(root, graveKey), name + ".jpg");
         if (File.Exists(thumbPath)) File.Delete(thumbPath);
     }
 }

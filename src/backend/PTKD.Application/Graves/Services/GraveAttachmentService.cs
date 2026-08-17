@@ -75,7 +75,8 @@ public class GraveAttachmentService : IGraveAttachmentService
         var attachment = new GraveAttachment(
             graveId, category, ownershipHistoryId,
             SanitizeFileName(fileName), storedName, contentType,
-            result.SizeBytes, result.HasThumbnail, description, actorUserId);
+            result.SizeBytes, result.HasThumbnail, description, actorUserId,
+            result.BasePathUsed);
         context.GraveAttachments.Add(attachment);
         await context.SaveChangesAsync(ct);
 
@@ -116,8 +117,8 @@ public class GraveAttachmentService : IGraveAttachmentService
         if (graveCode == null) return null;
 
         var stream = thumbnail && a.HasThumbnail
-            ? _storage.OpenReadThumbnail(graveCode, a.StoredName)
-            : _storage.OpenRead(graveCode, a.StoredName);
+            ? _storage.OpenReadThumbnail(a.StorageBasePath, graveCode, a.StoredName)
+            : _storage.OpenRead(a.StorageBasePath, graveCode, a.StoredName);
         if (stream == null) return null;
 
         var contentType = thumbnail && a.HasThumbnail ? "image/jpeg" : a.ContentType;
@@ -136,7 +137,7 @@ public class GraveAttachmentService : IGraveAttachmentService
 
         var graveCode = await context.Graves.Where(g => g.Id == graveId).Select(g => g.GraveCode).FirstOrDefaultAsync(ct);
         if (graveCode != null)
-            _storage.Delete(graveCode, a.StoredName);
+            _storage.Delete(a.StorageBasePath, graveCode, a.StoredName);
         context.GraveAttachments.Remove(a);
         await context.SaveChangesAsync(ct);
     }

@@ -19,6 +19,9 @@ public class GraveAttachment
     public long SizeBytes { get; private set; }
     public bool HasThumbnail { get; private set; }
     public string? Description { get; private set; }
+    /// <summary>Đường dẫn gốc lưu trữ lúc file được ghi. NULL = file cũ, nằm ở gốc mặc định
+    /// (appsettings). Nhờ vậy đổi đường dẫn hiện tại KHÔNG làm hỏng file cũ.</summary>
+    public string? StorageBasePath { get; private set; }
     public byte[] RowVersion { get; private set; } = null!;
 
     public DateTime CreatedAt { get; private set; }
@@ -31,7 +34,8 @@ public class GraveAttachment
     public GraveAttachment(
         long graveId, string category, long? ownershipHistoryId,
         string fileNameOriginal, string storedName, string contentType,
-        long sizeBytes, bool hasThumbnail, string? description, long? createdByUserId)
+        long sizeBytes, bool hasThumbnail, string? description, long? createdByUserId,
+        string? storageBasePath = null)
     {
         GraveId = graveId;
         Category = category ?? throw new ArgumentNullException(nameof(category));
@@ -42,6 +46,7 @@ public class GraveAttachment
         SizeBytes = sizeBytes;
         HasThumbnail = hasThumbnail;
         Description = description;
+        StorageBasePath = storageBasePath;
         CreatedByUserId = createdByUserId;
         CreatedAt = DateTime.UtcNow;
     }
