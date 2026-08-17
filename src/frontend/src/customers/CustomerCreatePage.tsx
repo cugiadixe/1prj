@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Button, Card, DatePicker, Form, Input, Select, Space, Typography } from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Tabs, Typography } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createCustomer, checkDuplicates } from './customersApi';
@@ -15,6 +15,12 @@ const CustomerCreatePage: React.FC = () => {
   const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateCheckResult | null>(null);
+  const [activeTab, setActiveTab] = useState('basic');
+
+  // Trường bắt buộc (customerCode, fullName) đều ở tab "basic"; nếu submit lỗi thì nhảy về đó.
+  const onFinishFailed = () => {
+    setActiveTab('basic');
+  };
 
   const createMutation = useMutation({
     mutationFn: (values: CreateCustomerRequest) => createCustomer(values),
@@ -119,114 +125,160 @@ const CustomerCreatePage: React.FC = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
+          onFinishFailed={onFinishFailed}
           data-testid="customer-create-form"
         >
-          <Form.Item
-            name="customerCode"
-            label="Mã khách hàng"
-            rules={[
-              { required: true, message: 'Mã khách hàng là bắt buộc' },
-              { max: 50, message: 'Tối đa 50 ký tự' },
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              {
+                key: 'basic',
+                label: 'Thông tin cơ bản',
+                forceRender: true,
+                children: (
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item
+                        name="customerCode"
+                        label="Mã khách hàng"
+                        rules={[
+                          { required: true, message: 'Mã khách hàng là bắt buộc' },
+                          { max: 50, message: 'Tối đa 50 ký tự' },
+                        ]}
+                      >
+                        <Input data-testid="input-customerCode" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item
+                        name="fullName"
+                        label="Họ tên"
+                        rules={[
+                          { required: true, message: 'Họ tên là bắt buộc' },
+                          { max: 200, message: 'Tối đa 200 ký tự' },
+                        ]}
+                      >
+                        <Input data-testid="input-fullName" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="gender" label="Giới tính">
+                        <Select
+                          allowClear
+                          data-testid="input-gender"
+                          options={[
+                            { label: 'Nam', value: 'MALE' },
+                            { label: 'Nữ', value: 'FEMALE' },
+                            { label: 'Khác', value: 'OTHER' },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="dob" label="Ngày sinh">
+                        <DatePicker style={{ width: '100%' }} data-testid="input-dob" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="dobPartial" label="Ngày sinh (một phần)" rules={[{ max: 10, message: 'Tối đa 10 ký tự' }]}>
+                        <Input data-testid="input-dobPartial" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="dobPrecision" label="Độ chính xác ngày sinh">
+                        <Select
+                          allowClear
+                          data-testid="input-dobPrecision"
+                          options={[
+                            { label: 'Đầy đủ', value: 'FULL' },
+                            { label: 'Năm & Tháng', value: 'YEAR_MONTH' },
+                            { label: 'Năm', value: 'YEAR' },
+                            { label: 'Không rõ', value: 'UNKNOWN' },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                ),
+              },
+              {
+                key: 'contact',
+                label: 'Giấy tờ & liên hệ',
+                forceRender: true,
+                children: (
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
+                        <Input data-testid="input-cccd" onBlur={() => handleDuplicateCheck('cccd')} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="phone" label="Điện thoại" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
+                        <Input data-testid="input-phone" onBlur={() => handleDuplicateCheck('phone')} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="cccdIssueDate" label="Ngày cấp CCCD">
+                        <DatePicker style={{ width: '100%' }} data-testid="input-cccdIssueDate" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="cccdIssuePlace" label="Nơi cấp CCCD" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
+                        <Input data-testid="input-cccdIssuePlace" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="taxCode" label="Mã số thuế" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
+                        <Input data-testid="input-taxCode" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="hometown" label="Quê quán" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
+                        <Input data-testid="input-hometown" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item name="permanentAddress" label="Địa chỉ thường trú" rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}>
+                        <TextArea rows={2} data-testid="input-permanentAddress" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item name="contactAddress" label="Địa chỉ liên hệ" rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}>
+                        <TextArea rows={2} data-testid="input-contactAddress" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                ),
+              },
+              {
+                key: 'death',
+                label: 'Thông tin mất',
+                forceRender: true,
+                children: (
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)">
+                        <DatePicker style={{ width: '100%' }} data-testid="input-deathDateSolar" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
+                        <Input data-testid="input-deathDateLunar" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item name="deathPlace" label="Nơi mất" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
+                        <Input data-testid="input-deathPlace" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                ),
+              },
             ]}
-          >
-            <Input data-testid="input-customerCode" />
-          </Form.Item>
+          />
 
-          <Form.Item
-            name="fullName"
-            label="Họ tên"
-            rules={[
-              { required: true, message: 'Họ tên là bắt buộc' },
-              { max: 200, message: 'Tối đa 200 ký tự' },
-            ]}
-          >
-            <Input data-testid="input-fullName" />
-          </Form.Item>
-
-          <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-            <Input
-              data-testid="input-cccd"
-              onBlur={() => handleDuplicateCheck('cccd')}
-            />
-          </Form.Item>
-
-          <Form.Item name="phone" label="Điện thoại" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-            <Input
-              data-testid="input-phone"
-              onBlur={() => handleDuplicateCheck('phone')}
-            />
-          </Form.Item>
-
-          <Form.Item name="gender" label="Giới tính">
-            <Select
-              allowClear
-              data-testid="input-gender"
-              options={[
-                { label: 'Nam', value: 'MALE' },
-                { label: 'Nữ', value: 'FEMALE' },
-                { label: 'Khác', value: 'OTHER' },
-              ]}
-            />
-          </Form.Item>
-
-          <Form.Item name="dob" label="Ngày sinh">
-            <DatePicker style={{ width: '100%' }} data-testid="input-dob" />
-          </Form.Item>
-
-          <Form.Item name="dobPartial" label="Ngày sinh (một phần)" rules={[{ max: 10, message: 'Tối đa 10 ký tự' }]}>
-            <Input data-testid="input-dobPartial" />
-          </Form.Item>
-
-          <Form.Item name="dobPrecision" label="Độ chính xác ngày sinh">
-            <Select
-              allowClear
-              data-testid="input-dobPrecision"
-              options={[
-                { label: 'Đầy đủ', value: 'FULL' },
-                { label: 'Năm & Tháng', value: 'YEAR_MONTH' },
-                { label: 'Năm', value: 'YEAR' },
-                { label: 'Không rõ', value: 'UNKNOWN' },
-              ]}
-            />
-          </Form.Item>
-
-          <Form.Item name="permanentAddress" label="Địa chỉ thường trú" rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}>
-            <TextArea rows={2} data-testid="input-permanentAddress" />
-          </Form.Item>
-
-          <Form.Item name="cccdIssueDate" label="Ngày cấp CCCD">
-            <DatePicker style={{ width: '100%' }} data-testid="input-cccdIssueDate" />
-          </Form.Item>
-
-          <Form.Item name="cccdIssuePlace" label="Nơi cấp CCCD" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
-            <Input data-testid="input-cccdIssuePlace" />
-          </Form.Item>
-
-          <Form.Item name="taxCode" label="Mã số thuế" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-            <Input data-testid="input-taxCode" />
-          </Form.Item>
-
-          <Form.Item name="contactAddress" label="Địa chỉ liên hệ" rules={[{ max: 500, message: 'Tối đa 500 ký tự' }]}>
-            <TextArea rows={2} data-testid="input-contactAddress" />
-          </Form.Item>
-
-          <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)">
-            <DatePicker style={{ width: '100%' }} data-testid="input-deathDateSolar" />
-          </Form.Item>
-
-          <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-            <Input data-testid="input-deathDateLunar" />
-          </Form.Item>
-
-          <Form.Item name="deathPlace" label="Nơi mất" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
-            <Input data-testid="input-deathPlace" />
-          </Form.Item>
-
-          <Form.Item name="hometown" label="Quê quán" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
-            <Input data-testid="input-hometown" />
-          </Form.Item>
-
-          <Form.Item>
+          <Form.Item style={{ marginTop: 8 }}>
             <Space>
               <Button
                 type="primary"
