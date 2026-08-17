@@ -144,6 +144,7 @@ builder.Services.AddWorkflowExecutionHandlers();
 // Service Management Services (Phase 1B.6-B)
 builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceTypeService, PTKD.Application.ServiceManagement.Services.ServiceTypeService>();
 builder.Services.AddScoped<PTKD.Application.CarePackages.Services.ICarePackageRequestService, PTKD.Application.CarePackages.Services.CarePackageRequestService>();
+builder.Services.AddScoped<PTKD.Application.Dashboard.IDashboardService, PTKD.Application.Dashboard.DashboardService>();
 builder.Services.AddScoped<PTKD.Application.ServiceManagement.Services.IServiceService, PTKD.Application.ServiceManagement.Services.ServiceService>();
 // (Các IWorkflowExecutionHandler đã được tự quét & đăng ký ở trên.)
 
