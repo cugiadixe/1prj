@@ -41,6 +41,10 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
         var (userId, token) = await SeedUserAndGetTokenAsync("carepkg_admin");
         _userId = userId;
 
+        // Endpoint gói chăm sóc là Company-scope: filter đòi user PHẢI thuộc công ty (X-Company-Id),
+        // ngoài việc có quyền. Không gán thì trả 403 "không thuộc công ty".
+        await AssignUserToCompanyAsync(userId, _companyId);
+
         await GrantPermissionAsync(userId, "CARE_PACKAGE_CREATE", _companyId);
         await GrantPermissionAsync(userId, "CARE_PACKAGE_VIEW", _companyId);
         await GrantPermissionAsync(userId, "CARE_PACKAGE_APPROVE", _companyId);
@@ -112,11 +116,26 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
             CompanyId = companyId,
             GrantType = "ALLOW",
             AssignmentStatus = "ACTIVE",
-            EffectiveFrom = DateTime.UtcNow,
+            EffectiveFrom = DateTime.UtcNow.AddDays(-1),
             CreatedAt = DateTime.UtcNow,
             RowVersion = PTKD.Domain.ValueObjects.RowVersion.FromByteArray(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 })
         };
         db.Set<PTKD.Domain.Security.Authorization.UserIndividualPermission>().Add(up);
+        await db.SaveChangesAsync();
+    }
+
+    private async Task AssignUserToCompanyAsync(long userId, long companyId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var exists = db.Set<PTKD.Domain.Entities.UserCompanyAssignment>()
+            .Any(a => a.UserId == userId && a.CompanyId == companyId);
+        if (exists) return;
+
+        db.Set<PTKD.Domain.Entities.UserCompanyAssignment>()
+            .Add(new PTKD.Domain.Entities.UserCompanyAssignment(userId, companyId, true, DateTime.UtcNow.AddDays(-1)));
         await db.SaveChangesAsync();
     }
 
