@@ -95,7 +95,7 @@ public class CardDocumentService : ICardDocumentService
             var wm = await db.CardWatermarks.AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == wmId && w.CompanyId == companyId && w.IsActive, ct);
             if (wm != null)
-                watermarkImagePng = FaintImage(wm.ImageBytes, 0.12f);
+                watermarkImagePng = FaintImage(wm.ImageBytes, WatermarkImageIntensity);
             else
                 watermark = null; // tham chiếu treo → bỏ hoa văn
         }
@@ -103,6 +103,9 @@ public class CardDocumentService : ICardDocumentService
         var model = new CardModel(card, grave, cemetery, company?.Name ?? "", occupants, owner, watermark, watermarkImagePng);
         return Render(model);
     }
+
+    // Độ đậm ảnh hoa văn tải lên: 0.30 để chìm nhưng vẫn thấy rõ (0.12 quá nhạt, ảnh sáng gần như mất).
+    private const float WatermarkImageIntensity = 0.30f;
 
     /// <summary>Làm mờ ảnh hoa văn: giảm alpha xuống theo hệ số để chìm sau nội dung. Trả PNG.</summary>
     private static byte[] FaintImage(byte[] source, float intensity)
