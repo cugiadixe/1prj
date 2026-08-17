@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Form, Input, InputNumber, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Checkbox, Form, Input, InputNumber, Radio, Space, Spin, Typography, message } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
@@ -35,6 +35,7 @@ const ServiceTypeFormPage: React.FC = () => {
         description: initialData.description,
         cycleDurationMonths: initialData.cycleDurationMonths,
         isCarePackage: initialData.isCarePackage,
+        pricingBasis: initialData.pricingBasis ?? 'PER_COT',
       });
     }
   }, [initialData, isEdit, form]);
@@ -75,6 +76,7 @@ const ServiceTypeFormPage: React.FC = () => {
         description: values.description,
         cycleDurationMonths: values.cycleDurationMonths,
         isCarePackage: Boolean(values.isCarePackage),
+        pricingBasis: values.pricingBasis ?? 'PER_COT',
         rowVersion: initialData.rowVersion,
       });
     } else {
@@ -85,6 +87,7 @@ const ServiceTypeFormPage: React.FC = () => {
         standardPrice: values.standardPrice,
         cycleDurationMonths: values.cycleDurationMonths,
         isCarePackage: Boolean(values.isCarePackage),
+        pricingBasis: values.pricingBasis ?? 'PER_COT',
       });
     }
   };
@@ -147,6 +150,7 @@ const ServiceTypeFormPage: React.FC = () => {
         layout="vertical"
         onFinish={handleSubmit}
         style={{ maxWidth: 600 }}
+        initialValues={{ pricingBasis: 'PER_COT' }}
       >
         {!isEdit && (
           <Form.Item
@@ -196,6 +200,17 @@ const ServiceTypeFormPage: React.FC = () => {
 
         <Form.Item name="isCarePackage" valuePropName="checked">
           <Checkbox data-testid="input-is-care-package">Là gói chăm sóc (hiển thị khi gán cho khách hàng)</Checkbox>
+        </Form.Item>
+
+        <Form.Item
+          name="pricingBasis"
+          label="Cách tính giá"
+          tooltip="Theo cốt: thành tiền = đơn giá × số cốt của phần mộ. Theo phần mộ: thành tiền = đơn giá (không nhân cốt)."
+        >
+          <Radio.Group data-testid="input-pricing-basis">
+            <Radio.Button value="PER_COT">Tính theo cốt (× số cốt)</Radio.Button>
+            <Radio.Button value="PER_GRAVE">Tính theo phần mộ (× 1)</Radio.Button>
+          </Radio.Group>
         </Form.Item>
 
         <Form.Item>

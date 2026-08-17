@@ -36,14 +36,15 @@ export interface CarePackageRequestDto {
 }
 
 export interface CreateCarePackageRequestItem {
-  graveId?: string;
-  cotCount: number;
+  // Mã phần mộ (số) — bắt buộc; số cốt được server lấy tự động từ phần mộ.
+  graveId: number;
   servicePeriodStartDate: string;
 }
 
 export interface CreateCarePackageRequest {
   customerId: number;
-  serviceId?: number;
+  // Gói chăm sóc chọn từ DANH MỤC dịch vụ (ServiceType có isCarePackage).
+  serviceTypeId: number;
   saleDate: string;
   discountAmount: number;
   discountReason?: string;

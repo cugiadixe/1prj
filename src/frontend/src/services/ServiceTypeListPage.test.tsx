@@ -48,7 +48,7 @@ describe('ServiceTypeListPage', () => {
   it('renders rows from API', async () => {
     mockSearchServiceTypes.mockResolvedValue({
       items: [
-        { id: 1, code: 'T1', name: 'Test', description: null, standardPrice: 100, standardPriceCurrency: 'VND', cycleDurationMonths: null, isActive: true, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1' },
+        { id: 1, code: 'T1', name: 'Test', description: null, standardPrice: 100, standardPriceCurrency: 'VND', cycleDurationMonths: null, pricingBasis: 'PER_COT', isActive: true, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1' },
       ],
       totalCount: 1,
       page: 1,

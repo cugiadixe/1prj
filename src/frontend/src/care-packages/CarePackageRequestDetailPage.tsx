@@ -12,19 +12,10 @@ import {
   useCarePackagePaymentStatus,
   useActivateCarePackageRequest,
 } from './hooks';
+import { carePackageStatusColors, carePackageStatusLabel } from './statusLabels';
 import type { CarePackageRequestItemDto } from './types';
 
 const { Title } = Typography;
-
-const statusColors: Record<string, string> = {
-  Draft: 'default',
-  PendingApproval: 'orange',
-  PaymentEligible: 'blue',
-  PendingPayment: 'purple',
-  Paid: 'cyan',
-  Active: 'green',
-  Rejected: 'red',
-};
 
 const CarePackageRequestDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -197,7 +188,7 @@ const CarePackageRequestDetailPage: React.FC = () => {
 
       <Descriptions bordered column={2} style={{ marginBottom: 24 }}>
         <Descriptions.Item label="Trạng thái">
-          <Tag color={statusColors[data.status] || 'default'} data-testid="status-badge">{data.status}</Tag>
+          <Tag color={carePackageStatusColors[data.status] || 'default'} data-testid="status-badge">{carePackageStatusLabel(data.status)}</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Khách hàng">
           {data.customerName ? `${data.customerName}${data.customerCode ? ` (${data.customerCode})` : ''}` : `#${data.customerId}`}

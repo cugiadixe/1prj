@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Alert, Button, DatePicker, Form, Input, InputNumber, Space, Typography, notification } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useCreateCarePackageRequest } from './hooks';
 import { getErrorMessage } from './errorMessages';
+import RemoteSelect, { type RemoteSelectOption } from './RemoteSelect';
 import { usePermissions } from '../auth/AuthProvider';
+import { searchCustomers } from '../customers/customersApi';
+import { searchServiceTypes } from '../services/serviceTypesApi';
+import { searchGraves } from '../graves/gravesApi';
 import type { CreateCarePackageRequest } from './types';
 import dayjs from 'dayjs';
 
@@ -15,6 +19,9 @@ const CarePackageRequestCreatePage: React.FC = () => {
   const createMutation = useCreateCarePackageRequest();
   const [form] = Form.useForm();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const selectedCustomerId = Form.useWatch('customerId', form) as number | undefined;
+  // Số cốt của từng phần mộ (id → cốt), gom từ kết quả tìm kiếm để tự điền khi chọn phần mộ.
+  const graveCotByIdRef = useRef<Record<number, number>>({});
 
   if (!hasPermission('CARE_PACKAGE_CREATE')) {
     return (
@@ -26,17 +33,60 @@ const CarePackageRequestCreatePage: React.FC = () => {
     );
   }
 
+  const fetchCustomers = async (search: string): Promise<RemoteSelectOption[]> => {
+    const res = await searchCustomers({ search, pageSize: 20 });
+    return res.items.map((c) => ({
+      value: c.id,
+      label: `${c.fullName} (${c.customerCode})`,
+    }));
+  };
+
+  const fetchServiceTypes = async (search: string): Promise<RemoteSelectOption[]> => {
+    const res = await searchServiceTypes({ page: 1, pageSize: 100 });
+    const term = search.trim().toLowerCase();
+    return res.items
+      .filter((st) => st.isCarePackage && st.isActive)
+      .filter((st) => !term || `${st.name} ${st.code}`.toLowerCase().includes(term))
+      .map((st) => ({
+        value: st.id,
+        label: `${st.name} (${st.code}) — ${st.pricingBasis === 'PER_GRAVE' ? 'theo phần mộ' : 'theo cốt'}`,
+      }));
+  };
+
+  const fetchGraves = async (search: string): Promise<RemoteSelectOption[]> => {
+    // Chỉ hiển thị phần mộ DO KHÁCH ĐÃ CHỌN SỞ HỮU.
+    if (!selectedCustomerId) return [];
+    const res = await searchGraves({ search, ownerCustomerId: selectedCustomerId, pageSize: 50 });
+    res.items.forEach((g) => {
+      graveCotByIdRef.current[g.id] = g.cotCount;
+    });
+    return res.items.map((g) => ({
+      value: g.id,
+      label: `${g.graveCode} — Khu ${g.zone} • ${g.cotCount} cốt`,
+    }));
+  };
+
+  const onValuesChange = (changed: any) => {
+    // Đổi khách hàng → phần mộ cũ không còn hợp lệ, reset phần mộ + số cốt.
+    if ('customerId' in changed) {
+      form.setFieldsValue({ graveId: undefined, cotCount: undefined });
+    }
+    if ('graveId' in changed) {
+      const cot = changed.graveId != null ? graveCotByIdRef.current[changed.graveId] : undefined;
+      form.setFieldValue('cotCount', cot);
+    }
+  };
+
   const onFinish = async (values: any) => {
     setErrorMsg(null);
     const payload: CreateCarePackageRequest = {
       customerId: values.customerId,
-      serviceId: values.serviceId || undefined,
+      serviceTypeId: values.serviceTypeId,
       saleDate: values.saleDate ? values.saleDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
       discountAmount: values.discountAmount || 0,
       discountReason: values.discountReason || undefined,
       item: {
-        graveId: values.graveId || undefined,
-        cotCount: values.cotCount,
+        graveId: values.graveId,
         servicePeriodStartDate: values.servicePeriodStartDate
           ? values.servicePeriodStartDate.format('YYYY-MM-DD')
           : dayjs().format('YYYY-MM-DD'),
@@ -68,20 +118,35 @@ const CarePackageRequestCreatePage: React.FC = () => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
+        onValuesChange={onValuesChange}
         data-testid="care-package-create-form"
         style={{ maxWidth: 600 }}
         initialValues={{ saleDate: dayjs(), servicePeriodStartDate: dayjs(), discountAmount: 0 }}
       >
         <Form.Item
           name="customerId"
-          label="Mã khách hàng"
-          rules={[{ required: true, message: 'Vui lòng nhập mã khách hàng' }]}
+          label="Khách hàng"
+          rules={[{ required: true, message: 'Vui lòng chọn khách hàng' }]}
         >
-          <InputNumber style={{ width: '100%' }} min={1} data-testid="input-customerId" />
+          <RemoteSelect
+            placeholder="Tìm theo tên hoặc mã khách hàng"
+            queryKey={['care-package-customers']}
+            fetchOptions={fetchCustomers}
+            data-testid="input-customerId"
+          />
         </Form.Item>
 
-        <Form.Item name="serviceId" label="Mã dịch vụ">
-          <InputNumber style={{ width: '100%' }} min={1} data-testid="input-serviceId" />
+        <Form.Item
+          name="serviceTypeId"
+          label="Gói dịch vụ (chăm sóc)"
+          rules={[{ required: true, message: 'Vui lòng chọn gói dịch vụ' }]}
+        >
+          <RemoteSelect
+            placeholder="Chọn gói chăm sóc từ danh mục"
+            queryKey={['care-package-service-types']}
+            fetchOptions={fetchServiceTypes}
+            data-testid="input-serviceTypeId"
+          />
         </Form.Item>
 
         <Form.Item
@@ -92,16 +157,27 @@ const CarePackageRequestCreatePage: React.FC = () => {
           <DatePicker style={{ width: '100%' }} data-testid="input-saleDate" />
         </Form.Item>
 
-        <Form.Item name="graveId" label="Mã mộ / Đối tượng chăm sóc">
-          <Input data-testid="input-graveId" />
+        <Form.Item
+          name="graveId"
+          label="Phần mộ"
+          rules={[{ required: true, message: 'Vui lòng chọn phần mộ' }]}
+          extra={!selectedCustomerId ? 'Chọn khách hàng trước để hiển thị phần mộ của họ.' : undefined}
+        >
+          <RemoteSelect
+            placeholder="Chọn phần mộ khách sở hữu"
+            disabled={!selectedCustomerId}
+            queryKey={['care-package-graves', selectedCustomerId]}
+            fetchOptions={fetchGraves}
+            data-testid="input-graveId"
+          />
         </Form.Item>
 
         <Form.Item
           name="cotCount"
           label="Số lượng cốt"
-          rules={[{ required: true, message: 'Vui lòng nhập số lượng cốt' }]}
+          tooltip="Lấy tự động từ phần mộ đã chọn, không sửa được. Giá tính theo cốt hay theo phần mộ tùy định nghĩa gói dịch vụ."
         >
-          <InputNumber style={{ width: '100%' }} min={1} data-testid="input-cotCount" />
+          <InputNumber style={{ width: '100%' }} disabled data-testid="input-cotCount" placeholder="Chọn phần mộ để tự điền" />
         </Form.Item>
 
         <Form.Item

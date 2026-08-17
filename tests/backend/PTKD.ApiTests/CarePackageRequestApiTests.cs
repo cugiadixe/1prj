@@ -121,7 +121,7 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
     }
 
     [Fact]
-    public async Task Create_MissingServiceId_ReturnsBadRequest_Or_500IfUncaught()
+    public async Task Create_MissingServiceTypeId_ReturnsBadRequest_Or_500IfUncaught()
     {
         long customerId;
         using (var scope = _factory.Services.CreateScope())
@@ -145,13 +145,12 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
         var request = new CreateCarePackageRequest
         {
             CustomerId = customerId,
-            ServiceId = null, // Missing service id should fail
+            ServiceTypeId = 0, // Missing service type id should fail
             SaleDate = DateTime.UtcNow,
             DiscountAmount = 0,
             Item = new CreateCarePackageRequestItem
             {
-                GraveId = "GRAVE1",
-                CotCount = 1,
+                GraveId = 1,
                 ServicePeriodStartDate = DateTime.UtcNow
             }
         };
@@ -164,11 +163,12 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
     public async Task Create_ValidRequest_ReturnsCreated()
     {
         long customerId;
-        long serviceId;
+        long serviceTypeId;
+        long graveId;
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            
+
             var profile = new Profile(
                 fullName: "Test Customer 456", cccd: null, dob: null, dobPartial: null,
                 dobPrecision: null, gender: null, permanentAddress: null,
@@ -182,28 +182,38 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
             db.Set<Customer>().Add(customer);
             await db.SaveChangesAsync();
             customerId = customer.Id;
-            
+
+            // Gói chăm sóc trong danh mục (giá 1000, tính theo cốt = mặc định PER_COT).
             var serviceType = new ServiceType("TEST_CARE", "Test Care", null, 1000m, 12, true, _userId);
             db.Set<ServiceType>().Add(serviceType);
             await db.SaveChangesAsync();
-            
-            var service = Service.CreateStandard(serviceType.Id, customerId, _companyId, 1000m, DateTime.UtcNow, null, _userId);
-            db.Set<Service>().Add(service);
+            serviceTypeId = serviceType.Id;
+
+            // Phần mộ có 2 cốt, thuộc một nghĩa trang của công ty test.
+            var cemetery = new Cemetery("CEM_" + Guid.NewGuid().ToString("N")[..6], _companyId, "Test Cemetery", null);
+            db.Set<Cemetery>().Add(cemetery);
             await db.SaveChangesAsync();
-            
-            serviceId = service.Id;
+
+            var grave = new Grave(
+                cemeteryId: cemetery.Id, graveCode: "GRAVE-" + Guid.NewGuid().ToString("N")[..6],
+                zone: "A", plotNumber: "01", graveType: Grave.TypeDouble, status: Grave.StatusEmpty,
+                rowLabel: null, colLabel: null, areaM2: null, cotCount: 2, ownerCustomerId: customerId,
+                emergencyContactName: null, emergencyContactPhone: null, emergencyContactRelationship: null,
+                notes: null);
+            db.Set<Grave>().Add(grave);
+            await db.SaveChangesAsync();
+            graveId = grave.Id;
         }
 
         var request = new CreateCarePackageRequest
         {
             CustomerId = customerId,
-            ServiceId = serviceId,
+            ServiceTypeId = serviceTypeId,
             SaleDate = DateTime.UtcNow,
             DiscountAmount = 0,
             Item = new CreateCarePackageRequestItem
             {
-                GraveId = "GRAVE2",
-                CotCount = 2,
+                GraveId = graveId,
                 ServicePeriodStartDate = DateTime.UtcNow
             }
         };
@@ -215,11 +225,11 @@ public class CarePackageRequestApiTests : IClassFixture<SafeTestWebApplicationFa
         var dto = await response.Content.ReadFromJsonAsync<CarePackageRequestDto>();
         Assert.NotNull(dto);
         Assert.Equal(customerId, dto!.CustomerId);
-        Assert.Equal(serviceId, dto.ServiceId);
-        Assert.Equal(2000m, dto.SubtotalAmount);
+        Assert.NotNull(dto.ServiceId); // dịch vụ của khách được tự tạo/dùng lại
+        Assert.Equal(2000m, dto.SubtotalAmount); // 1000 × 2 cốt (PER_COT)
         Assert.Equal(2000m, dto.TotalAmount);
         Assert.Single(dto.Items);
-        Assert.Equal(2, dto.Items[0].CotCountSnapshot);
+        Assert.Equal(2, dto.Items[0].CotCountSnapshot); // lấy tự động từ phần mộ
     }
 
     [Fact]

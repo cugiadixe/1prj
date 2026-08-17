@@ -4,19 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
 import { useCarePackageRequests } from './hooks';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
+import { carePackageStatusColors, carePackageStatusLabel, carePackageStatusOrder } from './statusLabels';
 import type { CarePackageRequestDto } from './types';
 
 const { Title } = Typography;
-
-const statusColors: Record<string, string> = {
-  Draft: 'default',
-  PendingApproval: 'orange',
-  PaymentEligible: 'blue',
-  PendingPayment: 'purple',
-  Paid: 'cyan',
-  Active: 'green',
-  Rejected: 'red',
-};
 
 const CarePackageRequestsPage: React.FC = () => {
   const { hasPermission } = usePermissions();
@@ -59,7 +50,7 @@ const CarePackageRequestsPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={statusColors[status] || 'default'}>{status}</Tag>
+        <Tag color={carePackageStatusColors[status] || 'default'}>{carePackageStatusLabel(status)}</Tag>
       ),
     },
     {
@@ -103,15 +94,7 @@ const CarePackageRequestsPage: React.FC = () => {
           onChange={(val) => setStatusFilter(val)}
           value={statusFilter}
           data-testid="care-package-status-filter"
-          options={[
-            { label: 'Draft', value: 'Draft' },
-            { label: 'PendingApproval', value: 'PendingApproval' },
-            { label: 'PaymentEligible', value: 'PaymentEligible' },
-            { label: 'PendingPayment', value: 'PendingPayment' },
-            { label: 'Paid', value: 'Paid' },
-            { label: 'Active', value: 'Active' },
-            { label: 'Rejected', value: 'Rejected' },
-          ]}
+          options={carePackageStatusOrder.map((s) => ({ label: carePackageStatusLabel(s), value: s }))}
         />
       </Space>
 

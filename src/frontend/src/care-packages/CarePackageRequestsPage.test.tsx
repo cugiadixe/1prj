@@ -75,7 +75,7 @@ describe('CarePackageRequestsPage', () => {
 
     renderPage();
     expect(screen.getByTestId('care-package-list-table')).toBeInTheDocument();
-    expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getByText('Nháp')).toBeInTheDocument();
   });
 
   it('hides create button if missing permission', () => {

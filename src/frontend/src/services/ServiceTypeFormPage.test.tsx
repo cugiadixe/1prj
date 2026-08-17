@@ -53,7 +53,7 @@ describe('ServiceTypeFormPage', () => {
 
   it('renders edit form with pre-populated data', async () => {
     mockGetServiceTypeById.mockResolvedValue({
-      id: 1, code: 'T1', name: 'Test', description: null, standardPrice: 100, standardPriceCurrency: 'VND', cycleDurationMonths: null, isActive: true, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1'
+      id: 1, code: 'T1', name: 'Test', description: null, standardPrice: 100, standardPriceCurrency: 'VND', cycleDurationMonths: null, pricingBasis: 'PER_COT', isActive: true, createdAt: '2026-01-01', updatedAt: null, rowVersion: 'v1'
     });
     renderPage('/services/types/1/edit');
     await waitFor(() => {

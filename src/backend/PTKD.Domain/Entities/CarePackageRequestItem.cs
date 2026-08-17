@@ -26,6 +26,7 @@ public class CarePackageRequestItem
         DateTime servicePeriodStartDate,
         DateTime servicePeriodEndDate,
         decimal unitPriceSnapshot,
+        bool priceByCot = true,
         string? notes = null)
     {
         if (cotCountSnapshot <= 0)
@@ -41,6 +42,11 @@ public class CarePackageRequestItem
         if (servicePeriodEndDate.Date != expectedEndDate.Date && servicePeriodEndDate.Date != expectedEndDate.AddDays(-1).Date)
             throw new ArgumentException("Care package service period must be exactly one year for Phase 1B.9.");
 
+        // Cách tính thành tiền phụ thuộc ĐỊNH NGHĨA dịch vụ:
+        //   priceByCot = true  (PER_COT)   → đơn giá × số cốt   (vd cốt 4 thì × 4)
+        //   priceByCot = false (PER_GRAVE) → đơn giá theo phần mộ (× 1, không nhân cốt)
+        var lineSubtotal = priceByCot ? unitPriceSnapshot * cotCountSnapshot : unitPriceSnapshot;
+
         return new CarePackageRequestItem
         {
             GraveId = graveId,
@@ -48,7 +54,7 @@ public class CarePackageRequestItem
             ServicePeriodStartDate = servicePeriodStartDate,
             ServicePeriodEndDate = servicePeriodEndDate,
             UnitPriceSnapshot = unitPriceSnapshot,
-            LineSubtotal = unitPriceSnapshot * cotCountSnapshot, // 1 year multiplier is implicit here based on rule formula
+            LineSubtotal = lineSubtotal,
             Notes = notes,
             CreatedAt = DateTime.UtcNow
         };

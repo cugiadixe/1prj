@@ -126,6 +126,12 @@ const ServiceTypeDetailPage: React.FC = () => {
         <Descriptions.Item label="Chu kỳ (Tháng)">
           {data.cycleDurationMonths ?? '—'}
         </Descriptions.Item>
+        <Descriptions.Item label="Là gói chăm sóc">
+          {data.isCarePackage ? 'Có' : 'Không'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Cách tính giá">
+          {data.pricingBasis === 'PER_GRAVE' ? 'Theo phần mộ (× 1)' : 'Theo cốt (× số cốt)'}
+        </Descriptions.Item>
         <Descriptions.Item label="Trạng thái">
           <Tag color={data.isActive ? 'green' : 'red'}>
             {data.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}

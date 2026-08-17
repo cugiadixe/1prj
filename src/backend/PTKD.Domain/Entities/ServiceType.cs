@@ -4,6 +4,13 @@ namespace PTKD.Domain.Entities;
 
 public class ServiceType
 {
+    // Cách tính giá của gói: theo cốt (nhân số cốt) hay theo phần mộ (không nhân).
+    public const string PricingBasisPerCot = "PER_COT";
+    public const string PricingBasisPerGrave = "PER_GRAVE";
+
+    private static string NormalizePricingBasis(string? value)
+        => value == PricingBasisPerGrave ? PricingBasisPerGrave : PricingBasisPerCot;
+
     public long Id { get; private set; }
     public string Code { get; private set; } = null!;
     public string Name { get; private set; } = null!;
@@ -12,6 +19,8 @@ public class ServiceType
     public string StandardPriceCurrency { get; private set; } = null!;
     public int? CycleDurationMonths { get; private set; }
     public bool IsCarePackage { get; private set; }
+    /// <summary>PER_COT (mặc định) = giá × số cốt; PER_GRAVE = giá theo phần mộ (× 1).</summary>
+    public string PricingBasis { get; private set; } = PricingBasisPerCot;
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -27,7 +36,8 @@ public class ServiceType
         decimal standardPrice,
         int? cycleDurationMonths,
         bool isCarePackage,
-        long createdByUserId)
+        long createdByUserId,
+        string? pricingBasis = PricingBasisPerCot)
     {
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code is required.", nameof(code));
@@ -49,12 +59,13 @@ public class ServiceType
         StandardPriceCurrency = "VND";
         CycleDurationMonths = cycleDurationMonths;
         IsCarePackage = isCarePackage;
+        PricingBasis = NormalizePricingBasis(pricingBasis);
         IsActive = true;
         CreatedByUserId = createdByUserId;
         CreatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string name, string? description, int? cycleDurationMonths, bool isCarePackage)
+    public void Update(string name, string? description, int? cycleDurationMonths, bool isCarePackage, string? pricingBasis = PricingBasisPerCot)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name is required.", nameof(name));
@@ -67,6 +78,7 @@ public class ServiceType
         Description = description;
         CycleDurationMonths = cycleDurationMonths;
         IsCarePackage = isCarePackage;
+        PricingBasis = NormalizePricingBasis(pricingBasis);
         UpdatedAt = DateTime.UtcNow;
     }
 

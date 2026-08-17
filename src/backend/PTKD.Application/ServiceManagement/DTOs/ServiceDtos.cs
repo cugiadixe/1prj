@@ -12,6 +12,7 @@ public class ServiceTypeDto
     public string StandardPriceCurrency { get; set; } = null!;
     public int? CycleDurationMonths { get; set; }
     public bool IsCarePackage { get; set; }
+    public string PricingBasis { get; set; } = "PER_COT";
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -26,6 +27,7 @@ public class CreateServiceTypeRequest
     public decimal StandardPrice { get; set; }
     public int? CycleDurationMonths { get; set; }
     public bool IsCarePackage { get; set; }
+    public string? PricingBasis { get; set; }
 }
 
 public class UpdateServiceTypeRequest
@@ -34,6 +36,7 @@ public class UpdateServiceTypeRequest
     public string? Description { get; set; }
     public int? CycleDurationMonths { get; set; }
     public bool IsCarePackage { get; set; }
+    public string? PricingBasis { get; set; }
     public string RowVersion { get; set; } = null!;
 }
 

@@ -55,6 +55,12 @@ const ServiceTypeListPage: React.FC = () => {
       render: (val: number | null) => val ?? '—',
     },
     {
+      title: 'Cách tính giá',
+      dataIndex: 'pricingBasis',
+      key: 'pricingBasis',
+      render: (val: string) => (val === 'PER_GRAVE' ? 'Theo phần mộ' : 'Theo cốt'),
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'isActive',
       key: 'isActive',

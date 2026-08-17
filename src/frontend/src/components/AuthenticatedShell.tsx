@@ -241,7 +241,7 @@ const AuthenticatedShell: React.FC = () => {
         } : null,
         {
           key: '/care-packages',
-          label: navLabel('nav-care-packages', 'Gói chăm sóc'),
+          label: navLabel('nav-care-packages', 'Bán gói chăm sóc'),
           icon: <HeartOutlined />,
           onClick: () => navigate('/care-packages'),
         },

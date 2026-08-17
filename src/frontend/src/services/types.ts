@@ -2,6 +2,8 @@ import type { PagedResult } from '../customers/types';
 
 export type { PagedResult };
 
+export type PricingBasis = 'PER_COT' | 'PER_GRAVE';
+
 export interface ServiceTypeListItem {
   id: number;
   code: string;
@@ -11,6 +13,7 @@ export interface ServiceTypeListItem {
   standardPriceCurrency: string;
   cycleDurationMonths: number | null;
   isCarePackage?: boolean;
+  pricingBasis: PricingBasis;
   isActive: boolean;
   createdAt: string;
   updatedAt: string | null;
@@ -26,6 +29,7 @@ export interface ServiceTypeDetail {
   standardPriceCurrency: string;
   cycleDurationMonths: number | null;
   isCarePackage?: boolean;
+  pricingBasis: PricingBasis;
   isActive: boolean;
   createdAt: string;
   updatedAt: string | null;
@@ -39,6 +43,7 @@ export interface CreateServiceTypeRequest {
   standardPrice: number;
   cycleDurationMonths?: number | null;
   isCarePackage?: boolean;
+  pricingBasis?: PricingBasis;
 }
 
 export interface UpdateServiceTypeRequest {
@@ -46,6 +51,7 @@ export interface UpdateServiceTypeRequest {
   description?: string | null;
   cycleDurationMonths?: number | null;
   isCarePackage?: boolean;
+  pricingBasis?: PricingBasis;
   rowVersion: string;
 }
 

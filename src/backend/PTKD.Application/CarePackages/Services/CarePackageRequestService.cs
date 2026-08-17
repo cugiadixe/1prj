@@ -141,47 +141,81 @@ public class CarePackageRequestService : ICarePackageRequestService
         if (!customerExists)
             throw new InvalidOperationException("Customer not found.");
 
-        decimal unitPriceSnapshot = 0m;
-        
-        // Lookup effective price using Service Foundation if ServiceId is provided.
-        // If ServiceId is passed, it represents the specific instance of the service we're renewing/creating against.
-        // Wait, normally we look up standard price from ServiceType or ServicePriceHistories.
-        // For B1, we simulate effective price lookup. If a Service is linked, we can use its AppliedPrice.
-        if (request.ServiceId.HasValue)
+        // 1a. Gói được chọn từ DANH MỤC dịch vụ (Service_Types có IsCarePackage = true).
+        if (request.ServiceTypeId <= 0)
+            throw new InvalidOperationException("ServiceTypeId is required.");
+
+        var serviceType = await db.ServiceTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(st => st.Id == request.ServiceTypeId, ct);
+
+        if (serviceType == null)
+            throw new InvalidOperationException("Service type not found.");
+        if (!serviceType.IsActive)
+            throw new InvalidOperationException("Service type is not active.");
+        if (!serviceType.IsCarePackage)
+            throw new InvalidOperationException("Selected service type is not a care package.");
+
+        var unitPriceSnapshot = serviceType.StandardPrice;
+        var priceByCot = serviceType.PricingBasis != ServiceType.PricingBasisPerGrave;
+
+        // 1b. Phần mộ BẮT BUỘC — số cốt lấy TỰ ĐỘNG từ phần mộ (server là nguồn sự thật, không tin client).
+        //     Phạm vi công ty được kiểm qua nghĩa trang (mộ thuộc công ty QUA nghĩa trang).
+        if (request.Item == null || request.Item.GraveId <= 0)
+            throw new InvalidOperationException("GraveId is required.");
+
+        var graveInfo = await db.Graves
+            .AsNoTracking()
+            .Where(g => g.Id == request.Item.GraveId)
+            .Join(db.Cemeteries, g => g.CemeteryId, c => c.Id,
+                (g, c) => new { g.GraveCode, g.CotCount, g.OwnerCustomerId, c.CompanyId })
+            .FirstOrDefaultAsync(ct);
+
+        if (graveInfo == null || graveInfo.CompanyId != companyId)
+            throw new InvalidOperationException("Grave not found in this company.");
+
+        // Chặn cứng: phần mộ phải DO ĐÚNG KHÁCH HÀNG NÀY SỞ HỮU (không cho mua hộ phần mộ người khác).
+        if (graveInfo.OwnerCustomerId != request.CustomerId)
+            throw new InvalidOperationException("Grave is not owned by this customer.");
+
+        // 1c. Thanh toán cần một "dịch vụ của khách" (Service) để bấu vào. Dùng lại nếu đã có dịch vụ
+        //     ĐANG hiệu lực cùng loại cho khách này, nếu chưa có thì tạo mới từ giá chuẩn danh mục.
+        var service = await db.Services
+            .FirstOrDefaultAsync(s => s.CustomerId == request.CustomerId
+                && s.ServiceTypeId == serviceType.Id
+                && s.CompanyId == companyId
+                && s.Status == Service.StatusActive, ct);
+
+        if (service == null)
         {
-            var service = await db.Services
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == request.ServiceId.Value && x.CompanyId == companyId, ct);
-                
-            if (service == null)
-                throw new InvalidOperationException("Service not found.");
-                
-            unitPriceSnapshot = service.AppliedPrice;
-        }
-        else
-        {
-            // Fallback for B1 foundation if ServiceId is missing but we need a price.
-            // Normally this comes from a dedicated Care Package ServiceType.
-            // For now, we use a placeholder lookup or throw if strict price lookup is required.
-            // B1 plan: "missing service/active price fails safely."
-            throw new InvalidOperationException("ServiceId is required to determine effective price.");
+            service = Service.CreateStandard(
+                serviceTypeId: serviceType.Id,
+                customerId: request.CustomerId,
+                companyId: companyId,
+                standardPrice: serviceType.StandardPrice,
+                validFrom: request.SaleDate,
+                validTo: null,
+                createdByUserId: userId);
+            db.Services.Add(service);
+            await db.SaveChangesAsync(ct);
         }
 
         // 2. Create Domain Entities
         var draft = CarePackageRequest.CreateDraft(
             companyId: companyId,
             customerId: request.CustomerId,
-            serviceId: request.ServiceId,
+            serviceId: service.Id,
             saleDate: request.SaleDate,
             createdByUserId: userId
         );
 
         var item = CarePackageRequestItem.Create(
-            graveId: request.Item.GraveId,
-            cotCountSnapshot: request.Item.CotCount,
+            graveId: graveInfo.GraveCode,
+            cotCountSnapshot: graveInfo.CotCount,
             servicePeriodStartDate: request.Item.ServicePeriodStartDate,
             servicePeriodEndDate: request.Item.ServicePeriodStartDate.AddYears(1).AddDays(-1),
-            unitPriceSnapshot: unitPriceSnapshot
+            unitPriceSnapshot: unitPriceSnapshot,
+            priceByCot: priceByCot
         );
 
         draft.AddItem(item);

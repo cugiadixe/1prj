@@ -94,7 +94,7 @@ describe('CarePackageRequestDetailPage', () => {
 
     renderPage();
     expect(screen.getByTestId('care-package-detail-page')).toBeInTheDocument();
-    expect(screen.getByTestId('status-badge')).toHaveTextContent('Draft');
+    expect(screen.getByTestId('status-badge')).toHaveTextContent('Nháp');
     expect(screen.getByTestId('total-amount')).toBeInTheDocument();
     expect(screen.getByTestId('line-items-table')).toBeInTheDocument();
   });
