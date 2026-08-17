@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -28,9 +28,24 @@ const UserManagementPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<UserDto | null>(null);
   const [formCompanyId, setFormCompanyId] = useState<number | undefined>(undefined);
+  const [search, setSearch] = useState('');
+  const [employmentFilter, setEmploymentFilter] = useState<string | undefined>(undefined);
+  const [accountFilter, setAccountFilter] = useState<string | undefined>(undefined);
   const [form] = Form.useForm();
 
   const { data: users, isLoading } = useQuery({ queryKey: ['org-users'], queryFn: listUsers });
+
+  const filteredUsers = useMemo(() => {
+    let rows = users ?? [];
+    if (employmentFilter) rows = rows.filter((u) => u.employmentStatus === employmentFilter);
+    if (accountFilter) rows = rows.filter((u) => u.accountStatus === accountFilter);
+    const q = search.trim().toLowerCase();
+    if (q) rows = rows.filter((u) =>
+      u.fullName.toLowerCase().includes(q) ||
+      u.employeeCode.toLowerCase().includes(q) ||
+      (u.email?.toLowerCase().includes(q) ?? false));
+    return rows;
+  }, [users, employmentFilter, accountFilter, search]);
   const { data: companies } = useQuery({ queryKey: ['org-companies'], queryFn: listCompanies });
   const { data: departments } = useQuery({
     queryKey: ['org-departments', formCompanyId],
@@ -109,7 +124,25 @@ const UserManagementPage: React.FC = () => {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} data-testid="create-user-btn">Thêm người dùng</Button>
       </Space>
 
-      <Table rowKey="id" loading={isLoading} dataSource={users} columns={columns} pagination={{ pageSize: 20 }} />
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Input.Search
+          allowClear style={{ width: 300 }} placeholder="Tìm theo mã NV / họ tên / email"
+          onChange={(e) => setSearch(e.target.value)} data-testid="user-search"
+        />
+        <Select
+          allowClear style={{ width: 180 }} placeholder="Trạng thái việc làm" value={employmentFilter}
+          onChange={(v) => setEmploymentFilter(v)} options={EMPLOYMENT_OPTIONS}
+        />
+        <Select
+          allowClear style={{ width: 180 }} placeholder="Trạng thái tài khoản" value={accountFilter}
+          onChange={(v) => setAccountFilter(v)} options={ACCOUNT_OPTIONS}
+        />
+      </Space>
+
+      <Table
+        rowKey="id" loading={isLoading} dataSource={filteredUsers} columns={columns}
+        pagination={{ pageSize: 20, showTotal: (t) => `${t} người dùng` }}
+      />
 
       <Modal
         title={editing ? 'Sửa người dùng' : 'Thêm người dùng'}

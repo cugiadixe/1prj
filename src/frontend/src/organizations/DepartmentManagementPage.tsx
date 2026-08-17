@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,28 +13,55 @@ import {
 
 const { Title } = Typography;
 
+type DeptRow = DepartmentDto & { companyName: string };
+
 const DepartmentManagementPage: React.FC = () => {
   const qc = useQueryClient();
-  const [companyId, setCompanyId] = useState<number | undefined>(undefined);
+  const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<boolean | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<DepartmentDto | null>(null);
   const [form] = Form.useForm();
+  const formCompanyId = Form.useWatch('companyId', form) as number | undefined;
 
   const { data: companies } = useQuery({ queryKey: ['org-companies'], queryFn: listCompanies });
-  const { data: departments, isLoading } = useQuery({
-    queryKey: ['org-departments', companyId],
-    queryFn: () => listDepartments(companyId!),
-    enabled: !!companyId,
+
+  // Gộp phòng ban của MỌI công ty (backend đòi companyId, gọi song song rồi ghép).
+  const { data: allDepts, isLoading } = useQuery({
+    queryKey: ['org-departments-all', companies?.map((c) => c.id).join(',')],
+    enabled: !!companies && companies.length > 0,
+    queryFn: async () => {
+      const results = await Promise.all(
+        (companies ?? []).map((c) =>
+          listDepartments(c.id).then((ds) => ds.map((d): DeptRow => ({ ...d, companyName: c.name }))),
+        ),
+      );
+      return results.flat();
+    },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['org-departments', companyId] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['org-departments-all'] });
+
+  const filtered = useMemo(() => {
+    let rows = allDepts ?? [];
+    if (companyFilter) rows = rows.filter((d) => d.companyId === companyFilter);
+    if (statusFilter !== undefined) rows = rows.filter((d) => d.isActive === statusFilter);
+    const q = search.trim().toLowerCase();
+    if (q) rows = rows.filter((d) =>
+      d.name.toLowerCase().includes(q) || d.departmentCode.toLowerCase().includes(q));
+    return rows;
+  }, [allDepts, companyFilter, statusFilter, search]);
 
   const saveMutation = useMutation({
-    mutationFn: async (values: { departmentCode: string; name: string; parentDepartmentId?: number }) => {
+    mutationFn: async (values: { departmentCode: string; name: string; companyId: number; parentDepartmentId?: number }) => {
       if (editing) {
-        return updateDepartment(editing.id, { ...values, targetVersion: editing.rowVersion });
+        return updateDepartment(editing.id, {
+          departmentCode: values.departmentCode, name: values.name,
+          parentDepartmentId: values.parentDepartmentId, targetVersion: editing.rowVersion,
+        });
       }
-      return createDepartment({ ...values, companyId: companyId! });
+      return createDepartment(values);
     },
     onSuccess: () => {
       message.success(editing ? 'Đã cập nhật phòng ban' : 'Đã tạo phòng ban');
@@ -55,19 +82,31 @@ const DepartmentManagementPage: React.FC = () => {
     },
   });
 
-  const openCreate = () => { setEditing(null); form.resetFields(); setModalOpen(true); };
+  const openCreate = () => {
+    setEditing(null); form.resetFields();
+    if (companyFilter) form.setFieldsValue({ companyId: companyFilter });
+    setModalOpen(true);
+  };
   const openEdit = (d: DepartmentDto) => {
     setEditing(d);
-    form.setFieldsValue({ departmentCode: d.departmentCode, name: d.name, parentDepartmentId: d.parentDepartmentId });
+    form.setFieldsValue({ departmentCode: d.departmentCode, name: d.name, companyId: d.companyId, parentDepartmentId: d.parentDepartmentId });
     setModalOpen(true);
   };
 
+  const parentOptions = useMemo(() => {
+    const cid = editing ? editing.companyId : formCompanyId;
+    return (allDepts ?? [])
+      .filter((d) => d.companyId === cid && (!editing || d.id !== editing.id))
+      .map((d) => ({ value: d.id, label: d.name }));
+  }, [allDepts, editing, formCompanyId]);
+
   const columns = [
+    { title: 'Công ty', dataIndex: 'companyName', key: 'companyName' },
     { title: 'Mã', dataIndex: 'departmentCode', key: 'departmentCode' },
     { title: 'Tên phòng ban', dataIndex: 'name', key: 'name' },
     {
       title: 'Phòng cha', dataIndex: 'parentDepartmentId', key: 'parentDepartmentId',
-      render: (pid: number | null) => pid ? (departments?.find((x) => x.id === pid)?.name ?? pid) : '—',
+      render: (pid: number | null) => pid ? (allDepts?.find((x) => x.id === pid)?.name ?? pid) : '—',
     },
     {
       title: 'Trạng thái', dataIndex: 'isActive', key: 'isActive',
@@ -88,28 +127,33 @@ const DepartmentManagementPage: React.FC = () => {
 
   return (
     <div>
-      <Title level={3}>Phòng ban</Title>
-      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Select
-          style={{ width: 320 }}
-          showSearch
-          optionFilterProp="label"
-          placeholder="Chọn công ty để xem phòng ban"
-          value={companyId}
-          onChange={(v) => setCompanyId(v)}
-          options={companies?.map((c) => ({ value: c.id, label: c.name }))}
-          data-testid="dept-company-select"
-        />
-        <Button type="primary" icon={<PlusOutlined />} disabled={!companyId} onClick={openCreate} data-testid="create-department-btn">
-          Thêm phòng ban
-        </Button>
+      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }} wrap>
+        <Title level={3} style={{ margin: 0 }}>Phòng ban</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} data-testid="create-department-btn">Thêm phòng ban</Button>
       </Space>
 
-      {companyId ? (
-        <Table rowKey="id" loading={isLoading} dataSource={departments} columns={columns} pagination={false} />
-      ) : (
-        <Typography.Text type="secondary">Chọn công ty để xem/quản lý phòng ban.</Typography.Text>
-      )}
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Select
+          allowClear style={{ width: 260 }} showSearch optionFilterProp="label"
+          placeholder="Lọc theo công ty" value={companyFilter} onChange={(v) => setCompanyFilter(v)}
+          options={companies?.map((c) => ({ value: c.id, label: c.name }))}
+          data-testid="dept-company-filter"
+        />
+        <Select
+          allowClear style={{ width: 160 }} placeholder="Trạng thái" value={statusFilter}
+          onChange={(v) => setStatusFilter(v)}
+          options={[{ value: true, label: 'Hoạt động' }, { value: false, label: 'Ngừng' }]}
+        />
+        <Input.Search
+          allowClear style={{ width: 280 }} placeholder="Tìm theo mã / tên phòng ban"
+          onChange={(e) => setSearch(e.target.value)} data-testid="dept-search"
+        />
+      </Space>
+
+      <Table
+        rowKey="id" loading={isLoading} dataSource={filtered} columns={columns}
+        pagination={{ pageSize: 20, showTotal: (t) => `${t} phòng ban` }}
+      />
 
       <Modal
         title={editing ? 'Sửa phòng ban' : 'Thêm phòng ban'}
@@ -117,10 +161,17 @@ const DepartmentManagementPage: React.FC = () => {
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields(); }}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
-        okText="Lưu"
-        cancelText="Hủy"
+        okText="Lưu" cancelText="Hủy"
       >
         <Form form={form} layout="vertical" onFinish={(v) => saveMutation.mutate(v)}>
+          <Form.Item name="companyId" label="Công ty" rules={[{ required: true, message: 'Chọn công ty' }]}>
+            <Select
+              showSearch optionFilterProp="label" disabled={!!editing}
+              placeholder="Chọn công ty"
+              onChange={() => form.setFieldsValue({ parentDepartmentId: undefined })}
+              options={companies?.map((c) => ({ value: c.id, label: c.name }))}
+            />
+          </Form.Item>
           <Form.Item name="departmentCode" label="Mã phòng ban" rules={[{ required: true, message: 'Nhập mã phòng ban' }]}>
             <Input placeholder="VD: HN-SALES" />
           </Form.Item>
@@ -128,13 +179,7 @@ const DepartmentManagementPage: React.FC = () => {
             <Input placeholder="VD: Phòng Kinh doanh" />
           </Form.Item>
           <Form.Item name="parentDepartmentId" label="Phòng cha (nếu có)">
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder="— Không —"
-              options={departments?.filter((d) => !editing || d.id !== editing.id).map((d) => ({ value: d.id, label: d.name }))}
-            />
+            <Select allowClear showSearch optionFilterProp="label" placeholder="— Không —" options={parentOptions} />
           </Form.Item>
         </Form>
       </Modal>
