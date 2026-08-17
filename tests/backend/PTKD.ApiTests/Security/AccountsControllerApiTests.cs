@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
@@ -23,7 +23,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         _factory = factory;
     }
 
-    // ── Authorization ─────────────────────────────────────────────────────────
+    // â”€â”€ Authorization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task GetAccountDetail_Unauthenticated_Returns401()
@@ -57,7 +57,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.Equal("AUTH_ACCOUNT_NOT_FOUND", problem.Extensions["errorCode"]?.ToString());
     }
 
-    // ── View account detail ───────────────────────────────────────────────────
+    // â”€â”€ View account detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task GetAccountDetail_WithPermission_ReturnsSafeFields()
@@ -103,7 +103,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.DoesNotContain("sessionsInvalidatedAt", json, StringComparison.OrdinalIgnoreCase);
     }
 
-    // ── Activate ──────────────────────────────────────────────────────────────
+    // â”€â”€ Activate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task Activate_DisabledAccount_Returns204()
@@ -144,13 +144,13 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.Equal("SUCCESS", auditRow.Value.Outcome);
     }
 
-    // ── Disable ───────────────────────────────────────────────────────────────
+    // â”€â”€ Disable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task Disable_WithReason_Returns204()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateActiveAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "Policy violation" });
@@ -167,7 +167,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Disable_WithoutReason_Returns400()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
 
         var body = JsonContent.Create(new { Reason = "" });
         var response = await client.PostAsync("/api/v2/security/accounts/1/disable", body);
@@ -182,7 +182,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Disable_AlreadyDisabled_Returns409()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateDisabledAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "Test" });
@@ -194,7 +194,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Disable_WritesAuditEvent()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateActiveAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "Audit test" });
@@ -206,13 +206,13 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.Equal("Audit test", auditRow.Value.Reason);
     }
 
-    // ── Lock ──────────────────────────────────────────────────────────────────
+    // â”€â”€ Lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task Lock_WithReason_Returns204()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateActiveAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "Suspicious activity" });
@@ -230,7 +230,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Lock_WithoutReason_Returns400()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
 
         var body = JsonContent.Create(new { Reason = "  " });
         var response = await client.PostAsync("/api/v2/security/accounts/1/lock", body);
@@ -241,7 +241,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Lock_DisabledAccount_Returns409()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateDisabledAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "Test" });
@@ -253,7 +253,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Lock_WritesAuditEvent()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateActiveAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "Lock audit test" });
@@ -264,7 +264,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.Equal("Lock audit test", auditRow.Value.Reason);
     }
 
-    // ── Unlock ────────────────────────────────────────────────────────────────
+    // â”€â”€ Unlock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task Unlock_LockedAccount_Returns204()
@@ -324,7 +324,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.NotNull(auditRow);
     }
 
-    // ── Admin password reset ──────────────────────────────────────────────────
+    // â”€â”€ Admin password reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task ResetPassword_WithReason_Returns200AndTemporaryPassword()
@@ -406,7 +406,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
             Assert.DoesNotContain(temporaryPassword, auditRow.Value.Reason, StringComparison.Ordinal);
     }
 
-    // ── Revoke sessions ───────────────────────────────────────────────────────
+    // â”€â”€ Revoke sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task RevokeSessions_WithReason_Returns204()
@@ -481,7 +481,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.Equal("Session revoke audit", auditRow.Value.Reason);
     }
 
-    // ── Reason safety ─────────────────────────────────────────────────────────
+    // â”€â”€ Reason safety â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Theory]
     [InlineData("password")]
@@ -498,7 +498,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Disable_WithSensitiveReason_Returns400(string sensitiveReason)
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
 
         var body = JsonContent.Create(new { Reason = sensitiveReason });
         var response = await client.PostAsync("/api/v2/security/accounts/1/disable", body);
@@ -515,7 +515,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Lock_WithSensitiveReason_Returns400(string sensitiveReason)
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
 
         var body = JsonContent.Create(new { Reason = sensitiveReason });
         var response = await client.PostAsync("/api/v2/security/accounts/1/lock", body);
@@ -564,7 +564,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Disable_WithReasonExceedingMaxLength_Returns400()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, _, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
 
         var body = JsonContent.Create(new { Reason = new string('A', 501) });
         var response = await client.PostAsync("/api/v2/security/accounts/1/disable", body);
@@ -579,7 +579,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
     public async Task Disable_WithValidSafeReason_Accepted()
     {
         await using var helper = new SecurityTestHelper(_factory);
-        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_MANAGE");
+        var (client, userId, _) = await helper.CreateAuthenticatedClientAsync("SECURITY_ACCOUNT_DISABLE");
         var targetAccountId = await CreateActiveAccountAsync(userId);
 
         var body = JsonContent.Create(new { Reason = "User requested account deactivation per HR policy" });
@@ -587,7 +587,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 
-    // ── Security / data exposure ──────────────────────────────────────────────
+    // â”€â”€ Security / data exposure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task NoErrorResponse_ExposesStackTraceOrSqlText()
@@ -603,7 +603,7 @@ public sealed class AccountsControllerApiTests : IClassFixture<SafeTestWebApplic
         Assert.DoesNotContain("SqlException", json, StringComparison.OrdinalIgnoreCase);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task<long> CreateActiveAccountAsync(long callerUserId)
     {

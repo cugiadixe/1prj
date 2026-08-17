@@ -37,26 +37,9 @@ namespace PTKD.ApiTests
         public Task DisposeAsync() => Task.CompletedTask;
 
         // ── Environment Protection ────────────────────────────────────────
-
-        [Fact]
-        public void Production_Startup_Throws_InvalidOperationException()
-        {
-            var productionFactory = _factory.WithWebHostBuilder(builder =>
-            {
-                builder.UseEnvironment("Production");
-            });
-            Assert.Throws<InvalidOperationException>(() => productionFactory.CreateClient());
-        }
-
-        [Fact]
-        public void Staging_Startup_Throws_InvalidOperationException()
-        {
-            var stagingFactory = _factory.WithWebHostBuilder(builder =>
-            {
-                builder.UseEnvironment("Staging");
-            });
-            Assert.Throws<InvalidOperationException>(() => stagingFactory.CreateClient());
-        }
+        // GỠ 2 test cũ "Production/Staging startup THROWS": "production guard" (Phase 1A.2) đã
+        // được owner phê duyệt GỠ khi Docker hoá (xem DEPLOYMENT-PLAN Giai đoạn 2). App nay khởi
+        // động bình thường ở mọi môi trường, nên assert throw không còn đúng.
 
         [Fact]
         public async Task Testing_Environment_Routes_Are_Available()
