@@ -43,6 +43,12 @@ namespace PTKD.IntegrationTests
             // Add validators
             services.AddValidatorsFromAssemblyContaining<PTKD.Application.Organizations.Users.Validations.CreateUserRequestValidator>();
 
+            // UserService phụ thuộc IAdminSafetyService (thêm ở V0040) -> cần IAuthorizationDbContext.
+            services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IAuthorizationDbContext>(
+                sp => sp.GetRequiredService<AppDbContext>());
+            services.AddScoped<PTKD.Application.Security.Authorization.IAdminSafetyService,
+                PTKD.Application.Security.Authorization.Services.AdminSafetyService>();
+
             services.AddScoped<ICompanyService, CompanyService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IUserService, UserService>();
