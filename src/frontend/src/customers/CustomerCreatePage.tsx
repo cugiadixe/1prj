@@ -16,6 +16,13 @@ const CustomerCreatePage: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateCheckResult | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
+  // Loại giấy tờ tuỳ thân: CCCD = 12 số, CMND = 10 số. Chỉ điều khiển kiểm tra ở FE;
+  // số giấy tờ vẫn lưu vào trường cccd (loại suy theo độ dài).
+  const docType = (Form.useWatch('docType', form) as string) || 'CCCD';
+  const idDigits = docType === 'CMND' ? 10 : 12;
+
+  // Chỉ giữ chữ số khi gõ (dùng cho số giấy tờ, điện thoại, mã số thuế).
+  const digitsOnly = (e: React.ChangeEvent<HTMLInputElement>) => e.target.value.replace(/\D/g, '');
 
   // Trường bắt buộc (customerCode, fullName) đều ở tab "basic"; nếu submit lỗi thì nhảy về đó.
   const onFinishFailed = () => {
@@ -126,6 +133,7 @@ const CustomerCreatePage: React.FC = () => {
           layout="vertical"
           onFinish={handleSubmit}
           onFinishFailed={onFinishFailed}
+          initialValues={{ docType: 'CCCD' }}
           data-testid="customer-create-form"
         >
           <Tabs
@@ -209,13 +217,65 @@ const CustomerCreatePage: React.FC = () => {
                 children: (
                   <Row gutter={16}>
                     <Col xs={24} md={12}>
-                      <Form.Item name="cccd" label="CCCD" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-                        <Input data-testid="input-cccd" onBlur={() => handleDuplicateCheck('cccd')} />
+                      <Form.Item name="docType" label="Loại giấy tờ">
+                        <Select
+                          data-testid="input-docType"
+                          options={[
+                            { label: 'CCCD (12 số)', value: 'CCCD' },
+                            { label: 'CMND (10 số)', value: 'CMND' },
+                          ]}
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
-                      <Form.Item name="phone" label="Điện thoại" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-                        <Input data-testid="input-phone" onBlur={() => handleDuplicateCheck('phone')} />
+                      <Form.Item
+                        name="cccd"
+                        label={`Số ${docType === 'CMND' ? 'CMND' : 'CCCD'}`}
+                        dependencies={['docType']}
+                        getValueFromEvent={digitsOnly}
+                        rules={[
+                          {
+                            validator: (_, v) => {
+                              if (!v) return Promise.resolve();
+                              if (!/^\d+$/.test(v)) return Promise.reject(new Error('Chỉ gồm chữ số'));
+                              if (v.length !== idDigits) {
+                                return Promise.reject(new Error(`${docType === 'CMND' ? 'CMND' : 'CCCD'} phải gồm đúng ${idDigits} chữ số`));
+                              }
+                              return Promise.resolve();
+                            },
+                          },
+                        ]}
+                      >
+                        <Input
+                          data-testid="input-cccd"
+                          inputMode="numeric"
+                          maxLength={idDigits}
+                          placeholder={`${idDigits} chữ số`}
+                          onBlur={() => handleDuplicateCheck('cccd')}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item
+                        name="phone"
+                        label="Điện thoại"
+                        getValueFromEvent={digitsOnly}
+                        rules={[
+                          {
+                            validator: (_, v) =>
+                              !v || /^\d{10}$/.test(v)
+                                ? Promise.resolve()
+                                : Promise.reject(new Error('Điện thoại phải gồm đúng 10 chữ số')),
+                          },
+                        ]}
+                      >
+                        <Input
+                          data-testid="input-phone"
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="10 chữ số"
+                          onBlur={() => handleDuplicateCheck('phone')}
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
@@ -229,8 +289,21 @@ const CustomerCreatePage: React.FC = () => {
                       </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
-                      <Form.Item name="taxCode" label="Mã số thuế" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-                        <Input data-testid="input-taxCode" />
+                      <Form.Item
+                        name="taxCode"
+                        label="Mã số thuế"
+                        getValueFromEvent={digitsOnly}
+                        rules={[
+                          {
+                            validator: (_, v) =>
+                              !v || /^\d+$/.test(v)
+                                ? Promise.resolve()
+                                : Promise.reject(new Error('Mã số thuế chỉ gồm chữ số')),
+                          },
+                          { max: 20, message: 'Tối đa 20 ký tự' },
+                        ]}
+                      >
+                        <Input data-testid="input-taxCode" inputMode="numeric" placeholder="Chỉ chữ số" />
                       </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
