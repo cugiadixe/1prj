@@ -70,6 +70,8 @@ public static class PermissionCodes
     public const string CardReprintRequestReject = "CARD_REPRINT_REQUEST_REJECT";
     public const string CardReprintRequestMarkPrinted = "CARD_REPRINT_REQUEST_MARK_PRINTED";
 
+    public const string CardIssue = "CARD_ISSUE"; // tạo/cấp thẻ mộ mới (sinh số thẻ) từ phần mộ
+
     public const string CarePackageView = "CARE_PACKAGE_VIEW";
     public const string CarePackageCreate = "CARE_PACKAGE_CREATE";
 

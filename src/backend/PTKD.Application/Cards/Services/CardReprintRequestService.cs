@@ -18,6 +18,10 @@ namespace PTKD.Application.Cards.Services;
 
 public class CardReprintRequestService : ICardReprintRequestService
 {
+    // Mã loại dịch vụ tính phí in lại (Service_Types.code). Trước đây tra nhầm 'CARD_REPRINT'
+    // (không tồn tại) → tạo thanh toán luôn văng lỗi. Mã thật trong danh mục là 'IN_THE' (50.000đ).
+    private const string ReprintFeeServiceCode = "IN_THE";
+
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly IWorkflowRuntimeService _workflowRuntimeService;
     private readonly IPaymentTransactionService _paymentTransactionService;
@@ -93,13 +97,25 @@ public class CardReprintRequestService : ICardReprintRequestService
         var request = await dbContext.CardReprintRequests.FirstOrDefaultAsync(r => r.Id == id && r.CompanyId == companyId, ct);
         if (request == null) throw new EntityNotFoundException("REQUEST_NOT_FOUND", "Card reprint request not found.");
 
+        // In LẦN ĐẦU không qua duyệt — dùng đường in trực tiếp (PrintInitialAsync), không mở workflow.
+        if (request.RequestType == CardReprintRequest.TypeInitialPrint)
+            throw new BusinessRuleValidationException(
+                "INITIAL_PRINT_NO_APPROVAL",
+                "In lần đầu không cần duyệt. Vui lòng dùng chức năng in trực tiếp thay vì gửi duyệt.");
+
         var workflowRequest = new CreateWorkflowInstanceRequest
         {
             ProcessCode = "CARD_REPRINT",
             BusinessEntityType = "CardReprintRequest",
             BusinessEntityId = request.Id,
             CompanyId = companyId,
-            PayloadJson = JsonSerializer.Serialize(new { CardId = request.CardId, ReasonCode = request.ReasonCode })
+            PayloadJson = JsonSerializer.Serialize(new
+            {
+                CardId = request.CardId,
+                request.RequestType,
+                request.ReprintNumber,
+                request.ReasonCode
+            })
         };
 
         var instance = await _workflowRuntimeService.CreateInstanceAsync(workflowRequest, actorUserId, ct);
@@ -166,9 +182,9 @@ public class CardReprintRequestService : ICardReprintRequestService
         if (request.Status != CardReprintRequest.StatusApproved)
             throw new BusinessRuleValidationException("INVALID_STATUS", "Payment can only be created for APPROVED requests.");
 
-        var serviceType = await dbContext.ServiceTypes.FirstOrDefaultAsync(st => st.Code == "CARD_REPRINT" && st.IsActive, ct);
+        var serviceType = await dbContext.ServiceTypes.FirstOrDefaultAsync(st => st.Code == ReprintFeeServiceCode && st.IsActive, ct);
         if (serviceType == null)
-            throw new BusinessRuleValidationException("SERVICE_TYPE_NOT_FOUND", "Card Reprint service type is not configured or inactive. Cannot process payment.");
+            throw new BusinessRuleValidationException("SERVICE_TYPE_NOT_FOUND", "Loại dịch vụ phí in lại thẻ chưa được cấu hình hoặc đã ngừng. Không thể tạo thanh toán.");
 
         var paymentDraftRequest = new CreatePaymentDraftRequest
         {
@@ -208,26 +224,86 @@ public class CardReprintRequestService : ICardReprintRequestService
 
     public async Task<CardReprintRequestDto> MarkPrintedAsync(long id, long companyId, long actorUserId, CancellationToken ct = default)
     {
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var request = await dbContext.CardReprintRequests.FirstOrDefaultAsync(r => r.Id == id && r.CompanyId == companyId, ct);
-        if (request == null) throw new EntityNotFoundException("REQUEST_NOT_FOUND", "Card reprint request not found.");
-
-        if (request.Status == CardReprintRequest.StatusPendingPayment)
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            if (!request.PaymentTransactionId.HasValue)
-                throw new BusinessRuleValidationException("NO_PAYMENT", "No payment transaction linked.");
+            await using var dbContext = _dbContextFactory.CreateDbContext();
+            await using var tx = await dbContext.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
 
-            var payment = await _paymentTransactionService.GetByIdAsync(request.PaymentTransactionId.Value, ct);
-            if (payment == null || payment.Status != "CONFIRMED")
-                throw new BusinessRuleValidationException("PAYMENT_NOT_CONFIRMED", "Payment must be CONFIRMED before printing.");
+            var request = await dbContext.CardReprintRequests.FirstOrDefaultAsync(r => r.Id == id && r.CompanyId == companyId, ct);
+            if (request == null) throw new EntityNotFoundException("REQUEST_NOT_FOUND", "Card reprint request not found.");
 
-            request.SetPaid();
-        }
+            if (request.Status == CardReprintRequest.StatusPendingPayment)
+            {
+                if (!request.PaymentTransactionId.HasValue)
+                    throw new BusinessRuleValidationException("NO_PAYMENT", "No payment transaction linked.");
 
-        request.SetPrinted(actorUserId);
-        await dbContext.SaveChangesAsync(ct);
+                var payment = await _paymentTransactionService.GetByIdAsync(request.PaymentTransactionId.Value, ct);
+                if (payment == null || payment.Status != "CONFIRMED")
+                    throw new BusinessRuleValidationException("PAYMENT_NOT_CONFIRMED", "Payment must be CONFIRMED before printing.");
 
-        return MapToDto(request);
+                request.SetPaid();
+            }
+
+            var card = await dbContext.Cards.FirstOrDefaultAsync(c => c.Id == request.CardId && c.CompanyId == companyId, ct);
+            if (card == null) throw new EntityNotFoundException("CARD_NOT_FOUND", "Card not found.");
+
+            request.SetPrinted(actorUserId);
+
+            // Ghi nhật ký in + tăng đếm (cộng dồn) trong CÙNG giao dịch. Số thứ tự in lấy tại đây,
+            // không tin số lưu lúc tạo yêu cầu.
+            var sequence = card.PrintCount + 1;
+            card.IncrementPrintCount(actorUserId);
+            dbContext.CardPrintHistory.Add(CardPrintHistory.Create(
+                card.Id, companyId, sequence, CardPrintHistory.TypeReprint,
+                request.Id, request.WorkflowInstanceId, actorUserId, request.ReasonCode, request.Notes));
+
+            await dbContext.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            return MapToDto(request);
+        });
+    }
+
+    /// <summary>
+    /// In LẦN ĐẦU: bỏ qua duyệt + phí, in thẳng. Chốt an toàn trong giao dịch Serializable —
+    /// đọc lại số lần in, chỉ cho qua nếu thẻ CHƯA in lần nào; nếu đã in thì buộc đi đường in lại.
+    /// UNIQUE 1 dòng INITIAL/thẻ khoá nốt lỗ hai lần in đầu song song.
+    /// </summary>
+    public async Task<CardReprintRequestDto> PrintInitialAsync(long id, long companyId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var dbContext = _dbContextFactory.CreateDbContext();
+            await using var tx = await dbContext.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var request = await dbContext.CardReprintRequests.FirstOrDefaultAsync(r => r.Id == id && r.CompanyId == companyId, ct);
+            if (request == null) throw new EntityNotFoundException("REQUEST_NOT_FOUND", "Card reprint request not found.");
+            if (request.RequestType != CardReprintRequest.TypeInitialPrint)
+                throw new BusinessRuleValidationException("NOT_INITIAL", "Chức năng in trực tiếp chỉ áp dụng cho yêu cầu in lần đầu.");
+
+            var card = await dbContext.Cards.FirstOrDefaultAsync(c => c.Id == request.CardId && c.CompanyId == companyId, ct);
+            if (card == null) throw new EntityNotFoundException("CARD_NOT_FOUND", "Card not found.");
+
+            if (card.PrintCount != 0)
+                throw new BusinessRuleValidationException(
+                    "CARD_ALREADY_PRINTED",
+                    "Thẻ này đã được in. Việc in thêm là IN LẠI — vui lòng tạo yêu cầu in lại (cần duyệt + phí).");
+
+            request.SetPrintedInitial(actorUserId);
+            card.IncrementPrintCount(actorUserId);
+            dbContext.CardPrintHistory.Add(CardPrintHistory.Create(
+                card.Id, companyId, 1, CardPrintHistory.TypeInitial,
+                request.Id, null, actorUserId, request.ReasonCode, request.Notes));
+
+            await dbContext.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            return MapToDto(request);
+        });
     }
 
     public async Task<CardReprintRequestDto> MarkReleasedAsync(long id, long companyId, long actorUserId, CancellationToken ct = default)

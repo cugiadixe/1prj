@@ -11,6 +11,7 @@ public class Card
     public long Id { get; private set; }
     public long CompanyId { get; private set; }
     public string? GraveId { get; private set; }
+    public string? CardNumber { get; private set; }   // SỐ THẺ (vd 5180) — cấp lúc tạo thẻ
     public long? ServiceId { get; private set; }
     public int PrintCount { get; private set; }
     public string Status { get; private set; } = null!;
@@ -21,12 +22,13 @@ public class Card
 
     private Card() { }
 
-    public static Card Create(long companyId, string? graveId, long? serviceId, long createdByUserId)
+    public static Card Create(long companyId, string? graveId, long? serviceId, long createdByUserId, string? cardNumber = null)
     {
         return new Card
         {
             CompanyId = companyId,
             GraveId = graveId,
+            CardNumber = cardNumber,
             ServiceId = serviceId,
             PrintCount = 0,
             Status = StatusActive,
@@ -39,5 +41,6 @@ public class Card
     {
         PrintCount++;
         UpdatedAt = DateTime.UtcNow;
+        // updatedByUserId giữ cho chữ ký API; Card chưa có cột updated_by nên chỉ cập nhật thời điểm.
     }
 }

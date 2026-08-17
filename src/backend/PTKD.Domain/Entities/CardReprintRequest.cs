@@ -128,6 +128,23 @@ public class CardReprintRequest
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// In LẦN ĐẦU: bỏ qua duyệt + phí, đi thẳng DRAFT → PRINTED. Chỉ hợp lệ cho yêu cầu loại
+    /// INITIAL_PRINT (tầng service kiểm lại số lần in thực tế trong giao dịch trước khi gọi).
+    /// </summary>
+    public void SetPrintedInitial(long printedByUserId)
+    {
+        if (Status != StatusDraft)
+            throw new InvalidOperationException($"Cannot direct-print from status {Status}");
+        if (RequestType != TypeInitialPrint)
+            throw new InvalidOperationException("Direct print (no approval) is only valid for INITIAL_PRINT.");
+
+        Status = StatusPrinted;
+        PrintedAt = DateTime.UtcNow;
+        PrintedByUserId = printedByUserId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetReleased(long releasedByUserId)
     {
         if (Status != StatusPrinted)

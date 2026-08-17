@@ -59,6 +59,7 @@ public sealed class TestDatabaseFixture : IDisposable
         "Reconciliation_Periods",
         "Cards",
         "Card_Reprint_Requests",
+        "Card_Print_History",
         "Care_Package_Requests",
         "Care_Package_Request_Items"
     };
@@ -407,6 +408,36 @@ public sealed class TestDatabaseFixture : IDisposable
         }
     }
 
+    /// <summary>
+    /// Baseline cho ApiTest miền THẺ: V0014 + V0039 (thêm cột Cards.card_number + bảng
+    /// Card_Print_History + seed quy trình CARD_REPRINT). V0039 chỉ phụ thuộc các bảng đã có ở
+    /// V0014 (Cards, Card_Reprint_Requests, Users, Permissions, Workflow_*), nên áp thẳng lên
+    /// V0014 mà không cần cả chuỗi V0015–V0038. Seed workflow tự bỏ qua nếu chưa có tài khoản admin.
+    /// </summary>
+    public void ResetToV0014WithCardV0039()
+    {
+        lock (ResetLock)
+        {
+            ResetToV0014();
+            using var connection = OpenVerifiedConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                ExecuteBatches(ReadMigration("V0039__card_print_history_and_reprint_workflow.sql"), connection, transaction);
+                ExecuteNonQuery(
+                    connection,
+                    transaction,
+                    "INSERT INTO dbo.SchemaVersions (Version, ScriptName, Status) VALUES ('V0039', 'V0039__card_print_history_and_reprint_workflow.sql', 'APPLIED');");
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+    }
+
     public SqlConnection OpenVerifiedConnection()
     {
         var connection = TestDatabaseSafety.OpenVerifiedConnection(ConnectionString);
@@ -576,6 +607,7 @@ public sealed class TestDatabaseFixture : IDisposable
             DROP TABLE IF EXISTS dbo.User_Auth_Accounts;
             DROP TABLE IF EXISTS dbo.Care_Package_Request_Items;
             DROP TABLE IF EXISTS dbo.Care_Package_Requests;
+            DROP TABLE IF EXISTS dbo.Card_Print_History;
             DROP TABLE IF EXISTS dbo.Card_Reprint_Requests;
             DROP TABLE IF EXISTS dbo.Cards;
             DROP TABLE IF EXISTS dbo.Payment_Correction_History;

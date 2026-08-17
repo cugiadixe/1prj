@@ -42,8 +42,19 @@ public class CardReprintRequestApiTests : IClassFixture<SafeTestWebApplicationFa
         var (userId, token) = await SeedUserAndGetTokenAsync("reprint_admin");
         _userId = userId;
 
+        // Cổng quyền (PermissionScope.Company) đòi người gọi THUỘC công ty (X-Company-Id) — phải
+        // gán user vào công ty test, nếu không mọi endpoint trả 403 "không thuộc công ty".
+        using (var asgScope = _factory.Services.CreateScope())
+        {
+            var asgDb = asgScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            asgDb.Set<UserCompanyAssignment>().Add(
+                new UserCompanyAssignment(_userId, _companyId, true, DateTime.UtcNow.AddDays(-1)));
+            await asgDb.SaveChangesAsync();
+        }
+
         await GrantPermissionAsync(userId, "CARD_REPRINT_REQUEST_CREATE", _companyId);
         await GrantPermissionAsync(userId, "CARD_REPRINT_REQUEST_VIEW", _companyId);
+        await GrantPermissionAsync(userId, "CARD_REPRINT_REQUEST_MARK_PRINTED", _companyId);
 
         _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         _client.DefaultRequestHeaders.Add("X-Company-Id", _companyId.ToString());
@@ -282,5 +293,68 @@ public class CardReprintRequestApiTests : IClassFixture<SafeTestWebApplicationFa
         // This should be forbidden because the user doesn't have permission for otherCompanyId
         var response = await clientCrossCompany.PostAsJsonAsync("api/v2/card-reprint-requests", request);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    // ── KHỐI A: in lần đầu miễn duyệt / in lại phải duyệt ─────────────────────
+
+    [Fact]
+    public async Task Submit_InitialPrint_IsBlocked()
+    {
+        long cardId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var card = Card.Create(_companyId, "GRAVE-INIT-1", null, _userId);
+            db.Set<Card>().Add(card);
+            await db.SaveChangesAsync();
+            cardId = card.Id;
+        }
+
+        var create = await _client.PostAsJsonAsync("api/v2/card-reprint-requests",
+            new CreateCardReprintRequest { CompanyId = _companyId, CardId = cardId, ReasonCode = "NEW" });
+        create.EnsureSuccessStatusCode();
+        var dto = await create.Content.ReadFromJsonAsync<CardReprintRequestDto>();
+        Assert.Equal(CardReprintRequest.TypeInitialPrint, dto!.RequestType);
+
+        // In lần đầu KHÔNG được gửi duyệt (dùng in trực tiếp). BusinessRule → 409.
+        var submit = await _client.PostAsync($"api/v2/card-reprint-requests/{dto.Id}/submit", null);
+        Assert.Equal(HttpStatusCode.Conflict, submit.StatusCode);
+    }
+
+    [Fact]
+    public async Task PrintInitial_FirstPrint_MarksPrintedAndCounts()
+    {
+        long cardId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var card = Card.Create(_companyId, "GRAVE-INIT-2", null, _userId);
+            db.Set<Card>().Add(card);
+            await db.SaveChangesAsync();
+            cardId = card.Id;
+        }
+
+        var create = await _client.PostAsJsonAsync("api/v2/card-reprint-requests",
+            new CreateCardReprintRequest { CompanyId = _companyId, CardId = cardId, ReasonCode = "NEW" });
+        create.EnsureSuccessStatusCode();
+        var dto = await create.Content.ReadFromJsonAsync<CardReprintRequestDto>();
+
+        // In lần đầu trực tiếp: không duyệt, không phí, thẳng PRINTED.
+        var print = await _client.PostAsync($"api/v2/card-reprint-requests/{dto!.Id}/print-initial", null);
+        print.EnsureSuccessStatusCode();
+        var printed = await print.Content.ReadFromJsonAsync<CardReprintRequestDto>();
+        Assert.Equal(CardReprintRequest.StatusPrinted, printed!.Status);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var card = await db.Set<Card>().FirstAsync(c => c.Id == cardId);
+            Assert.Equal(1, card.PrintCount);   // đếm đã tăng
+            var history = await db.Set<CardPrintHistory>()
+                .Where(h => h.CardId == cardId).ToListAsync();
+            Assert.Single(history);
+            Assert.Equal(CardPrintHistory.TypeInitial, history[0].PrintType);
+            Assert.Equal(1, history[0].PrintSequence);
+        }
     }
 }

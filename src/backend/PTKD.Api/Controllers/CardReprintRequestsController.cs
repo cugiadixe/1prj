@@ -115,6 +115,15 @@ public class CardReprintRequestsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>In lần đầu trực tiếp (không duyệt, không phí) — chỉ cho yêu cầu INITIAL_PRINT.</summary>
+    [HttpPost("{id}/print-initial")]
+    [RequirePermission(PermissionCodes.CardReprintRequestMarkPrinted, PermissionScope.Company)]
+    public async Task<IActionResult> PrintInitial(long id, [FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)
+    {
+        var result = await _service.PrintInitialAsync(id, companyId, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
     [HttpPost("{id}/mark-released")]
     [RequirePermission(PermissionCodes.CardReprintRequestMarkPrinted, PermissionScope.Company)]
     public async Task<IActionResult> MarkReleased(long id, [FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)

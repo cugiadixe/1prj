@@ -14,6 +14,7 @@ public class CardConfiguration : IEntityTypeConfiguration<Card>
         builder.Property(c => c.Id).HasColumnName("id");
         builder.Property(c => c.CompanyId).HasColumnName("company_id");
         builder.Property(c => c.GraveId).HasColumnName("grave_id");
+        builder.Property(c => c.CardNumber).HasColumnName("card_number").HasMaxLength(50);
         builder.Property(c => c.ServiceId).HasColumnName("service_id");
         builder.Property(c => c.PrintCount).HasColumnName("print_count");
         builder.Property(c => c.Status).HasColumnName("status").HasMaxLength(50);
