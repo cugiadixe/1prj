@@ -3,6 +3,7 @@ import { Button, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typo
 import { PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../auth/AuthProvider';
 import {
   listUsers, createUser, updateUser,
   listCompanies, listDepartments,
@@ -34,6 +35,8 @@ const UserManagementPage: React.FC = () => {
   const [employmentFilter, setEmploymentFilter] = useState<string | undefined>(undefined);
   const [accountFilter, setAccountFilter] = useState<string | undefined>(undefined);
   const [form] = Form.useForm();
+  const { user: currentUser } = useAuth();
+  const editingSelf = !!editing && editing.id === currentUser?.userId;
 
   const { data: users, isLoading } = useQuery({ queryKey: ['org-users'], queryFn: listUsers });
 
@@ -203,12 +206,17 @@ const UserManagementPage: React.FC = () => {
           </Form.Item>
           <Space style={{ width: '100%' }} size="middle">
             <Form.Item name="employmentStatus" label="Trạng thái việc làm" rules={[{ required: true }]} style={{ flex: 1, minWidth: 200 }}>
-              <Select options={EMPLOYMENT_OPTIONS} />
+              <Select options={EMPLOYMENT_OPTIONS} disabled={editingSelf} />
             </Form.Item>
             <Form.Item name="accountStatus" label="Trạng thái tài khoản" rules={[{ required: true }]} style={{ flex: 1, minWidth: 200 }}>
-              <Select options={ACCOUNT_OPTIONS} />
+              <Select options={ACCOUNT_OPTIONS} disabled={editingSelf} />
             </Form.Item>
           </Space>
+          {editingSelf && (
+            <Typography.Text type="secondary" style={{ display: 'block', marginTop: -8, marginBottom: 8 }}>
+              Không thể tự đổi trạng thái tài khoản/việc làm của chính mình (tránh tự khoá quyền truy cập).
+            </Typography.Text>
+          )}
 
           {!editing && (
             <>

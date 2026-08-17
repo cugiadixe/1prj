@@ -267,6 +267,12 @@ public sealed class AccountsController : ControllerBase
             "AUTH_ACCOUNT_STATE_CONFLICT" =>
                 ConflictProblem("AUTH_ACCOUNT_STATE_CONFLICT", "The account state transition is not allowed."),
 
+            "AUTH_CANNOT_MODIFY_SELF" =>
+                ConflictProblem("AUTH_CANNOT_MODIFY_SELF", "Không thể tự vô hiệu/khoá tài khoản của chính mình."),
+
+            "AUTH_LAST_SECURITY_ADMIN" =>
+                ConflictProblem("AUTH_LAST_SECURITY_ADMIN", "Không thể vô hiệu/khoá quản trị viên bảo mật cuối cùng — hệ phải luôn còn ít nhất một người quản trị hoạt động."),
+
             "AUTH_EXTERNAL_PASSWORD_MANAGED" =>
                 ConflictProblem("AUTH_EXTERNAL_PASSWORD_MANAGED", "Password for this account is managed by an external provider."),
 

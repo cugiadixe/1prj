@@ -13,7 +13,7 @@ import {
 } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { usePermissions } from '../auth/AuthProvider';
+import { usePermissions, useAuth } from '../auth/AuthProvider';
 import {
   getAccountDetail,
   activateAccount,
@@ -246,6 +246,7 @@ const AccountDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
+  const { user: currentUser } = useAuth();
 
   const [activeAction, setActiveAction] = useState<ActionType>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -367,9 +368,13 @@ const AccountDetailPage: React.FC = () => {
 
   const status: AccountStatus = account.status;
 
+  // Chốt tự khoá (rõ ràng trên giao diện): không cho tự vô hiệu/khoá tài khoản của chính mình.
+  // Backend cũng chặn (AUTH_CANNOT_MODIFY_SELF) — đây là lớp cho gọn UX, không phải lớp bảo vệ chính.
+  const isSelf = currentUser?.userId === account.userId;
+
   const canActivate = status === 'DISABLED';
-  const canDisable = status === 'ACTIVE' || status === 'LOCKED';
-  const canLock = status === 'ACTIVE';
+  const canDisable = (status === 'ACTIVE' || status === 'LOCKED') && !isSelf;
+  const canLock = status === 'ACTIVE' && !isSelf;
   const canUnlock = status === 'LOCKED';
   const canResetPassword = status !== 'DISABLED';
   const canRevokeSessions = true;

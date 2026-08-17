@@ -14,10 +14,14 @@ namespace PTKD.Application.Organizations.Users.Services;
 public class UserService : IUserService
 {
     private readonly IOrganizationDbContextFactory _dbContextFactory;
+    private readonly PTKD.Application.Security.Authorization.IAdminSafetyService _adminSafety;
 
-    public UserService(IOrganizationDbContextFactory dbContextFactory)
+    public UserService(
+        IOrganizationDbContextFactory dbContextFactory,
+        PTKD.Application.Security.Authorization.IAdminSafetyService adminSafety)
     {
         _dbContextFactory = dbContextFactory;
+        _adminSafety = adminSafety;
     }
 
     public async Task<UserDto> CreateUserAsync(CreateUserRequest request)
@@ -78,10 +82,28 @@ public class UserService : IUserService
         });
     }
 
-    public async Task<UserDto> UpdateUserAsync(long id, UpdateUserRequest request)
+    public async Task<UserDto> UpdateUserAsync(long id, UpdateUserRequest request, long actingUserId)
     {
         var rowVersion = RowVersion.FromBase64(request.TargetVersion).Value;
-        
+
+        // Vô hiệu hoá = đặt việc làm HOẶC tài khoản về khác ACTIVE (cả hai đều chặn đăng nhập).
+        var deactivating =
+            !string.Equals(request.EmploymentStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(request.AccountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+
+        if (deactivating)
+        {
+            // Chốt tự khoá: không tự đặt mình về trạng thái không đăng nhập được.
+            if (id == actingUserId)
+                throw new BusinessRuleValidationException("ORG_CANNOT_DEACTIVATE_SELF",
+                    "Không thể tự vô hiệu tài khoản/việc làm của chính mình.");
+
+            // Chốt admin cuối: không vô hiệu người duy nhất còn giữ quyền quản trị bảo mật.
+            if (await _adminSafety.IsLastActiveHolderAsync(id, "SECURITY_ADMIN_MANAGE"))
+                throw new BusinessRuleValidationException("ORG_LAST_SECURITY_ADMIN",
+                    "Không thể vô hiệu quản trị viên bảo mật cuối cùng — hệ phải luôn còn ít nhất một người quản trị hoạt động.");
+        }
+
         await using var tempContext = _dbContextFactory.CreateDbContext();
         var strategy = tempContext.CreateExecutionStrategy();
 

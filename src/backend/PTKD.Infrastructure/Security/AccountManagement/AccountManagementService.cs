@@ -21,6 +21,8 @@ public sealed class AccountManagementService : IAccountManagementService
     private const string OutcomeSuccess = "SUCCESS";
     private const string OutcomeFailure = "FAILURE";
 
+    private const string SecurityAdminManage = "SECURITY_ADMIN_MANAGE";
+
     private readonly IAuthenticationDbContextFactory _dbContextFactory;
     private readonly IOrganizationDbContextFactory _orgContextFactory;
     private readonly IPasswordHashService _passwordHashService;
@@ -28,6 +30,7 @@ public sealed class AccountManagementService : IAccountManagementService
     private readonly ITransactionalAuditWriter _transactionalAuditWriter;
     private readonly IUtcClock _clock;
     private readonly AuthenticationAccountPolicy _policy;
+    private readonly PTKD.Application.Security.Authorization.IAdminSafetyService _adminSafety;
 
     public AccountManagementService(
         IAuthenticationDbContextFactory dbContextFactory,
@@ -36,7 +39,8 @@ public sealed class AccountManagementService : IAccountManagementService
         ISessionInvalidationService sessionInvalidationService,
         ITransactionalAuditWriter transactionalAuditWriter,
         IUtcClock clock,
-        AuthenticationAccountPolicy policy)
+        AuthenticationAccountPolicy policy,
+        PTKD.Application.Security.Authorization.IAdminSafetyService adminSafety)
     {
         _dbContextFactory = dbContextFactory ?? throw new ArgumentNullException(nameof(dbContextFactory));
         _orgContextFactory = orgContextFactory ?? throw new ArgumentNullException(nameof(orgContextFactory));
@@ -45,6 +49,7 @@ public sealed class AccountManagementService : IAccountManagementService
         _transactionalAuditWriter = transactionalAuditWriter ?? throw new ArgumentNullException(nameof(transactionalAuditWriter));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
+        _adminSafety = adminSafety ?? throw new ArgumentNullException(nameof(adminSafety));
     }
 
     public async Task<PagedResult<AccountSummaryDto>> SearchAccountsAsync(
@@ -259,6 +264,14 @@ public sealed class AccountManagementService : IAccountManagementService
             if (account is null)
                 return (AccountManagementResult.Failure("AUTH_ACCOUNT_NOT_FOUND"), null);
 
+            // Chốt tự khoá: không được tự vô hiệu tài khoản của chính mình.
+            if (account.UserId == actingUserId)
+                return (AccountManagementResult.Failure("AUTH_CANNOT_MODIFY_SELF"), null);
+
+            // Chốt admin cuối: không vô hiệu người duy nhất còn giữ quyền quản trị bảo mật.
+            if (await _adminSafety.IsLastActiveHolderAsync(account.UserId, SecurityAdminManage, token))
+                return (AccountManagementResult.Failure("AUTH_LAST_SECURITY_ADMIN"), null);
+
             if (!account.Disable(utcNow, actingUserId))
                 return (AccountManagementResult.Failure("AUTH_ACCOUNT_STATE_CONFLICT"), null);
 
@@ -281,6 +294,12 @@ public sealed class AccountManagementService : IAccountManagementService
             var account = await context.FindAccountByIdForUpdateAsync(accountId, token);
             if (account is null)
                 return (AccountManagementResult.Failure("AUTH_ACCOUNT_NOT_FOUND"), null);
+
+            // Chốt tự khoá + admin cuối (giống Disable): khoá tài khoản cũng chặn đăng nhập.
+            if (account.UserId == actingUserId)
+                return (AccountManagementResult.Failure("AUTH_CANNOT_MODIFY_SELF"), null);
+            if (await _adminSafety.IsLastActiveHolderAsync(account.UserId, SecurityAdminManage, token))
+                return (AccountManagementResult.Failure("AUTH_LAST_SECURITY_ADMIN"), null);
 
             try
             {

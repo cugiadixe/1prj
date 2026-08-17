@@ -98,8 +98,9 @@ public sealed class AccountManagementIntegrationTests : IClassFixture<TestDataba
     public async Task Disable_PersistsStatusChange()
     {
         var seed = await _harness.CreateInternalAccountAsync("DISABLE-05", "Disable@Pass123!");
+        var actor = await _harness.CreateInternalAccountAsync("DISABLE-05-ACTOR", "Actor@Pass123!");
 
-        var result = await _harness.Service.DisableAccountAsync(seed.AccountId, "Test disable", actingUserId: seed.UserId);
+        var result = await _harness.Service.DisableAccountAsync(seed.AccountId, "Test disable", actingUserId: actor.UserId);
 
         Assert.True(result.Succeeded);
         var loaded = await _harness.LoadAccountAsync(seed.AccountId);
@@ -111,9 +112,10 @@ public sealed class AccountManagementIntegrationTests : IClassFixture<TestDataba
     public async Task Disable_InvalidatesSessions()
     {
         var seed = await _harness.CreateInternalAccountAsync("DISABLE-SESSIONS-06", "Disable@Pass123!");
+        var actor = await _harness.CreateInternalAccountAsync("DISABLE-SESSIONS-06-ACTOR", "Actor@Pass123!");
         var before = await _harness.LoadAccountAsync(seed.AccountId);
 
-        await _harness.Service.DisableAccountAsync(seed.AccountId, "Invalidate", actingUserId: seed.UserId);
+        await _harness.Service.DisableAccountAsync(seed.AccountId, "Invalidate", actingUserId: actor.UserId);
 
         var after = await _harness.LoadAccountAsync(seed.AccountId);
         Assert.NotEqual(before.SecurityStamp, after.SecurityStamp);
@@ -124,8 +126,9 @@ public sealed class AccountManagementIntegrationTests : IClassFixture<TestDataba
     public async Task Disable_WritesAuditWithReason()
     {
         var seed = await _harness.CreateInternalAccountAsync("DISABLE-AUDIT-07", "Disable@Pass123!");
+        var actor = await _harness.CreateInternalAccountAsync("DISABLE-AUDIT-07-ACTOR", "Actor@Pass123!");
 
-        await _harness.Service.DisableAccountAsync(seed.AccountId, "Policy violation UAM-I-07", actingUserId: seed.UserId);
+        await _harness.Service.DisableAccountAsync(seed.AccountId, "Policy violation UAM-I-07", actingUserId: actor.UserId);
 
         var auditRow = _harness.FindAuditEvent("ACCOUNT_DISABLED", seed.AccountId);
         Assert.NotNull(auditRow);
@@ -138,8 +141,9 @@ public sealed class AccountManagementIntegrationTests : IClassFixture<TestDataba
     public async Task Lock_PersistsStatusChange()
     {
         var seed = await _harness.CreateInternalAccountAsync("LOCK-08", "Lock@Pass123!");
+        var actor = await _harness.CreateInternalAccountAsync("LOCK-08-ACTOR", "Actor@Pass123!");
 
-        var result = await _harness.Service.LockAccountAsync(seed.AccountId, "Suspicious activity", actingUserId: seed.UserId);
+        var result = await _harness.Service.LockAccountAsync(seed.AccountId, "Suspicious activity", actingUserId: actor.UserId);
 
         Assert.True(result.Succeeded);
         var loaded = await _harness.LoadAccountAsync(seed.AccountId);
@@ -151,8 +155,9 @@ public sealed class AccountManagementIntegrationTests : IClassFixture<TestDataba
     public async Task Lock_SetsManualLockWithNoExpiry()
     {
         var seed = await _harness.CreateInternalAccountAsync("LOCK-MANUAL-09", "Lock@Pass123!");
+        var actor = await _harness.CreateInternalAccountAsync("LOCK-MANUAL-09-ACTOR", "Actor@Pass123!");
 
-        await _harness.Service.LockAccountAsync(seed.AccountId, "Manual lock", actingUserId: seed.UserId);
+        await _harness.Service.LockAccountAsync(seed.AccountId, "Manual lock", actingUserId: actor.UserId);
 
         var loaded = await _harness.LoadAccountAsync(seed.AccountId);
         Assert.True(loaded.IsManualLock);
@@ -164,8 +169,9 @@ public sealed class AccountManagementIntegrationTests : IClassFixture<TestDataba
     public async Task Lock_DisabledAccount_ReturnsConflict()
     {
         var seed = await _harness.CreateDisabledAccountAsync("LOCK-DISABLED-10");
+        var actor = await _harness.CreateInternalAccountAsync("LOCK-DISABLED-10-ACTOR", "Actor@Pass123!");
 
-        var result = await _harness.Service.LockAccountAsync(seed.AccountId, "Lock disabled", actingUserId: seed.UserId);
+        var result = await _harness.Service.LockAccountAsync(seed.AccountId, "Lock disabled", actingUserId: actor.UserId);
 
         Assert.False(result.Succeeded);
         Assert.Equal("AUTH_ACCOUNT_STATE_CONFLICT", result.ErrorCode);
@@ -376,7 +382,8 @@ internal sealed class AccountManagementTestHarness
             new SecurityStampSessionInvalidationService(),
             new SqlTransactionalAuditWriter(),
             Clock,
-            new AuthenticationAccountPolicy());
+            new AuthenticationAccountPolicy(),
+            new PTKD.Application.Security.Authorization.Services.AdminSafetyService(new AppDbContext(_options)));
     }
 
     public MutableUtcClock Clock { get; }

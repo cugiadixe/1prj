@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +33,7 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateUserRequest request)
     {
-        var user = await _userService.UpdateUserAsync(id, request);
+        var user = await _userService.UpdateUserAsync(id, request, GetActorUserId());
         return Ok(user);
     }
 
@@ -42,6 +43,12 @@ public class UsersController : ControllerBase
         var user = await _userService.GetUserByIdAsync(id);
         if (user == null) return NotFound();
         return Ok(user);
+    }
+
+    private long GetActorUserId()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        return long.Parse(claim!);
     }
 
     [HttpGet]

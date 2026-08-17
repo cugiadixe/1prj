@@ -102,6 +102,7 @@ builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IC
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.IPermissionEvaluator, PTKD.Application.Security.Authorization.Services.PermissionEvaluator>();
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.ICompanyContextService, PTKD.Application.Security.Authorization.Services.CompanyContextService>();
 builder.Services.AddScoped<PTKD.Application.Security.Authorization.Interfaces.ISecurityAdminService, PTKD.Application.Security.Authorization.Services.SecurityAdminService>();
+builder.Services.AddScoped<PTKD.Application.Security.Authorization.IAdminSafetyService, PTKD.Application.Security.Authorization.Services.AdminSafetyService>();
 
 // Application Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();
