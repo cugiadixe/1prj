@@ -20,6 +20,9 @@ import AdminGroupManagementPage from './adminGroupManagement/AdminGroupManagemen
 import UserAdminGroupAssignmentsPage from './userAdminGroupAssignments/UserAdminGroupAssignmentsPage';
 import DepartmentPermissionsPage from './departmentPermissions/DepartmentPermissionsPage';
 import EffectivePermissionDiagnosticsPage from './effectivePermissionDiagnostics/EffectivePermissionDiagnosticsPage';
+import CompanyManagementPage from './organizations/CompanyManagementPage';
+import DepartmentManagementPage from './organizations/DepartmentManagementPage';
+import UserManagementPage from './organizations/UserManagementPage';
 import CustomersPage from './customers/CustomersPage';
 import CustomerDetailPage from './customers/CustomerDetailPage';
 import CustomerCreatePage from './customers/CustomerCreatePage';
@@ -126,6 +129,10 @@ const App: React.FC = () => {
               <Route path="security/departments/permissions" element={<DepartmentPermissionsPage />} />
               {/* Phase 1B.1-S — Effective Permission Diagnostics UI */}
               <Route path="security/effective-permissions" element={<EffectivePermissionDiagnosticsPage />} />
+
+              <Route path="organizations/companies" element={<CompanyManagementPage />} />
+              <Route path="organizations/departments" element={<DepartmentManagementPage />} />
+              <Route path="organizations/users" element={<UserManagementPage />} />
               {/* Phase 1B.2-B2 — Customer Frontend UI */}
               <Route path="customers" element={<CustomersPage />} />
               <Route path="customers/new" element={<CustomerCreatePage />} />

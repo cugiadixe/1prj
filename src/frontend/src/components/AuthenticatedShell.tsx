@@ -59,6 +59,7 @@ const MENU_GROUPS: ReadonlyArray<{ key: string; prefixes: string[] }> = [
   { key: 'services-group', prefixes: ['/services', '/care-packages'] },
   { key: 'workflow-group', prefixes: ['/workflow'] },
   { key: 'security-group', prefixes: ['/security'] },
+  { key: 'org-group', prefixes: ['/organizations'] },
 ];
 
 const ROOT_GROUP_KEYS = MENU_GROUPS.map(g => g.key);
@@ -326,6 +327,31 @@ const AuthenticatedShell: React.FC = () => {
           label: navLabel('nav-security-audit', 'Nhật ký kiểm toán'),
           icon: <AuditOutlined />,
           onClick: () => navigate('/security/audit'),
+        } : null,
+      ].filter(Boolean),
+    } : null,
+    hasPermission('ORGANIZATION_COMPANY_MANAGE') || hasPermission('ORGANIZATION_DEPARTMENT_MANAGE') || hasPermission('ORGANIZATION_USER_MANAGE') ? {
+      key: 'org-group',
+      icon: <BankOutlined />,
+      label: navLabel('nav-org-group', 'Tổ chức'),
+      children: [
+        hasPermission('ORGANIZATION_COMPANY_MANAGE') ? {
+          key: '/organizations/companies',
+          label: navLabel('nav-org-companies', 'Công ty'),
+          icon: <ApartmentOutlined />,
+          onClick: () => navigate('/organizations/companies'),
+        } : null,
+        hasPermission('ORGANIZATION_DEPARTMENT_MANAGE') ? {
+          key: '/organizations/departments',
+          label: navLabel('nav-org-departments', 'Phòng ban'),
+          icon: <BankOutlined />,
+          onClick: () => navigate('/organizations/departments'),
+        } : null,
+        hasPermission('ORGANIZATION_USER_MANAGE') ? {
+          key: '/organizations/users',
+          label: navLabel('nav-org-users', 'Người dùng'),
+          icon: <UserOutlined />,
+          onClick: () => navigate('/organizations/users'),
         } : null,
       ].filter(Boolean),
     } : null,
