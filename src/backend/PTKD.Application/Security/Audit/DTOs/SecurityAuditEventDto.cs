@@ -6,8 +6,10 @@ public class SecurityAuditEventDto
 {
     public long Id { get; set; }
     public long? ActorUserId { get; set; }
+    public string? ActorName { get; set; }
     public long? ActingAsUserId { get; set; }
     public long? TargetUserId { get; set; }
+    public string? TargetName { get; set; }
     public long? CompanyId { get; set; }
     public string EventCode { get; set; } = string.Empty;
     public string EntityType { get; set; } = string.Empty;

@@ -34,7 +34,7 @@ public sealed class SqlSecurityAuditQueryService : ISecurityAuditQueryService
         await connection.OpenAsync(cancellationToken);
 
         // 1. Count query
-        var countSql = new StringBuilder("SELECT COUNT_BIG(1) FROM dbo.Security_Audit_Events WHERE 1=1");
+        var countSql = new StringBuilder("SELECT COUNT_BIG(1) FROM dbo.Security_Audit_Events e WHERE 1=1");
         
         await using var countCommand = new SqlCommand();
         countCommand.Connection = connection;
@@ -45,10 +45,13 @@ public sealed class SqlSecurityAuditQueryService : ISecurityAuditQueryService
 
         // 2. Data query
         var dataSql = new StringBuilder("""
-            SELECT id, actor_user_id, acting_as_user_id, target_user_id, company_id,
-                   event_code, entity_type, entity_id, reason, correlation_id,
-                   outcome, policy_version, created_at
-            FROM dbo.Security_Audit_Events
+            SELECT e.id, e.actor_user_id, e.acting_as_user_id, e.target_user_id, e.company_id,
+                   e.event_code, e.entity_type, e.entity_id, e.reason, e.correlation_id,
+                   e.outcome, e.policy_version, e.created_at,
+                   actor.full_name AS actor_full_name, target.full_name AS target_full_name
+            FROM dbo.Security_Audit_Events e
+            LEFT JOIN dbo.Users actor ON actor.id = e.actor_user_id
+            LEFT JOIN dbo.Users target ON target.id = e.target_user_id
             WHERE 1=1
             """);
 
@@ -57,7 +60,7 @@ public sealed class SqlSecurityAuditQueryService : ISecurityAuditQueryService
         AppendFilters(dataCommand, dataSql, parameters);
         
         // Pagination logic (Deterministic sort: created_at DESC, id DESC)
-        dataSql.AppendLine(" ORDER BY created_at DESC, id DESC");
+        dataSql.AppendLine(" ORDER BY e.created_at DESC, e.id DESC");
         dataSql.AppendLine(" OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
         
         dataCommand.Parameters.AddWithValue("@Offset", (parameters.Page - 1) * parameters.PageSize);
@@ -81,7 +84,9 @@ public sealed class SqlSecurityAuditQueryService : ISecurityAuditQueryService
                 CorrelationId = reader.GetGuid(9),
                 Outcome = reader.GetString(10),
                 PolicyVersion = reader.IsDBNull(11) ? null : reader.GetInt64(11),
-                CreatedAt = reader.GetDateTime(12)
+                CreatedAt = reader.GetDateTime(12),
+                ActorName = reader.IsDBNull(13) ? null : reader.GetString(13),
+                TargetName = reader.IsDBNull(14) ? null : reader.GetString(14)
             });
         }
 
@@ -98,42 +103,42 @@ public sealed class SqlSecurityAuditQueryService : ISecurityAuditQueryService
     {
         if (parameters.FromUtc.HasValue)
         {
-            sql.Append(" AND created_at >= @FromUtc");
+            sql.Append(" AND e.created_at >= @FromUtc");
             command.Parameters.AddWithValue("@FromUtc", parameters.FromUtc.Value);
         }
         if (parameters.ToUtc.HasValue)
         {
-            sql.Append(" AND created_at <= @ToUtc");
+            sql.Append(" AND e.created_at <= @ToUtc");
             command.Parameters.AddWithValue("@ToUtc", parameters.ToUtc.Value);
         }
         if (!string.IsNullOrWhiteSpace(parameters.EventType))
         {
-            sql.Append(" AND event_code = @EventType");
+            sql.Append(" AND e.event_code = @EventType");
             command.Parameters.AddWithValue("@EventType", parameters.EventType);
         }
         if (parameters.ActorUserId.HasValue)
         {
-            sql.Append(" AND actor_user_id = @ActorUserId");
+            sql.Append(" AND e.actor_user_id = @ActorUserId");
             command.Parameters.AddWithValue("@ActorUserId", parameters.ActorUserId.Value);
         }
         if (parameters.TargetUserId.HasValue)
         {
-            sql.Append(" AND target_user_id = @TargetUserId");
+            sql.Append(" AND e.target_user_id = @TargetUserId");
             command.Parameters.AddWithValue("@TargetUserId", parameters.TargetUserId.Value);
         }
         if (!string.IsNullOrWhiteSpace(parameters.EntityType))
         {
-            sql.Append(" AND entity_type = @EntityType");
+            sql.Append(" AND e.entity_type = @EntityType");
             command.Parameters.AddWithValue("@EntityType", parameters.EntityType);
         }
         if (!string.IsNullOrWhiteSpace(parameters.EntityId))
         {
-            sql.Append(" AND entity_id = @EntityId");
+            sql.Append(" AND e.entity_id = @EntityId");
             command.Parameters.AddWithValue("@EntityId", parameters.EntityId);
         }
         if (parameters.CorrelationId.HasValue)
         {
-            sql.Append(" AND correlation_id = @CorrelationId");
+            sql.Append(" AND e.correlation_id = @CorrelationId");
             command.Parameters.AddWithValue("@CorrelationId", parameters.CorrelationId.Value);
         }
     }

@@ -3,8 +3,10 @@ import axiosClient from '../api/axiosClient';
 export interface SecurityAuditEventDto {
   id: number;
   actorUserId: number | null;
+  actorName: string | null;
   actingAsUserId: number | null;
   targetUserId: number | null;
+  targetName: string | null;
   companyId: number | null;
   eventCode: string;
   entityType: string;

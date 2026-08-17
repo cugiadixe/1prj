@@ -14,8 +14,10 @@ vi.mock('./auditViewerApi', () => ({
 const MOCK_EVENT: api.SecurityAuditEventDto = {
   id: 1,
   actorUserId: 100,
+  actorName: 'Nguyễn Văn A',
   actingAsUserId: null,
   targetUserId: 200,
+  targetName: 'Trần Thị B',
   companyId: null,
   eventCode: 'ACCOUNT_LOCKED',
   entityType: 'UserAuthAccount',
@@ -86,8 +88,8 @@ describe('AuditViewerPage', () => {
     render(<AuditViewerPage />, { wrapper: makeWrapper() });
 
     await waitFor(() => expect(screen.getByText('ACCOUNT_LOCKED')).toBeInTheDocument());
-    expect(screen.getByText('100')).toBeInTheDocument();
-    expect(screen.getByText('200')).toBeInTheDocument();
+    expect(screen.getByText('Nguyễn Văn A (#100)')).toBeInTheDocument();
+    expect(screen.getByText('Trần Thị B (#200)')).toBeInTheDocument();
     expect(screen.getByText('Success')).toBeInTheDocument();
     expect(screen.getByText('UserAuthAccount (200)')).toBeInTheDocument();
   });

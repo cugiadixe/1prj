@@ -22,6 +22,12 @@ const { RangePicker } = DatePicker;
 
 const PAGE_SIZE = 50;
 
+// Hiển thị tên người dùng; nếu thiếu tên thì lùi về mã (#id), không có gì thì '—'.
+const formatUser = (name: string | null | undefined, id: number | null | undefined): string => {
+  if (name && name.trim()) return id != null ? `${name} (#${id})` : name;
+  return id != null ? `#${id}` : '—';
+};
+
 const AuditViewerPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [dates, setDates] = useState<[Dayjs | null, Dayjs | null] | null>(null);
@@ -77,13 +83,13 @@ const AuditViewerPage: React.FC = () => {
     },
     {
       title: 'Người thực hiện',
-      dataIndex: 'actorUserId',
-      key: 'actorUserId',
+      key: 'actor',
+      render: (_: unknown, record: SecurityAuditEventDto) => formatUser(record.actorName, record.actorUserId),
     },
     {
       title: 'Đối tượng',
-      dataIndex: 'targetUserId',
-      key: 'targetUserId',
+      key: 'target',
+      render: (_: unknown, record: SecurityAuditEventDto) => formatUser(record.targetName, record.targetUserId),
     },
     {
       title: 'Thực thể',
@@ -230,9 +236,9 @@ const AuditViewerPage: React.FC = () => {
             <Descriptions.Item label="ID">{selectedEvent.id}</Descriptions.Item>
             <Descriptions.Item label="Thời gian">{dayjs(selectedEvent.createdAt).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
             <Descriptions.Item label="Mã sự kiện">{selectedEvent.eventCode}</Descriptions.Item>
-            <Descriptions.Item label="Người thực hiện">{selectedEvent.actorUserId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Người thực hiện">{formatUser(selectedEvent.actorName, selectedEvent.actorUserId)}</Descriptions.Item>
             <Descriptions.Item label="Thay mặt">{selectedEvent.actingAsUserId ?? 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Đối tượng">{selectedEvent.targetUserId ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Đối tượng">{formatUser(selectedEvent.targetName, selectedEvent.targetUserId)}</Descriptions.Item>
             <Descriptions.Item label="Công ty">{selectedEvent.companyId ?? 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Loại thực thể">{selectedEvent.entityType}</Descriptions.Item>
             <Descriptions.Item label="Mã thực thể">{selectedEvent.entityId ?? 'N/A'}</Descriptions.Item>
