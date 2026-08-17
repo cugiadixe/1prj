@@ -30,15 +30,29 @@ const UserManagementPage: React.FC = () => {
   const [formCompanyId, setFormCompanyId] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
+  const [departmentFilter, setDepartmentFilter] = useState<number | undefined>(undefined);
   const [employmentFilter, setEmploymentFilter] = useState<string | undefined>(undefined);
   const [accountFilter, setAccountFilter] = useState<string | undefined>(undefined);
   const [form] = Form.useForm();
 
   const { data: users, isLoading } = useQuery({ queryKey: ['org-users'], queryFn: listUsers });
 
+  // Phòng ban để lọc — phụ thuộc công ty đang chọn (chỉ phòng của công ty đó); chưa chọn công ty
+  // thì gộp phòng của mọi người.
+  const departmentOptions = useMemo(() => {
+    const pool = companyFilter
+      ? (users ?? []).filter((u) => u.companies?.some((c) => c.id === companyFilter))
+      : (users ?? []);
+    const map = new Map<number, string>();
+    pool.forEach((u) => u.departments?.forEach((d) => map.set(d.id, d.name)));
+    return Array.from(map, ([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+  }, [users, companyFilter]);
+
   const filteredUsers = useMemo(() => {
     let rows = users ?? [];
     if (companyFilter) rows = rows.filter((u) => u.companies?.some((c) => c.id === companyFilter));
+    if (departmentFilter) rows = rows.filter((u) => u.departments?.some((d) => d.id === departmentFilter));
     if (employmentFilter) rows = rows.filter((u) => u.employmentStatus === employmentFilter);
     if (accountFilter) rows = rows.filter((u) => u.accountStatus === accountFilter);
     const q = search.trim().toLowerCase();
@@ -47,7 +61,7 @@ const UserManagementPage: React.FC = () => {
       u.employeeCode.toLowerCase().includes(q) ||
       (u.email?.toLowerCase().includes(q) ?? false));
     return rows;
-  }, [users, companyFilter, employmentFilter, accountFilter, search]);
+  }, [users, companyFilter, departmentFilter, employmentFilter, accountFilter, search]);
   const { data: companies } = useQuery({ queryKey: ['org-companies'], queryFn: listCompanies });
   const { data: departments } = useQuery({
     queryKey: ['org-departments', formCompanyId],
@@ -141,9 +155,16 @@ const UserManagementPage: React.FC = () => {
         />
         <Select
           allowClear style={{ width: 220 }} showSearch optionFilterProp="label"
-          placeholder="Lọc theo công ty" value={companyFilter} onChange={(v) => setCompanyFilter(v)}
+          placeholder="Lọc theo công ty" value={companyFilter}
+          onChange={(v) => { setCompanyFilter(v); setDepartmentFilter(undefined); }}
           options={companies?.map((c) => ({ value: c.id, label: c.name }))}
           data-testid="user-company-filter"
+        />
+        <Select
+          allowClear style={{ width: 260 }} showSearch optionFilterProp="label"
+          placeholder="Lọc theo phòng ban" value={departmentFilter} onChange={(v) => setDepartmentFilter(v)}
+          options={departmentOptions}
+          data-testid="user-department-filter"
         />
         <Select
           allowClear style={{ width: 180 }} placeholder="Trạng thái việc làm" value={employmentFilter}
