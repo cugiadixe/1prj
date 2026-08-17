@@ -29,6 +29,7 @@ const UserManagementPage: React.FC = () => {
   const [editing, setEditing] = useState<UserDto | null>(null);
   const [formCompanyId, setFormCompanyId] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
   const [employmentFilter, setEmploymentFilter] = useState<string | undefined>(undefined);
   const [accountFilter, setAccountFilter] = useState<string | undefined>(undefined);
   const [form] = Form.useForm();
@@ -37,6 +38,7 @@ const UserManagementPage: React.FC = () => {
 
   const filteredUsers = useMemo(() => {
     let rows = users ?? [];
+    if (companyFilter) rows = rows.filter((u) => u.companies?.some((c) => c.id === companyFilter));
     if (employmentFilter) rows = rows.filter((u) => u.employmentStatus === employmentFilter);
     if (accountFilter) rows = rows.filter((u) => u.accountStatus === accountFilter);
     const q = search.trim().toLowerCase();
@@ -45,7 +47,7 @@ const UserManagementPage: React.FC = () => {
       u.employeeCode.toLowerCase().includes(q) ||
       (u.email?.toLowerCase().includes(q) ?? false));
     return rows;
-  }, [users, employmentFilter, accountFilter, search]);
+  }, [users, companyFilter, employmentFilter, accountFilter, search]);
   const { data: companies } = useQuery({ queryKey: ['org-companies'], queryFn: listCompanies });
   const { data: departments } = useQuery({
     queryKey: ['org-departments', formCompanyId],
@@ -104,6 +106,14 @@ const UserManagementPage: React.FC = () => {
     { title: 'Họ tên', dataIndex: 'fullName', key: 'fullName' },
     { title: 'Email', dataIndex: 'email', key: 'email', render: (v: string | null) => v || '—' },
     {
+      title: 'Công ty', key: 'companies',
+      render: (_: unknown, u: UserDto) => u.companies?.map((c) => c.name).join(', ') || '—',
+    },
+    {
+      title: 'Phòng ban', key: 'departments',
+      render: (_: unknown, u: UserDto) => u.departments?.map((d) => d.name).join(', ') || '—',
+    },
+    {
       title: 'Việc làm', dataIndex: 'employmentStatus', key: 'employmentStatus',
       render: (s: string) => <Tag color={STATUS_COLORS[s] ?? 'default'}>{s}</Tag>,
     },
@@ -128,6 +138,12 @@ const UserManagementPage: React.FC = () => {
         <Input.Search
           allowClear style={{ width: 300 }} placeholder="Tìm theo mã NV / họ tên / email"
           onChange={(e) => setSearch(e.target.value)} data-testid="user-search"
+        />
+        <Select
+          allowClear style={{ width: 220 }} showSearch optionFilterProp="label"
+          placeholder="Lọc theo công ty" value={companyFilter} onChange={(v) => setCompanyFilter(v)}
+          options={companies?.map((c) => ({ value: c.id, label: c.name }))}
+          data-testid="user-company-filter"
         />
         <Select
           allowClear style={{ width: 180 }} placeholder="Trạng thái việc làm" value={employmentFilter}

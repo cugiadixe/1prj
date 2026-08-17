@@ -50,6 +50,10 @@ export interface UpdateDepartmentRequest {
   targetVersion: string;
 }
 
+export interface OrgBriefDto {
+  id: number;
+  name: string;
+}
 export interface UserDto {
   id: number;
   employeeCode: string;
@@ -60,6 +64,8 @@ export interface UserDto {
   rowVersion: string;
   createdAt: string;
   updatedAt: string | null;
+  companies: OrgBriefDto[];
+  departments: OrgBriefDto[];
 }
 export interface CreateUserRequest {
   employeeCode: string;

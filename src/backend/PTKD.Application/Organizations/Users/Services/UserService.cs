@@ -136,7 +136,36 @@ public class UserService : IUserService
     {
         await using var context = _dbContextFactory.CreateDbContext();
         var users = await context.Users.AsNoTracking().OrderBy(u => u.FullName).ToListAsync();
-        return users.Select(MapToDto);
+        var dtos = users.Select(MapToDto).ToList();
+        if (dtos.Count == 0) return dtos;
+
+        // Làm giàu công ty + phòng ban (phân công còn hiệu lực) để hiển thị/lọc trên danh sách.
+        var userIds = dtos.Select(d => d.Id).ToList();
+        var now = DateTime.UtcNow;
+
+        var companyRows = await context.UserCompanyAssignments.AsNoTracking()
+            .Where(a => userIds.Contains(a.UserId) && a.AssignmentStatus == "ACTIVE"
+                && a.EffectiveFrom <= now && (a.EffectiveTo == null || a.EffectiveTo > now))
+            .Join(context.Companies, a => a.CompanyId, c => c.Id, (a, c) => new { a.UserId, CompanyId = c.Id, c.Name })
+            .ToListAsync();
+
+        var deptRows = await context.UserDepartmentAssignments.AsNoTracking()
+            .Where(a => userIds.Contains(a.UserId) && a.AssignmentStatus == "ACTIVE"
+                && a.EffectiveFrom <= now && (a.EffectiveTo == null || a.EffectiveTo > now))
+            .Join(context.Departments, a => a.DepartmentId, d => d.Id, (a, d) => new { a.UserId, DepartmentId = d.Id, d.Name })
+            .ToListAsync();
+
+        var compByUser = companyRows.GroupBy(r => r.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => new OrgBriefDto(x.CompanyId, x.Name)).Distinct().ToList());
+        var deptByUser = deptRows.GroupBy(r => r.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => new OrgBriefDto(x.DepartmentId, x.Name)).Distinct().ToList());
+
+        foreach (var d in dtos)
+        {
+            if (compByUser.TryGetValue(d.Id, out var cs)) d.Companies = cs;
+            if (deptByUser.TryGetValue(d.Id, out var ds)) d.Departments = ds;
+        }
+        return dtos;
     }
 
     private static UserDto MapToDto(User user)
