@@ -14,17 +14,31 @@ namespace PTKD.Infrastructure.Files;
 public class GraveFileStorage : IGraveFileStorage
 {
     private const int ThumbMaxSize = 320;
-    private readonly string _basePath;
+    private readonly IConfiguration _configuration;
+    private readonly PTKD.Application.Common.Interfaces.IAppSettingsService _settings;
     private readonly ILogger<GraveFileStorage> _logger;
 
-    public GraveFileStorage(IConfiguration configuration, ILogger<GraveFileStorage> logger)
+    public GraveFileStorage(
+        IConfiguration configuration,
+        PTKD.Application.Common.Interfaces.IAppSettingsService settings,
+        ILogger<GraveFileStorage> logger)
     {
+        _configuration = configuration;
+        _settings = settings;
         _logger = logger;
-        _basePath = configuration["FileStorage:BasePath"]
+    }
+
+    // Đường dẫn gốc: ưu tiên cấu hình runtime (App_Settings), rồi appsettings, rồi mặc định.
+    private string ResolveBasePath()
+    {
+        var configured = _settings.GetValue(PTKD.Application.Common.Interfaces.IAppSettingsService.FileStorageBasePathKey);
+        if (!string.IsNullOrWhiteSpace(configured))
+            return configured;
+        return _configuration["FileStorage:BasePath"]
             ?? Path.Combine(Directory.GetCurrentDirectory(), "storage");
     }
 
-    private string GraveDir(string graveKey) => Path.Combine(_basePath, "graves", SafeKey(graveKey));
+    private string GraveDir(string graveKey) => Path.Combine(ResolveBasePath(), "graves", SafeKey(graveKey));
     private string ThumbDir(string graveKey) => Path.Combine(GraveDir(graveKey), "thumb");
     // Chỉ lấy tên file, chặn path traversal (storedName vốn là GUID do app sinh, đây là phòng thủ thêm)
     private static string Safe(string storedName) => Path.GetFileName(storedName);

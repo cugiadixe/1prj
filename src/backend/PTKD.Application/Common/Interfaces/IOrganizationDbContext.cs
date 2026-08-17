@@ -11,6 +11,7 @@ namespace PTKD.Application.Common.Interfaces;
 public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
 {
     DbSet<Company> Companies { get; }
+    DbSet<AppSetting> AppSettings { get; }
     DbSet<Department> Departments { get; }
     DbSet<User> Users { get; }
     DbSet<UserCompanyAssignment> UserCompanyAssignments { get; }

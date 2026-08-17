@@ -14,6 +14,7 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     {
     }
 
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<User> Users => Set<User>();

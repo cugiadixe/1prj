@@ -79,6 +79,9 @@ public static class PermissionCodes
 
     public const string CardIssue = "CARD_ISSUE"; // tạo/cấp thẻ mộ mới (sinh số thẻ) từ phần mộ
 
+    /// <summary>Xem/sửa cấu hình hệ thống runtime (vd đường dẫn lưu file đính kèm). Chỉ quản trị. Seed V0041.</summary>
+    public const string SystemSettingManage = "SYSTEM_SETTING_MANAGE";
+
     public const string CarePackageView = "CARE_PACKAGE_VIEW";
     public const string CarePackageCreate = "CARE_PACKAGE_CREATE";
 

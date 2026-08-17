@@ -361,6 +361,12 @@ const AuthenticatedShell: React.FC = () => {
       label: navLabel('nav-tags', 'Quản lý thẻ'),
       onClick: () => navigate('/tags'),
     } : null,
+    hasPermission('SYSTEM_SETTING_MANAGE') ? {
+      key: '/system/storage',
+      icon: <SettingOutlined />,
+      label: navLabel('nav-system-storage', 'Cấu hình lưu trữ'),
+      onClick: () => navigate('/system/storage'),
+    } : null,
     {
       key: '/system-health',
       icon: <SettingOutlined />,

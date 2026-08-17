@@ -23,6 +23,7 @@ import EffectivePermissionDiagnosticsPage from './effectivePermissionDiagnostics
 import CompanyManagementPage from './organizations/CompanyManagementPage';
 import DepartmentManagementPage from './organizations/DepartmentManagementPage';
 import UserManagementPage from './organizations/UserManagementPage';
+import SystemStoragePage from './system/SystemStoragePage';
 import CustomersPage from './customers/CustomersPage';
 import CustomerDetailPage from './customers/CustomerDetailPage';
 import CustomerCreatePage from './customers/CustomerCreatePage';
@@ -110,6 +111,7 @@ const App: React.FC = () => {
               <Route index element={<Home />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="system-health" element={<SystemHealth />} />
+              <Route path="system/storage" element={<SystemStoragePage />} />
               {/* Phase 1B.1-K — Account Management UI */}
               <Route path="security/accounts" element={<AccountManagementPage />} />
               <Route path="security/accounts/:accountId" element={<AccountDetailPage />} />

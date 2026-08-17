@@ -119,6 +119,7 @@ builder.Services.AddScoped<PTKD.Application.Graves.Services.IGraveService, PTKD.
 builder.Services.AddScoped<PTKD.Application.Relationships.Services.IRelationshipDerivationService, PTKD.Application.Relationships.Services.RelationshipDerivationService>();
 builder.Services.AddScoped<PTKD.Application.Graves.Services.IGraveAttachmentService, PTKD.Application.Graves.Services.GraveAttachmentService>();
 builder.Services.AddScoped<PTKD.Application.Common.Interfaces.IGraveFileStorage, PTKD.Infrastructure.Files.GraveFileStorage>();
+builder.Services.AddScoped<PTKD.Application.Common.Interfaces.IAppSettingsService, PTKD.Infrastructure.Persistence.AppSettingsService>();
 
 // Customer Care Package Assignment Services
 builder.Services.AddScoped<PTKD.Application.CustomerCarePackages.Services.ICustomerCarePackageService, PTKD.Application.CustomerCarePackages.Services.CustomerCarePackageService>();
