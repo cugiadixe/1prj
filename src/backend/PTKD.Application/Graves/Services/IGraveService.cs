@@ -9,6 +9,8 @@ public interface IGraveService
     Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, long actorUserId, CancellationToken ct = default);
     /// <summary>Bảng tổng hợp giấy tờ/tài liệu theo mộ (đếm theo loại), lọc theo công ty.</summary>
     Task<PagedResult<GraveAttachmentSummaryDto>> GetAttachmentSummaryAsync(GraveAttachmentSummaryRequest request, long actorUserId, CancellationToken ct = default);
+    /// <summary>Danh sách người từng tải tài liệu lên (trong phạm vi công ty) — để lọc.</summary>
+    Task<System.Collections.Generic.IReadOnlyList<AttachmentUploaderDto>> GetAttachmentUploadersAsync(long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto?> GetGraveByIdAsync(long id, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> CreateGraveAsync(CreateGraveRequest request, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> UpdateGraveAsync(long id, UpdateGraveRequest request, long actorUserId, CancellationToken ct = default);

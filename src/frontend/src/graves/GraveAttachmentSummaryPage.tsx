@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Input, Space, Table, Tag, Typography } from 'antd';
+import { DatePicker, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import type { Dayjs } from 'dayjs';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getAttachmentSummary, type GraveAttachmentSummary } from './gravesApi';
+import { getAttachmentSummary, getAttachmentUploaders, type GraveAttachmentSummary } from './gravesApi';
 import { listAttachments } from './attachmentsApi';
 import type { GraveAttachment } from './types';
 import { formatUtcDateTime } from '../utils/datetime';
 
 const { Title, Paragraph } = Typography;
+const { RangePicker } = DatePicker;
 const PAGE_SIZE = 20;
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -15,6 +17,14 @@ const CATEGORY_LABEL: Record<string, string> = {
   TRANSFER_DOC: 'VB chuyển nhượng',
   OTHER: 'Khác',
 };
+
+const ZONE_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+  .map((z) => ({ value: z, label: `Khu ${z}` }));
+const CATEGORY_OPTIONS = [
+  { value: 'PHOTO', label: 'Ảnh' },
+  { value: 'TRANSFER_DOC', label: 'VB chuyển nhượng' },
+  { value: 'OTHER', label: 'Khác' },
+];
 
 function formatSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -50,12 +60,26 @@ const ExpandedFiles: React.FC<{ graveId: number }> = ({ graveId }) => {
 
 const GraveAttachmentSummaryPage: React.FC = () => {
   const [search, setSearch] = useState('');
+  const [zone, setZone] = useState<string | undefined>(undefined);
+  const [category, setCategory] = useState<string | undefined>(undefined);
+  const [uploaderId, setUploaderId] = useState<number | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [page, setPage] = useState(1);
 
+  const { data: uploaders } = useQuery({ queryKey: ['grave-attachment-uploaders'], queryFn: getAttachmentUploaders });
+
+  const uploadedFrom = dateRange ? dateRange[0].startOf('day').toISOString() : undefined;
+  const uploadedTo = dateRange ? dateRange[1].endOf('day').toISOString() : undefined;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['grave-attachment-summary', search, page],
-    queryFn: () => getAttachmentSummary({ search: search || undefined, page, pageSize: PAGE_SIZE }),
+    queryKey: ['grave-attachment-summary', search, zone, category, uploaderId, uploadedFrom, uploadedTo, page],
+    queryFn: () => getAttachmentSummary({
+      search: search || undefined, zone, category, uploadedByUserId: uploaderId,
+      uploadedFrom, uploadedTo, page, pageSize: PAGE_SIZE,
+    }),
   });
+
+  const resetPage = () => setPage(1);
 
   const columns = [
     {
@@ -86,12 +110,34 @@ const GraveAttachmentSummaryPage: React.FC = () => {
         bấm mã mộ để mở trang mộ.
       </Paragraph>
 
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search
-          allowClear style={{ width: 320 }} placeholder="Tìm theo mã mộ"
-          onSearch={(v) => { setSearch(v); setPage(1); }}
-          onChange={(e) => { if (!e.target.value) { setSearch(''); setPage(1); } }}
+          allowClear style={{ width: 300 }} placeholder="Tìm theo mã mộ / chủ mộ"
+          onSearch={(v) => { setSearch(v); resetPage(); }}
+          onChange={(e) => { if (!e.target.value) { setSearch(''); resetPage(); } }}
           data-testid="attachment-summary-search"
+        />
+        <Select
+          allowClear style={{ width: 130 }} placeholder="Khu" value={zone}
+          onChange={(v) => { setZone(v); resetPage(); }} options={ZONE_OPTIONS}
+          data-testid="attachment-summary-zone"
+        />
+        <Select
+          allowClear style={{ width: 190 }} placeholder="Loại tài liệu" value={category}
+          onChange={(v) => { setCategory(v); resetPage(); }} options={CATEGORY_OPTIONS}
+          data-testid="attachment-summary-category"
+        />
+        <Select
+          allowClear showSearch optionFilterProp="label" style={{ width: 240 }} placeholder="Người tải lên"
+          value={uploaderId} onChange={(v) => { setUploaderId(v); resetPage(); }}
+          options={uploaders?.map((u) => ({ value: u.userId, label: u.name }))}
+          data-testid="attachment-summary-uploader"
+        />
+        <RangePicker
+          format="DD/MM/YYYY" placeholder={['Tải từ ngày', 'đến ngày']}
+          value={dateRange}
+          onChange={(v) => { setDateRange(v && v[0] && v[1] ? [v[0], v[1]] : null); resetPage(); }}
+          data-testid="attachment-summary-daterange"
         />
       </Space>
 

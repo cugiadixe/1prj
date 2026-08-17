@@ -42,6 +42,14 @@ public class GravesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("attachment-uploaders")]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> AttachmentUploaders(CancellationToken ct)
+    {
+        var result = await _graveService.GetAttachmentUploadersAsync(GetActorUserId(), ct);
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)

@@ -21,10 +21,18 @@ public class GraveAttachmentSummaryDto
 
 public class GraveAttachmentSummaryRequest
 {
-    public string? Search { get; set; }   // theo mã mộ
+    public string? Search { get; set; }             // theo mã mộ HOẶC tên chủ mộ
+    public string? Zone { get; set; }               // khu A–L
+    public string? Category { get; set; }           // PHOTO / TRANSFER_DOC / OTHER
+    public long? UploadedByUserId { get; set; }     // người tải lên
+    public DateTime? UploadedFrom { get; set; }     // khoảng ngày tải (từ)
+    public DateTime? UploadedTo { get; set; }       // khoảng ngày tải (đến)
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
+
+/// <summary>Người từng tải tài liệu lên (để lọc "người upload").</summary>
+public sealed record AttachmentUploaderDto(long UserId, string Name);
 
 public class GraveListItemDto
 {

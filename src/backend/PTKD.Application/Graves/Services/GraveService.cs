@@ -130,15 +130,35 @@ public class GraveService : IGraveService
         await using var context = _dbContextFactory.CreateDbContext();
         var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
 
-        // Chỉ mộ trong phạm vi công ty + CÓ ít nhất một đính kèm.
-        var query = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope)
-            .Where(g => context.GraveAttachments.Any(a => a.GraveId == g.Id));
+        var query = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope);
 
+        // Lọc cấp MỘ: tìm theo mã mộ hoặc tên chủ mộ; theo khu.
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var s = request.Search.Trim();
-            query = query.Where(g => g.GraveCode.Contains(s));
+            query = query.Where(g => g.GraveCode.Contains(s)
+                || (g.Owner != null && g.Owner.Profile.FullName.Contains(s)));
         }
+        if (!string.IsNullOrWhiteSpace(request.Zone))
+        {
+            var zone = request.Zone.Trim();
+            query = query.Where(g => g.Zone == zone);
+        }
+
+        // Lọc cấp ĐÍNH KÈM (loại / người tải / khoảng ngày) — mộ phải có ÍT NHẤT một file khớp
+        // TẤT CẢ điều kiện. Không có bộ lọc nào → chỉ cần "có đính kèm".
+        var catExact = (request.Category is "PHOTO" or "TRANSFER_DOC") ? request.Category : null;
+        var catOther = request.Category == "OTHER";
+        var uploader = request.UploadedByUserId;
+        var fromUtc = request.UploadedFrom;
+        var toUtc = request.UploadedTo;
+
+        query = query.Where(g => context.GraveAttachments.Any(a => a.GraveId == g.Id
+            && (catExact == null || a.Category == catExact)
+            && (!catOther || (a.Category != "PHOTO" && a.Category != "TRANSFER_DOC"))
+            && (uploader == null || a.CreatedByUserId == uploader)
+            && (fromUtc == null || a.CreatedAt >= fromUtc)
+            && (toUtc == null || a.CreatedAt <= toUtc)));
 
         var total = await query.CountAsync(ct);
 
@@ -188,6 +208,28 @@ public class GraveService : IGraveService
         {
             Items = items, TotalCount = total, Page = request.Page, PageSize = request.PageSize
         };
+    }
+
+    public async Task<System.Collections.Generic.IReadOnlyList<AttachmentUploaderDto>> GetAttachmentUploadersAsync(long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+
+        var scopedGraveIds = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope).Select(g => g.Id);
+        var userIds = await context.GraveAttachments.AsNoTracking()
+            .Where(a => a.CreatedByUserId != null && scopedGraveIds.Contains(a.GraveId))
+            .Select(a => a.CreatedByUserId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+        if (userIds.Count == 0)
+            return new List<AttachmentUploaderDto>();
+
+        return await context.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .OrderBy(u => u.FullName)
+            .Select(u => new AttachmentUploaderDto(
+                u.Id, u.EmployeeCode != null ? u.FullName + " (" + u.EmployeeCode + ")" : u.FullName))
+            .ToListAsync(ct);
     }
 
     private sealed class GraveAttachmentCount

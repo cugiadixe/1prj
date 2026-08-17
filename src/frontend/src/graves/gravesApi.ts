@@ -52,16 +52,42 @@ export interface GraveAttachmentSummary {
   lastUploadedAt: string | null;
 }
 
+export interface AttachmentSummaryParams {
+  search?: string;
+  zone?: string;
+  category?: string;
+  uploadedByUserId?: number;
+  uploadedFrom?: string;
+  uploadedTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export async function getAttachmentSummary(
-  params: { search?: string; page?: number; pageSize?: number } = {},
+  params: AttachmentSummaryParams = {},
 ): Promise<PagedResult<GraveAttachmentSummary>> {
   const { data } = await axiosClient.get<PagedResult<GraveAttachmentSummary>>(`${BASE}/attachments-summary`, {
     params: {
       search: params.search || undefined,
+      zone: params.zone || undefined,
+      category: params.category || undefined,
+      uploadedByUserId: params.uploadedByUserId || undefined,
+      uploadedFrom: params.uploadedFrom || undefined,
+      uploadedTo: params.uploadedTo || undefined,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 20,
     },
   });
+  return data;
+}
+
+export interface AttachmentUploader {
+  userId: number;
+  name: string;
+}
+
+export async function getAttachmentUploaders(): Promise<AttachmentUploader[]> {
+  const { data } = await axiosClient.get<AttachmentUploader[]>(`${BASE}/attachment-uploaders`);
   return data;
 }
 
