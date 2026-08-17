@@ -19,6 +19,13 @@ public static class PermissionCodes
     public const string SecurityAccountManage = "SECURITY_ACCOUNT_MANAGE";
 
     /// <summary>
+    /// Quyền RIÊNG để VÔ HIỆU / KHOÁ tài khoản người khác (disable/lock). Tách khỏi
+    /// SECURITY_ACCOUNT_MANAGE để "vô hiệu người khác" là một ô cấp riêng trong ma trận — ai được
+    /// cấp quyền này mới vô hiệu/khoá được người khác. Seed V0040, cấp cho mọi người đang có MANAGE.
+    /// </summary>
+    public const string SecurityAccountDisable = "SECURITY_ACCOUNT_DISABLE";
+
+    /// <summary>
     /// Read-only audit view — must NOT be used to authorize mutations.
     /// </summary>
     public const string SecurityAuditView = "SECURITY_AUDIT_VIEW";

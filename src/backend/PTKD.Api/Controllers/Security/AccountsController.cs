@@ -94,6 +94,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPost("{accountId:long}/disable")]
+    [RequirePermission(PTKD.Api.Security.Authorization.PermissionCodes.SecurityAccountDisable, PermissionScope.Global)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -110,6 +111,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPost("{accountId:long}/lock")]
+    [RequirePermission(PTKD.Api.Security.Authorization.PermissionCodes.SecurityAccountDisable, PermissionScope.Global)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
