@@ -99,11 +99,17 @@ export interface AccountSearchParams {
   pageSize?: number;
 }
 
+export interface UserCompanyBriefDto {
+  companyId: number;
+  companyName: string;
+}
+
 export interface UserWithoutAccountDto {
   userId: number;
   fullName: string;
   employeeCode: string | null;
   email: string | null;
+  companies: UserCompanyBriefDto[];
 }
 
 export interface CreateAccountRequest {

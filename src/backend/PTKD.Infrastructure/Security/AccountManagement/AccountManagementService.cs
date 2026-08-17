@@ -427,12 +427,43 @@ public sealed class AccountManagementService : IAccountManagementService
         CancellationToken cancellationToken = default)
     {
         await using var context = _dbContextFactory.CreateDbContext();
-        var usersWithoutAccount = await context.Users
+        var users = await context.Users
             .Where(u => !context.UserAuthAccounts.Any(a => a.UserId == u.Id))
             .OrderBy(u => u.FullName)
-            .Select(u => new UserWithoutAccountDto(u.Id, u.FullName, u.EmployeeCode, u.Email))
+            .Select(u => new { u.Id, u.FullName, u.EmployeeCode, u.Email })
             .ToListAsync(cancellationToken);
-        return usersWithoutAccount;
+
+        if (users.Count == 0)
+            return new List<UserWithoutAccountDto>();
+
+        // Làm giàu công ty (từ context tổ chức) để giao diện lọc "người dùng theo công ty".
+        var userIds = users.Select(u => u.Id).ToList();
+        var now = _clock.UtcNow;
+
+        await using var orgContext = _orgContextFactory.CreateDbContext();
+        var companyRows = await orgContext.UserCompanyAssignments
+            .Where(a => userIds.Contains(a.UserId)
+                && a.AssignmentStatus == "ACTIVE"
+                && a.EffectiveFrom <= now
+                && (a.EffectiveTo == null || a.EffectiveTo > now))
+            .Join(orgContext.Companies, a => a.CompanyId, c => c.Id,
+                (a, c) => new { a.UserId, CompanyId = c.Id, c.Name })
+            .ToListAsync(cancellationToken);
+
+        var companiesByUser = companyRows
+            .GroupBy(r => r.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<UserCompanyBriefDto>)g
+                    .Select(x => new UserCompanyBriefDto(x.CompanyId, x.Name))
+                    .Distinct()
+                    .ToList());
+
+        return users
+            .Select(u => new UserWithoutAccountDto(
+                u.Id, u.FullName, u.EmployeeCode, u.Email,
+                companiesByUser.TryGetValue(u.Id, out var cs) ? cs : new List<UserCompanyBriefDto>()))
+            .ToList();
     }
 
     public async Task<AccountManagementResult> CreateInternalAccountAsync(

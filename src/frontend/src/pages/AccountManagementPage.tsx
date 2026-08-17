@@ -48,6 +48,7 @@ const AccountManagementPage: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
   const [form] = Form.useForm();
 
   const { data, isLoading, isError, error } = useQuery({
@@ -106,6 +107,7 @@ const AccountManagementPage: React.FC = () => {
   const handleCloseCreateModal = () => {
     setCreateModalOpen(false);
     setTempPassword(null);
+    setSelectedCompanyId(undefined);
     form.resetFields();
   };
 
@@ -115,6 +117,33 @@ const AccountManagementPage: React.FC = () => {
       form.setFieldsValue({ providerSubject: user.email });
     }
   };
+
+  const handleCompanyChange = (companyId: number) => {
+    setSelectedCompanyId(companyId);
+    // Đổi công ty thì bỏ chọn người dùng cũ (có thể không thuộc công ty mới).
+    form.setFieldsValue({ userId: undefined });
+  };
+
+  // Danh sách công ty (gộp từ các người dùng chưa có tài khoản) cho ô "Công ty".
+  const companyOptions = React.useMemo(() => {
+    const map = new Map<number, string>();
+    usersWithoutAccount?.forEach((u: UserWithoutAccountDto) =>
+      u.companies?.forEach((c) => map.set(c.companyId, c.companyName)));
+    return Array.from(map, ([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+  }, [usersWithoutAccount]);
+
+  // Người dùng lọc theo công ty đang chọn; chưa chọn công ty thì để trống.
+  const filteredUserOptions = React.useMemo(() => {
+    if (!selectedCompanyId || !usersWithoutAccount) return [];
+    return usersWithoutAccount
+      .filter((u: UserWithoutAccountDto) =>
+        u.companies?.some((c) => c.companyId === selectedCompanyId))
+      .map((u: UserWithoutAccountDto) => ({
+        value: u.userId,
+        label: `${u.fullName}${u.employeeCode ? ` (${u.employeeCode})` : ''}`,
+      }));
+  }, [usersWithoutAccount, selectedCompanyId]);
 
   const columns = [
     {
@@ -310,22 +339,37 @@ const AccountManagementPage: React.FC = () => {
             onFinish={handleCreateAccount}
           >
             <Form.Item
+              name="companyId"
+              label="Công ty"
+              rules={[{ required: true, message: 'Vui lòng chọn công ty' }]}
+            >
+              <Select
+                showSearch
+                placeholder="Chọn công ty"
+                loading={loadingUsers}
+                optionFilterProp="label"
+                onChange={handleCompanyChange}
+                getPopupContainer={(trigger) => trigger.parentElement!}
+                data-testid="company-select"
+                options={companyOptions}
+              />
+            </Form.Item>
+            <Form.Item
               name="userId"
               label="Người dùng"
               rules={[{ required: true, message: 'Vui lòng chọn người dùng' }]}
             >
               <Select
                 showSearch
-                placeholder="Chọn người dùng chưa có tài khoản"
+                placeholder={selectedCompanyId ? 'Chọn người dùng chưa có tài khoản' : 'Chọn công ty trước'}
                 loading={loadingUsers}
+                disabled={!selectedCompanyId}
                 optionFilterProp="label"
                 onChange={handleUserSelect}
                 getPopupContainer={(trigger) => trigger.parentElement!}
                 data-testid="user-select"
-                options={usersWithoutAccount?.map((u: UserWithoutAccountDto) => ({
-                  value: u.userId,
-                  label: `${u.fullName}${u.employeeCode ? ` (${u.employeeCode})` : ''}`,
-                }))}
+                notFoundContent={selectedCompanyId ? 'Không có người dùng chưa có tài khoản trong công ty này' : 'Vui lòng chọn công ty trước'}
+                options={filteredUserOptions}
               />
             </Form.Item>
             <Form.Item

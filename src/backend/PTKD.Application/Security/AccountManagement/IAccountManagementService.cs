@@ -3,7 +3,15 @@ using PTKD.Application.Security.AccountManagement.DTOs;
 
 namespace PTKD.Application.Security.AccountManagement;
 
-public sealed record UserWithoutAccountDto(long UserId, string FullName, string? EmployeeCode, string? Email);
+/// <summary>Công ty người dùng đang được phân công — để giao diện lọc "người dùng theo công ty".</summary>
+public sealed record UserCompanyBriefDto(long CompanyId, string CompanyName);
+
+public sealed record UserWithoutAccountDto(
+    long UserId,
+    string FullName,
+    string? EmployeeCode,
+    string? Email,
+    IReadOnlyList<UserCompanyBriefDto> Companies);
 
 public interface IAccountManagementService
 {
