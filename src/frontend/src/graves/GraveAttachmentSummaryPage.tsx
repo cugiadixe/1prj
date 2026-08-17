@@ -41,6 +41,7 @@ const ExpandedFiles: React.FC<{ graveId: number }> = ({ graveId }) => {
           render: (c: string) => <Tag>{CATEGORY_LABEL[c] ?? c}</Tag>,
         },
         { title: 'Kích thước', dataIndex: 'sizeBytes', key: 'size', render: (b: number) => formatSize(b) },
+        { title: 'Người tải lên', dataIndex: 'uploadedByName', key: 'uploadedByName', render: (v: string | null) => v || '—' },
         { title: 'Ngày tải lên', dataIndex: 'createdAt', key: 'createdAt', render: (v: string) => formatUtcDateTime(v) },
       ]}
     />

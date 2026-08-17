@@ -96,7 +96,24 @@ public class GraveAttachmentService : IGraveAttachmentService
             .Where(a => a.GraveId == graveId)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync(ct);
-        return items.Select(MapToDto).ToList();
+
+        var dtos = items.Select(MapToDto).ToList();
+
+        // Làm giàu tên người tải lên.
+        var userIds = dtos.Where(d => d.CreatedByUserId.HasValue).Select(d => d.CreatedByUserId!.Value).Distinct().ToList();
+        if (userIds.Count > 0)
+        {
+            var names = await context.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FullName, u.EmployeeCode })
+                .ToListAsync(ct);
+            var byId = names.ToDictionary(x => x.Id, x => string.IsNullOrWhiteSpace(x.EmployeeCode) ? x.FullName : $"{x.FullName} ({x.EmployeeCode})");
+            foreach (var d in dtos)
+                if (d.CreatedByUserId.HasValue && byId.TryGetValue(d.CreatedByUserId.Value, out var n))
+                    d.UploadedByName = n;
+        }
+
+        return dtos;
     }
 
     public async Task<AttachmentContent?> OpenContentAsync(long graveId, long attachmentId, long actorUserId, bool thumbnail, CancellationToken ct = default)
@@ -157,6 +174,7 @@ public class GraveAttachmentService : IGraveAttachmentService
         HasThumbnail = a.HasThumbnail,
         IsImage = a.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase),
         Description = a.Description,
-        CreatedAt = a.CreatedAt
+        CreatedAt = a.CreatedAt,
+        CreatedByUserId = a.CreatedByUserId
     };
 }

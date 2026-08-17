@@ -241,6 +241,8 @@ export interface GraveAttachment {
   isImage: boolean;
   description: string | null;
   createdAt: string;
+  createdByUserId: number | null;
+  uploadedByName: string | null;
 }
 
 export interface OwnershipHistoryItem {

@@ -15,4 +15,6 @@ public class GraveAttachmentDto
     public bool IsImage { get; set; }
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }
+    public long? CreatedByUserId { get; set; }
+    public string? UploadedByName { get; set; }
 }
