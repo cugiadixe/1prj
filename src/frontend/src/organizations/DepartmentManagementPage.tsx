@@ -23,7 +23,6 @@ const DepartmentManagementPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<DepartmentDto | null>(null);
   const [form] = Form.useForm();
-  const formCompanyId = Form.useWatch('companyId', form) as number | undefined;
 
   const { data: companies } = useQuery({ queryKey: ['org-companies'], queryFn: listCompanies });
 
@@ -89,25 +88,14 @@ const DepartmentManagementPage: React.FC = () => {
   };
   const openEdit = (d: DepartmentDto) => {
     setEditing(d);
-    form.setFieldsValue({ departmentCode: d.departmentCode, name: d.name, companyId: d.companyId, parentDepartmentId: d.parentDepartmentId });
+    form.setFieldsValue({ departmentCode: d.departmentCode, name: d.name, companyId: d.companyId });
     setModalOpen(true);
   };
-
-  const parentOptions = useMemo(() => {
-    const cid = editing ? editing.companyId : formCompanyId;
-    return (allDepts ?? [])
-      .filter((d) => d.companyId === cid && (!editing || d.id !== editing.id))
-      .map((d) => ({ value: d.id, label: d.name }));
-  }, [allDepts, editing, formCompanyId]);
 
   const columns = [
     { title: 'Công ty', dataIndex: 'companyName', key: 'companyName' },
     { title: 'Mã', dataIndex: 'departmentCode', key: 'departmentCode' },
     { title: 'Tên phòng ban', dataIndex: 'name', key: 'name' },
-    {
-      title: 'Phòng cha', dataIndex: 'parentDepartmentId', key: 'parentDepartmentId',
-      render: (pid: number | null) => pid ? (allDepts?.find((x) => x.id === pid)?.name ?? pid) : '—',
-    },
     {
       title: 'Trạng thái', dataIndex: 'isActive', key: 'isActive',
       render: (active: boolean) => <Tag color={active ? 'green' : 'red'}>{active ? 'Hoạt động' : 'Ngừng'}</Tag>,
@@ -168,7 +156,6 @@ const DepartmentManagementPage: React.FC = () => {
             <Select
               showSearch optionFilterProp="label" disabled={!!editing}
               placeholder="Chọn công ty"
-              onChange={() => form.setFieldsValue({ parentDepartmentId: undefined })}
               options={companies?.map((c) => ({ value: c.id, label: c.name }))}
             />
           </Form.Item>
@@ -177,9 +164,6 @@ const DepartmentManagementPage: React.FC = () => {
           </Form.Item>
           <Form.Item name="name" label="Tên phòng ban" rules={[{ required: true, message: 'Nhập tên phòng ban' }]}>
             <Input placeholder="VD: Phòng Kinh doanh" />
-          </Form.Item>
-          <Form.Item name="parentDepartmentId" label="Phòng cha (nếu có)">
-            <Select allowClear showSearch optionFilterProp="label" placeholder="— Không —" options={parentOptions} />
           </Form.Item>
         </Form>
       </Modal>
