@@ -131,6 +131,7 @@ builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardReprintRequestSe
 builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardService, PTKD.Application.Cards.Services.CardService>();
 builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardDocumentService, PTKD.Infrastructure.Cards.CardDocumentService>();
 builder.Services.AddScoped<PTKD.Application.Cemeteries.ICemeteryService, PTKD.Application.Cemeteries.CemeteryService>();
+builder.Services.AddScoped<PTKD.Application.CardWatermarks.ICardWatermarkService, PTKD.Application.CardWatermarks.CardWatermarkService>();
 
 // Customer Proposal Services (Phase 1B.3-B4)
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerProposalService, PTKD.Application.Customers.Services.CustomerProposalService>();

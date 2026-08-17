@@ -45,6 +45,7 @@ public interface IOrganizationDbContext : IDisposable, IAsyncDisposable
     DbSet<PaymentCorrectionHistory> PaymentCorrectionHistories { get; }
     DbSet<ReconciliationPeriod> ReconciliationPeriods { get; }
     DbSet<Card> Cards { get; }
+    DbSet<CardWatermark> CardWatermarks { get; }
     DbSet<CardReprintRequest> CardReprintRequests { get; }
     DbSet<CardPrintHistory> CardPrintHistory { get; }
     DbSet<CarePackageRequest> CarePackageRequests { get; }

@@ -11,6 +11,12 @@ vi.mock('./cemeteriesApi', async () => {
   return { ...actual, getCemeteries: vi.fn(), setCemeteryWatermark: vi.fn() };
 });
 vi.mock('../cards/cardsApi');
+vi.mock('./watermarksApi', () => ({
+  listWatermarks: vi.fn().mockResolvedValue([]),
+  uploadWatermark: vi.fn(),
+  deleteWatermark: vi.fn(),
+  fetchWatermarkThumb: vi.fn(),
+}));
 vi.mock('../auth/AuthProvider');
 vi.mock('../auth/CompanyProvider', () => ({
   useCompany: () => ({ currentCompanyId: 1, companies: [], switchCompany: vi.fn() }),

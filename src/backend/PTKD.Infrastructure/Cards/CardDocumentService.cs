@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using PdfSharp.Drawing;
 using PdfSharp.Fonts;
 using PdfSharp.Pdf;
+using SixLabors.ImageSharp;
 using PTKD.Application.Cards.Services;
 using PTKD.Application.Common.Exceptions;
 using PTKD.Application.Common.Interfaces;
@@ -85,8 +86,40 @@ public class CardDocumentService : ICardDocumentService
         EnsureFontResolver();
 
         var watermark = string.IsNullOrWhiteSpace(watermarkOverride) ? cemetery?.CardWatermarkCode : watermarkOverride;
-        var model = new CardModel(card, grave, cemetery, company?.Name ?? "", occupants, owner, watermark);
+
+        // Hoa văn dạng ẢNH TẢI LÊN (UPLOAD:{id}): nạp bytes + làm mờ sẵn để vẽ khi render (Render là đồng bộ).
+        byte[]? watermarkImagePng = null;
+        if (!string.IsNullOrWhiteSpace(watermark) && watermark!.StartsWith("UPLOAD:", System.StringComparison.OrdinalIgnoreCase)
+            && long.TryParse(watermark.Substring("UPLOAD:".Length), out var wmId))
+        {
+            var wm = await db.CardWatermarks.AsNoTracking()
+                .FirstOrDefaultAsync(w => w.Id == wmId && w.CompanyId == companyId && w.IsActive, ct);
+            if (wm != null)
+                watermarkImagePng = FaintImage(wm.ImageBytes, 0.12f);
+            else
+                watermark = null; // tham chiếu treo → bỏ hoa văn
+        }
+
+        var model = new CardModel(card, grave, cemetery, company?.Name ?? "", occupants, owner, watermark, watermarkImagePng);
         return Render(model);
+    }
+
+    /// <summary>Làm mờ ảnh hoa văn: giảm alpha xuống theo hệ số để chìm sau nội dung. Trả PNG.</summary>
+    private static byte[] FaintImage(byte[] source, float intensity)
+    {
+        using var img = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(source);
+        img.ProcessPixelRows(acc =>
+        {
+            for (int y = 0; y < acc.Height; y++)
+            {
+                var row = acc.GetRowSpan(y);
+                for (int x = 0; x < row.Length; x++)
+                    row[x].A = (byte)(row[x].A * intensity);
+            }
+        });
+        using var ms = new MemoryStream();
+        img.SaveAsPng(ms);
+        return ms.ToArray();
     }
 
     private static void EnsureFontResolver()
@@ -102,7 +135,7 @@ public class CardDocumentService : ICardDocumentService
 
     private sealed record CardModel(
         Card Card, Grave? Grave, Cemetery? Cemetery, string CompanyName,
-        IReadOnlyList<GraveOccupant> Occupants, Profile? Owner, string? WatermarkCode);
+        IReadOnlyList<GraveOccupant> Occupants, Profile? Owner, string? WatermarkCode, byte[]? WatermarkImagePng);
 
     // ── mm helpers ──
     private static double Mm(double v) => XUnit.FromMillimeter(v).Point;
@@ -166,12 +199,31 @@ public class CardDocumentService : ICardDocumentService
         var code = m.WatermarkCode;
         if (string.IsNullOrWhiteSpace(code)) return;
         double x0 = leftFace ? 0 : FaceW;
+
+        if (code.StartsWith("UPLOAD:", System.StringComparison.OrdinalIgnoreCase))
+        {
+            if (m.WatermarkImagePng != null) WmUploadedImage(g, x0, m.WatermarkImagePng);
+            return;
+        }
+
         switch (code.Trim().ToUpperInvariant())
         {
             case WmLotusCode: WmLotus(g, x0); break;
             case WmFrameCode: WmFrame(g, x0); break;
             case WmDiagonalCode: WmDiagonalText(g, x0, DiagonalWatermarkText(m)); break;
         }
+    }
+
+    private static void WmUploadedImage(XGraphics g, double x0, byte[] faintPng)
+    {
+        using var stream = new MemoryStream(faintPng);
+        var xi = XImage.FromStream(stream);
+        // Vừa khít vào giữa mặt, chừa lề, giữ tỉ lệ ảnh.
+        double maxW = Mm(FaceW - 30), maxH = Mm(PageH - 60);
+        double ratio = System.Math.Min(maxW / xi.PixelWidth, maxH / xi.PixelHeight);
+        double w = xi.PixelWidth * ratio, h = xi.PixelHeight * ratio;
+        double cx = Mm(x0 + FaceW / 2), cy = Mm(PageH / 2);
+        g.DrawImage(xi, cx - w / 2, cy - h / 2, w, h);
     }
 
     private static string DiagonalWatermarkText(CardModel m)

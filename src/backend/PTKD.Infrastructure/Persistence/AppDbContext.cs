@@ -52,6 +52,7 @@ public class AppDbContext : DbContext, IOrganizationDbContext, IAuthenticationDb
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Card> Cards => Set<Card>();
+    public DbSet<CardWatermark> CardWatermarks => Set<CardWatermark>();
     public DbSet<CardReprintRequest> CardReprintRequests => Set<CardReprintRequest>();
     public DbSet<CardPrintHistory> CardPrintHistory => Set<CardPrintHistory>();
     public DbSet<CarePackageRequest> CarePackageRequests => Set<CarePackageRequest>();
