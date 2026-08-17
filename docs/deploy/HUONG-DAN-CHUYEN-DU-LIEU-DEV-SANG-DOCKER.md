@@ -7,8 +7,14 @@ Mục tiêu: đưa **toàn bộ** dữ liệu đang có ở `PTKD_DEV` (SQL Serv
 > Đây là di trú dữ liệu production: **owner chạy, AI verify**. Làm lần lượt từng bước.
 
 Ký hiệu:
-- `<PW>` = mật khẩu `sa` của container db (giống `.env` DB_SA_PASSWORD).
+- `<PW>` = mật khẩu `sa` của container db (giống `.env` DB_SA_PASSWORD). **Đây là chỗ điền — phải thay bằng mật khẩu thật, đừng gõ nguyên chữ `<PW>`.**
 - Container db tên `ptkd-erp-db-1` (đổi nếu `docker compose ps` hiện tên khác).
+
+> **Không nhớ mật khẩu `sa`?** Lấy đúng chuỗi đã đặt khi dựng container:
+> ```powershell
+> docker exec ptkd-erp-db-1 printenv MSSQL_SA_PASSWORD
+> ```
+> Chuỗi in ra chính là `<PW>` (và cũng là `DB_SA_PASSWORD` cho `.env`).
 
 ---
 
