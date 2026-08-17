@@ -54,6 +54,7 @@ import GraveAttachmentSummaryPage from './graves/GraveAttachmentSummaryPage';
 import GraveDetailPage from './graves/GraveDetailPage';
 import GraveCreatePage from './graves/GraveCreatePage';
 import GraveEditPage from './graves/GraveEditPage';
+import CardsPage from './cards/CardsPage';
 import CardReprintRequestsPage from './cards/CardReprintRequestsPage';
 import CardReprintRequestCreatePage from './cards/CardReprintRequestCreatePage';
 import CardReprintRequestDetailPage from './cards/CardReprintRequestDetailPage';
@@ -158,6 +159,7 @@ const App: React.FC = () => {
               <Route path="graves/:graveId" element={<GraveDetailPage />} />
               <Route path="graves/:graveId/edit" element={<GraveEditPage />} />
               {/* Phase 1B.8-C — Card Reprint UI */}
+              <Route path="cards" element={<CardsPage />} />
               <Route path="cards/reprints" element={<CardReprintRequestsPage />} />
               <Route path="cards/reprints/new" element={<CardReprintRequestCreatePage />} />
               <Route path="cards/reprints/:id" element={<CardReprintRequestDetailPage />} />

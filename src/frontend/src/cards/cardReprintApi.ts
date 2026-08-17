@@ -36,7 +36,15 @@ export const getCardReprintRequest = async (companyId: number, id: number): Prom
 };
 
 export const createCardReprintRequest = async (companyId: number, data: CreateCardReprintRequest): Promise<CardReprintRequestDto> => {
-  const response = await axiosClient.post<CardReprintRequestDto>(BASE_URL, data, { headers: companyHeaders(companyId) });
+  // Backend bắt buộc companyId trong body phải khớp X-Company-Id.
+  const body = { ...data, companyId };
+  const response = await axiosClient.post<CardReprintRequestDto>(BASE_URL, body, { headers: companyHeaders(companyId) });
+  return response.data;
+};
+
+/** In lần đầu trực tiếp — miễn duyệt, miễn phí. Chỉ áp dụng cho yêu cầu loại INITIAL_PRINT. */
+export const printInitialCardReprint = async (companyId: number, id: number): Promise<CardReprintRequestDto> => {
+  const response = await axiosClient.post<CardReprintRequestDto>(`${BASE_URL}/${id}/print-initial`, null, { headers: companyHeaders(companyId) });
   return response.data;
 };
 
@@ -53,6 +61,7 @@ export const rejectCardReprintRequest = async (companyId: number, id: number, da
 };
 
 export const createPaymentForCardReprint = async (companyId: number, id: number, data: CreateCardReprintPaymentRequest): Promise<void> => {
+  // Backend nhận { paymentMethod }, không phải rowVersion.
   await axiosClient.post(`${BASE_URL}/${id}/create-payment`, data, { headers: companyHeaders(companyId) });
 };
 

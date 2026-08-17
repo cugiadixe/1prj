@@ -47,7 +47,7 @@ export interface RejectCardReprintRequest {
 }
 
 export interface CreateCardReprintPaymentRequest {
-  rowVersion: string;
+  paymentMethod: string;
 }
 
 export interface MarkCardPrintedRequest {

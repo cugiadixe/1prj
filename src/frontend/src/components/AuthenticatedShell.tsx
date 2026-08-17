@@ -61,6 +61,7 @@ const MENU_GROUPS: ReadonlyArray<{ key: string; prefixes: string[] }> = [
   { key: 'security-group', prefixes: ['/security'] },
   { key: 'org-group', prefixes: ['/organizations'] },
   { key: 'graves-group', prefixes: ['/graves'] },
+  { key: 'cards-group', prefixes: ['/cards'] },
 ];
 
 const ROOT_GROUP_KEYS = MENU_GROUPS.map(g => g.key);
@@ -247,10 +248,21 @@ const AuthenticatedShell: React.FC = () => {
       ].filter(Boolean),
     } : null,
     {
-      key: '/cards/reprints',
+      key: 'cards-group',
       icon: <CreditCardOutlined />,
-      label: navLabel('nav-cards-reprints', 'In lại thẻ'),
-      onClick: () => navigate('/cards/reprints'),
+      label: navLabel('nav-cards-group', 'Thẻ mộ'),
+      children: [
+        {
+          key: '/cards',
+          label: navLabel('nav-cards', 'Danh sách thẻ'),
+          onClick: () => navigate('/cards'),
+        },
+        {
+          key: '/cards/reprints',
+          label: navLabel('nav-cards-reprints', 'Yêu cầu in lại'),
+          onClick: () => navigate('/cards/reprints'),
+        },
+      ],
     },
     {
       key: 'workflow-group',

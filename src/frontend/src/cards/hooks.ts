@@ -40,6 +40,19 @@ export const useCreateCardReprintRequest = () => {
   });
 };
 
+export const usePrintInitialCardReprint = () => {
+  const queryClient = useQueryClient();
+  const { currentCompanyId } = useCompany();
+  return useMutation({
+    mutationFn: (id: number) => api.printInitialCardReprint(currentCompanyId!, id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['cardReprintRequest', currentCompanyId, id] });
+      queryClient.invalidateQueries({ queryKey: ['cardReprintRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+    },
+  });
+};
+
 export const useSubmitCardReprintRequest = () => {
   const queryClient = useQueryClient();
   const { currentCompanyId } = useCompany();
