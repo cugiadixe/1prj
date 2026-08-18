@@ -14,6 +14,9 @@ export interface DashboardMonthCount {
 }
 
 export interface DashboardSummary {
+  // Người dùng có quyền FINANCE_VIEW_REVENUE ở công ty này không. false => totalRevenue = 0 và
+  // revenueByMonth rỗng; dashboard thay hai widget doanh thu bằng widget khác.
+  canViewRevenue: boolean;
   totalCustomers: number;
   totalGraves: number;
   occupiedGraves: number;

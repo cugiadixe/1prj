@@ -11,6 +11,7 @@ import {
   BarChartOutlined,
   AreaChartOutlined,
   AppstoreOutlined,
+  CustomerServiceOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
@@ -45,11 +46,20 @@ const Home: React.FC = () => {
 
   const occupancy = data && data.totalGraves > 0 ? Math.round((data.occupiedGraves / data.totalGraves) * 100) : 0;
 
+  // Doanh thu là ô quyền riêng. Có quyền → KPI "Doanh thu" + biểu đồ doanh thu. Không có quyền →
+  // thay bằng KPI "Tổng dịch vụ" và phóng to biểu đồ gói chăm sóc (backend đã không gửi số tiền).
+  const canViewRevenue = !!data?.canViewRevenue;
+  const totalServices = data ? data.servicesByStatus.reduce((sum, x) => sum + x.count, 0) : 0;
+
+  const financeKpi = canViewRevenue
+    ? { title: 'Doanh thu', value: data ? fmtCompactVnd(data.totalRevenue) : '—', icon: <DollarOutlined />, color: '#22c55e', bg: '#f0fdf4' }
+    : { title: 'Tổng dịch vụ', value: data ? totalServices.toLocaleString('vi-VN') : '—', icon: <CustomerServiceOutlined />, color: '#f59e0b', bg: '#fffbeb' };
+
   const kpis = [
     { title: 'Khách hàng', value: data ? data.totalCustomers.toLocaleString('vi-VN') : '—', icon: <TeamOutlined />, color: '#3b82f6', bg: '#eff6ff' },
     { title: 'Phần mộ', value: data ? data.totalGraves.toLocaleString('vi-VN') : '—', icon: <EnvironmentOutlined />, color: '#8b5cf6', bg: '#f5f3ff' },
     { title: 'Tỉ lệ lấp đầy', value: data ? `${occupancy}%` : '—', icon: <BankOutlined />, color: '#06b6d4', bg: '#ecfeff' },
-    { title: 'Doanh thu', value: data ? fmtCompactVnd(data.totalRevenue) : '—', icon: <DollarOutlined />, color: '#22c55e', bg: '#f0fdf4' },
+    financeKpi,
     { title: 'Gói CS hiệu lực', value: data ? data.activeCarePackages.toLocaleString('vi-VN') : '—', icon: <HeartOutlined />, color: '#ec4899', bg: '#fdf2f8' },
   ];
 
@@ -93,16 +103,18 @@ const Home: React.FC = () => {
 
       <Spin spinning={isLoading}>
         <Row gutter={[16, 16]} style={{ marginTop: 12 }}>
-          <Col xs={24} lg={12}>
-            <Card size="small" title={cardHead(<AreaChartOutlined style={{ color: PALETTE[1] }} />, 'Doanh thu 6 tháng gần nhất')}>
-              <AreaChart
-                data={(data?.revenueByMonth ?? []).map((r) => ({ label: monthLabel(r.month), value: r.amount }))}
-                color={PALETTE[1]}
-                valueFormatter={fmtCompactVnd}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} lg={12}>
+          {canViewRevenue && (
+            <Col xs={24} lg={12}>
+              <Card size="small" title={cardHead(<AreaChartOutlined style={{ color: PALETTE[1] }} />, 'Doanh thu 6 tháng gần nhất')}>
+                <AreaChart
+                  data={(data?.revenueByMonth ?? []).map((r) => ({ label: monthLabel(r.month), value: r.amount }))}
+                  color={PALETTE[1]}
+                  valueFormatter={fmtCompactVnd}
+                />
+              </Card>
+            </Col>
+          )}
+          <Col xs={24} lg={canViewRevenue ? 12 : 24}>
             <Card size="small" title={cardHead(<AreaChartOutlined style={{ color: PALETTE[3] }} />, 'Gói chăm sóc bán theo tháng')}>
               <AreaChart
                 data={(data?.carePackagesByMonth ?? []).map((r) => ({ label: monthLabel(r.month), value: r.count }))}

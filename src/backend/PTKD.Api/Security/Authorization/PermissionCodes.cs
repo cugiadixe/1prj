@@ -47,6 +47,15 @@ public static class PermissionCodes
 
     public const string CustomerViewBasic = "CUSTOMER_VIEW_BASIC";
 
+    /// <summary>
+    /// Xem số liệu DOANH THU trên dashboard tổng quan (KPI "Doanh thu" + biểu đồ doanh thu theo
+    /// tháng). Tách riêng để tiền là một ô cấp riêng trong ma trận: ai vào được dashboard
+    /// (CUSTOMER_VIEW_BASIC) chưa chắc được xem doanh thu. Không có quyền này thì dashboard thay
+    /// hai widget doanh thu bằng widget khác. Seed V0046 (is_sensitive), cấp giữ nguyên hành vi cho
+    /// mọi nơi đang có CUSTOMER_VIEW_BASIC. data_scope = COMPANY.
+    /// </summary>
+    public const string FinanceViewRevenue = "FINANCE_VIEW_REVENUE";
+
     public const string CustomerViewSensitive = "CUSTOMER_VIEW_SENSITIVE";
 
     public const string CustomerCreateFinal = "CUSTOMER_CREATE_FINAL";

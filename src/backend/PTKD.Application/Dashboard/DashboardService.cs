@@ -22,7 +22,7 @@ public class DashboardService : IDashboardService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<DashboardSummaryDto> GetSummaryAsync(long companyId, CancellationToken ct = default)
+    public async Task<DashboardSummaryDto> GetSummaryAsync(long companyId, bool includeRevenue, CancellationToken ct = default)
     {
         await using var db = _dbContextFactory.CreateDbContext();
 
@@ -49,39 +49,48 @@ public class DashboardService : IDashboardService
         var now = DateTime.UtcNow;
         var windowStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(MonthsWindow - 1));
 
-        var revenueRaw = await db.PaymentTransactions.AsNoTracking()
-            .Where(p => p.CompanyId == companyId && !p.IsDeleted && p.PaymentDate >= windowStart)
-            .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
-            .Select(x => new { x.Key.Year, x.Key.Month, Amount = x.Sum(p => p.TotalAmount) })
-            .ToListAsync(ct);
+        var months = BuildMonthWindow(windowStart);
+
+        // Doanh thu: CHỈ truy vấn bảng PaymentTransactions khi người gọi có quyền FINANCE_VIEW_REVENUE.
+        // Không có quyền → TotalRevenue = 0 và mọi tháng = 0 (frontend không hiển thị hai widget này).
+        // Số tiền không rời khỏi máy chủ nếu không được phép.
+        var totalRevenue = 0m;
+        var revenueByMonth = months.Select(m => new DashboardMonthAmount { Month = m.Label, Amount = 0m }).ToList();
+        if (includeRevenue)
+        {
+            var revenueRaw = await db.PaymentTransactions.AsNoTracking()
+                .Where(p => p.CompanyId == companyId && !p.IsDeleted && p.PaymentDate >= windowStart)
+                .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
+                .Select(x => new { x.Key.Year, x.Key.Month, Amount = x.Sum(p => p.TotalAmount) })
+                .ToListAsync(ct);
+            revenueByMonth = months.Select(m => new DashboardMonthAmount
+            {
+                Month = m.Label,
+                Amount = revenueRaw.FirstOrDefault(r => r.Year == m.Year && r.Month == m.Month)?.Amount ?? 0m,
+            }).ToList();
+
+            totalRevenue = await db.PaymentTransactions.AsNoTracking()
+                .Where(p => p.CompanyId == companyId && !p.IsDeleted)
+                .SumAsync(p => (decimal?)p.TotalAmount, ct) ?? 0m;
+        }
 
         var carePkgRaw = await carePackagesQuery
             .Where(r => r.SaleDate >= windowStart)
             .GroupBy(r => new { r.SaleDate.Year, r.SaleDate.Month })
             .Select(x => new { x.Key.Year, x.Key.Month, Count = x.LongCount() })
             .ToListAsync(ct);
-
-        var months = BuildMonthWindow(windowStart);
-        var revenueByMonth = months.Select(m => new DashboardMonthAmount
-        {
-            Month = m.Label,
-            Amount = revenueRaw.FirstOrDefault(r => r.Year == m.Year && r.Month == m.Month)?.Amount ?? 0m,
-        }).ToList();
         var carePackagesByMonth = months.Select(m => new DashboardMonthCount
         {
             Month = m.Label,
             Count = carePkgRaw.FirstOrDefault(r => r.Year == m.Year && r.Month == m.Month)?.Count ?? 0L,
         }).ToList();
 
-        // KPI
-        var totalRevenue = await db.PaymentTransactions.AsNoTracking()
-            .Where(p => p.CompanyId == companyId && !p.IsDeleted)
-            .SumAsync(p => (decimal?)p.TotalAmount, ct) ?? 0m;
         var activeCarePackages = carePackagesByStatus
             .Where(x => x.Key == CarePackageRequest.StatusActive).Sum(x => x.Count);
 
         return new DashboardSummaryDto
         {
+            CanViewRevenue = includeRevenue,
             TotalCustomers = customersByStatus.Sum(x => x.Count),
             TotalGraves = gravesByStatus.Sum(x => x.Count),
             OccupiedGraves = gravesByStatus.Where(x => x.Key == Grave.StatusOccupied).Sum(x => x.Count),

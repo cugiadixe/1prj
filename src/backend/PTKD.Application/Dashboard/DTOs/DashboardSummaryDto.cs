@@ -22,6 +22,10 @@ public class DashboardMonthCount
 
 public class DashboardSummaryDto
 {
+    // Người gọi có quyền xem doanh thu (FINANCE_VIEW_REVENUE) ở công ty này không. Khi false,
+    // TotalRevenue = 0 và RevenueByMonth rỗng — frontend thay hai widget doanh thu bằng widget khác.
+    public bool CanViewRevenue { get; set; }
+
     // KPI
     public long TotalCustomers { get; set; }
     public long TotalGraves { get; set; }
