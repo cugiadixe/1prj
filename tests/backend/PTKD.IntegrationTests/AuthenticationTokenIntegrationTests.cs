@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using PTKD.Application.Security.Authentication.Interfaces;
@@ -34,7 +36,11 @@ public class AuthenticationTokenIntegrationTests : IAsyncLifetime
 
         _materialService = new RefreshTokenMaterialService();
         _timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 7, 16, 0, 0, 0, TimeSpan.Zero));
-        var jwtService = new JwtAccessTokenService(new JwtSigningKeyProvider(), _timeProvider);
+        var jwtService = new JwtAccessTokenService(
+            new JwtSigningKeyProvider(
+                new ConfigurationBuilder().Build(),
+                NullLogger<JwtSigningKeyProvider>.Instance),
+            _timeProvider);
         
         var factoryMock = new Mock<ITokenSessionDbContextFactory>();
         factoryMock.Setup(f => f.CreateDbContext()).Returns(() => CreateContext());

@@ -79,6 +79,25 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Rate limiting — chặn dò mật khẩu phân tán/vét cạn trên các endpoint xác thực.
+// Khoá tài khoản (5 lần sai) chặn theo TÀI KHOẢN; limiter này chặn theo NGUỒN GỌI (IP) nên
+// bịt nốt đường thử-nhiều-tài-khoản từ một nguồn và làm chậm brute-force nói chung.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Chính sách "login": cửa sổ cố định 1 phút, tối đa 10 lượt / IP, không xếp hàng.
+    options.AddPolicy("login", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 // DbContext and Infrastructure
 builder.Services.AddSingleton<AppendOnlyInterceptor>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
@@ -234,6 +253,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -2,6 +2,8 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using PTKD.Application.Security.Authentication.Interfaces;
@@ -19,7 +21,9 @@ public class JwtAccessTokenServiceTests
 
     public JwtAccessTokenServiceTests()
     {
-        _keyProvider = new JwtSigningKeyProvider();
+        _keyProvider = new JwtSigningKeyProvider(
+            new ConfigurationBuilder().Build(),
+            NullLogger<JwtSigningKeyProvider>.Instance);
         _timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 7, 16, 0, 0, 0, TimeSpan.Zero));
         _service = new JwtAccessTokenService(_keyProvider, _timeProvider);
     }
