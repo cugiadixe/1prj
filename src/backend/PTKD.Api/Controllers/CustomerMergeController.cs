@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PTKD.Application.Customers.DTOs;
 using PTKD.Application.Customers.Services;
@@ -10,6 +11,7 @@ using PTKD.Application.Security.Authentication.Interfaces;
 namespace PTKD.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v2/customers")]
 public class CustomerMergeController : ControllerBase
 {
