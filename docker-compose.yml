@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2025-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${DB_SA_PASSWORD:-YourStr0ngP@ssword!}"
+      MSSQL_SA_PASSWORD: "${DB_SA_PASSWORD:?DB_SA_PASSWORD chua duoc dat trong .env}"
     ports:
       - "${DB_PORT:-1433}:1433"
     volumes:
@@ -19,7 +19,7 @@ services:
       context: src/backend
       dockerfile: Dockerfile.migrator
     environment:
-      ConnectionStrings__DefaultConnection: "Server=db;Database=${DB_NAME:-PTKD_PROD};User Id=sa;Password=${DB_SA_PASSWORD:-YourStr0ngP@ssword!};TrustServerCertificate=True"
+      ConnectionStrings__DefaultConnection: "Server=db;Database=${DB_NAME:-PTKD_PROD};User Id=sa;Password=${DB_SA_PASSWORD:?DB_SA_PASSWORD chua duoc dat trong .env};TrustServerCertificate=True"
     volumes:
       - ./database/migrations:/app/database/migrations:ro
       - ./database/rollbacks:/app/database/rollbacks:ro
@@ -37,7 +37,7 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
-      ConnectionStrings__DefaultConnection: "Server=db;Database=${DB_NAME:-PTKD_PROD};User Id=sa;Password=${DB_SA_PASSWORD:-YourStr0ngP@ssword!};TrustServerCertificate=True"
+      ConnectionStrings__DefaultConnection: "Server=db;Database=${DB_NAME:-PTKD_PROD};User Id=sa;Password=${DB_SA_PASSWORD:?DB_SA_PASSWORD chua duoc dat trong .env};TrustServerCertificate=True"
       Cors__AllowedOrigins__0: "${CORS_ORIGIN:-http://localhost}"
     depends_on:
       db:
