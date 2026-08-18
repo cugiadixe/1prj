@@ -11,8 +11,23 @@ public class CustomerListItemDto
     public string? Cccd { get; set; }
     public string? Phone { get; set; }
     public string CustomerStatus { get; set; } = null!;
+    // Suy từ CustomerStatus == "DECEASED": khách đã trở thành cốt trong mộ (đã mất). Tách ra thành
+    // cờ riêng cho cột "Tình trạng" (Còn sống / Đã mất) ở danh sách.
+    public bool IsDeceased { get; set; }
+    // Các công ty phụ trách khách này (kèm nhân viên phụ trách). ĐÃ được lọc theo phạm vi quyền của
+    // người gọi — không liệt kê công ty người gọi không được phủ.
+    public CustomerCompanyBriefDto[] Companies { get; set; } = Array.Empty<CustomerCompanyBriefDto>();
     public DateTime CreatedAt { get; set; }
     public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
+}
+
+/// <summary>Tóm tắt công ty phụ trách + nhân viên phụ trách của khách, dùng cho cột danh sách.</summary>
+public class CustomerCompanyBriefDto
+{
+    public long CompanyId { get; set; }
+    public string? CompanyName { get; set; }
+    public long? AssignedStaffId { get; set; }
+    public string? AssignedStaffName { get; set; }
 }
 
 public class CustomerDetailDto
@@ -70,6 +85,10 @@ public class CreateCustomerRequest
     public string? DeathDateLunar { get; set; }
     public string? DeathPlace { get; set; }
     public string? Hometown { get; set; }
+
+    // Khách được tạo trong tình trạng ĐÃ MẤT → đặt CustomerStatus = DECEASED ngay lúc tạo (khách đã
+    // mất nhưng chưa gắn mộ). Mặc định false (còn sống). Xem CustomerService.CreateCustomerAsync.
+    public bool IsDeceased { get; set; }
 
     public long? InitialCompanyId { get; set; }
     public long? AssignedStaffId { get; set; }
@@ -149,6 +168,9 @@ public class CustomerSearchRequest
 {
     public string? Search { get; set; }
     public string? CustomerStatus { get; set; }
+    // Lọc theo tình trạng sống/mất: "ALIVE" (CustomerStatus != DECEASED) hoặc "DECEASED".
+    // Độc lập với CustomerStatus ở trên; cả hai đều đọc cùng cột nên chọn mâu thuẫn sẽ ra rỗng.
+    public string? LifeStatus { get; set; }
     public long? CompanyId { get; set; }
     public long? AssignedStaffId { get; set; }
     public bool? UnassignedStaff { get; set; }

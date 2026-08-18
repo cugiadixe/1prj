@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Tabs, Typography } from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Form, Input, Radio, Row, Select, Space, Tabs, Typography } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createCustomer, checkDuplicates } from './customersApi';
@@ -20,13 +20,21 @@ const CustomerCreatePage: React.FC = () => {
   // số giấy tờ vẫn lưu vào trường cccd (loại suy theo độ dài).
   const docType = (Form.useWatch('docType', form) as string) || 'CCCD';
   const idDigits = docType === 'CMND' ? 10 : 12;
+  // Tình trạng khách: mặc định "Còn sống". "Đã mất" mới hiện tab + đòi Thông tin mất.
+  const lifeStatus = (Form.useWatch('lifeStatus', form) as string) || 'ALIVE';
+  const isDeceased = lifeStatus === 'DECEASED';
 
   // Chỉ giữ chữ số khi gõ (dùng cho số giấy tờ, điện thoại, mã số thuế).
   const digitsOnly = (e: React.ChangeEvent<HTMLInputElement>) => e.target.value.replace(/\D/g, '');
 
-  // Trường bắt buộc (customerCode, fullName) đều ở tab "basic"; nếu submit lỗi thì nhảy về đó.
-  const onFinishFailed = () => {
-    setActiveTab('basic');
+  // Nhảy tới tab chứa lỗi đầu tiên (vd ngày mất ở tab "death"), thay vì luôn về "basic".
+  const onFinishFailed = ({ errorFields }: { errorFields: { name: (string | number)[] }[] }) => {
+    const firstErr = errorFields?.[0]?.name?.[0] as string | undefined;
+    const deathFields = ['deathDateSolar', 'deathDateLunar', 'deathPlace'];
+    const contactFields = ['docType', 'cccd', 'phone', 'cccdIssueDate', 'cccdIssuePlace', 'taxCode', 'hometown', 'permanentAddress', 'contactAddress'];
+    if (firstErr && deathFields.includes(firstErr)) setActiveTab('death');
+    else if (firstErr && contactFields.includes(firstErr)) setActiveTab('contact');
+    else setActiveTab('basic');
   };
 
   const createMutation = useMutation({
@@ -62,6 +70,8 @@ const CustomerCreatePage: React.FC = () => {
 
   const handleSubmit = (values: Record<string, unknown>) => {
     setSubmitError(null);
+    // Còn sống → KHÔNG gửi thông tin mất (kể cả người dùng đã gõ rồi chuyển về "Còn sống").
+    const deceased = values.lifeStatus === 'DECEASED';
     const request: CreateCustomerRequest = {
       customerCode: values.customerCode as string,
       fullName: values.fullName as string,
@@ -76,10 +86,11 @@ const CustomerCreatePage: React.FC = () => {
       taxCode: (values.taxCode as string) || null,
       phone: (values.phone as string) || null,
       contactAddress: (values.contactAddress as string) || null,
-      deathDateSolar: values.deathDateSolar ? (values.deathDateSolar as { toISOString: () => string }).toISOString() : null,
-      deathDateLunar: (values.deathDateLunar as string) || null,
-      deathPlace: (values.deathPlace as string) || null,
+      deathDateSolar: deceased && values.deathDateSolar ? (values.deathDateSolar as { toISOString: () => string }).toISOString() : null,
+      deathDateLunar: deceased ? ((values.deathDateLunar as string) || null) : null,
+      deathPlace: deceased ? ((values.deathPlace as string) || null) : null,
       hometown: (values.hometown as string) || null,
+      isDeceased: deceased,
       initialCompanyId: values.initialCompanyId ? Number(values.initialCompanyId) : null,
       assignedStaffId: values.assignedStaffId ? Number(values.assignedStaffId) : null,
       internalNotes: (values.internalNotes as string) || null,
@@ -133,7 +144,7 @@ const CustomerCreatePage: React.FC = () => {
           layout="vertical"
           onFinish={handleSubmit}
           onFinishFailed={onFinishFailed}
-          initialValues={{ docType: 'CCCD' }}
+          initialValues={{ docType: 'CCCD', lifeStatus: 'ALIVE' }}
           data-testid="customer-create-form"
         >
           <Tabs
@@ -146,6 +157,23 @@ const CustomerCreatePage: React.FC = () => {
                 forceRender: true,
                 children: (
                   <Row gutter={16}>
+                    <Col xs={24}>
+                      <Form.Item name="lifeStatus" label="Tình trạng">
+                        <Radio.Group
+                          data-testid="input-lifeStatus"
+                          optionType="button"
+                          buttonStyle="solid"
+                          onChange={(e) => {
+                            // Chuyển về "Còn sống" khi đang ở tab Thông tin mất thì kéo về tab cơ bản.
+                            if (e.target.value === 'ALIVE' && activeTab === 'death') setActiveTab('basic');
+                          }}
+                          options={[
+                            { label: 'Còn sống', value: 'ALIVE' },
+                            { label: 'Đã mất', value: 'DECEASED' },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
                     <Col xs={24} md={12}>
                       <Form.Item
                         name="customerCode"
@@ -324,30 +352,45 @@ const CustomerCreatePage: React.FC = () => {
                   </Row>
                 ),
               },
-              {
-                key: 'death',
-                label: 'Thông tin mất',
-                forceRender: true,
-                children: (
-                  <Row gutter={16}>
-                    <Col xs={24} md={12}>
-                      <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)">
-                        <DatePicker style={{ width: '100%' }} data-testid="input-deathDateSolar" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
-                        <Input data-testid="input-deathDateLunar" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24}>
-                      <Form.Item name="deathPlace" label="Nơi mất" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
-                        <Input data-testid="input-deathPlace" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                ),
-              },
+              // Tab "Thông tin mất" CHỈ hiện khi Tình trạng = Đã mất; còn sống thì ẩn hẳn.
+              ...(isDeceased
+                ? [{
+                    key: 'death',
+                    label: 'Thông tin mất',
+                    forceRender: true,
+                    children: (
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <Form.Item
+                            name="deathDateSolar"
+                            label="Ngày mất (Dương lịch)"
+                            dependencies={['deathDateLunar']}
+                            rules={[{
+                              validator: (_, v) => {
+                                const lunar = form.getFieldValue('deathDateLunar');
+                                return v || (lunar && String(lunar).trim())
+                                  ? Promise.resolve()
+                                  : Promise.reject(new Error('Nhập ít nhất một ngày mất (dương hoặc âm lịch)'));
+                              },
+                            }]}
+                          >
+                            <DatePicker style={{ width: '100%' }} data-testid="input-deathDateSolar" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20, message: 'Tối đa 20 ký tự' }]}>
+                            <Input data-testid="input-deathDateLunar" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="deathPlace" label="Nơi mất" rules={[{ max: 200, message: 'Tối đa 200 ký tự' }]}>
+                            <Input data-testid="input-deathPlace" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    ),
+                  }]
+                : []),
             ]}
           />
 

@@ -21,6 +21,9 @@ public class CustomerService : ICustomerService
     private const string ViewBasicPermission = "CUSTOMER_VIEW_BASIC";
     private const string CreateFinalPermission = "CUSTOMER_CREATE_FINAL";
     private const string MasterUpdatePermission = "CUSTOMER_MASTER_UPDATE";
+    // Trạng thái "đã mất" — đặt khi khách trở thành cốt trong mộ (xem GraveService). "Còn sống" là
+    // mọi trạng thái khác.
+    private const string DeceasedStatus = "DECEASED";
 
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
@@ -84,6 +87,10 @@ public class CustomerService : ICustomerService
 
             var customer = new Customer(request.CustomerCode, profile.Id);
             customer.SetCreatedBy(actorUserId);
+            // Tạo khách ở tình trạng đã mất → đặt DECEASED ngay (không chờ quy trình gắn mộ). Ngày mất
+            // đã lưu ở profile phía trên.
+            if (request.IsDeceased)
+                customer.SetStatus(DeceasedStatus, actorUserId);
             context.Customers.Add(customer);
             await context.SaveChangesAsync(ct);
 
@@ -108,7 +115,7 @@ public class CustomerService : ICustomerService
                 Outcome = "SUCCESS",
                 CorrelationId = Guid.NewGuid(),
                 ActorUserId = actorUserId,
-                AfterStateJson = JsonSerializer.Serialize(new { customer.CustomerCode, profile.FullName, profile.Cccd, request.InitialCompanyId })
+                AfterStateJson = JsonSerializer.Serialize(new { customer.CustomerCode, profile.FullName, profile.Cccd, customer.CustomerStatus, request.InitialCompanyId })
             };
             audit.ThrowIfContainsSensitiveData();
             await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
@@ -245,6 +252,17 @@ public class CustomerService : ICustomerService
         if (!string.IsNullOrWhiteSpace(request.CustomerStatus))
             query = query.Where(c => c.CustomerStatus == request.CustomerStatus);
 
+        // Lọc tình trạng sống/mất. "Đã mất" = CustomerStatus == DECEASED (đặt khi khách thành cốt
+        // trong mộ). "Còn sống" = mọi trạng thái còn lại. Đọc cùng cột với bộ lọc CustomerStatus.
+        var hasLifeFilter = !string.IsNullOrWhiteSpace(request.LifeStatus);
+        if (hasLifeFilter)
+        {
+            if (string.Equals(request.LifeStatus, DeceasedStatus, StringComparison.OrdinalIgnoreCase))
+                query = query.Where(c => c.CustomerStatus == DeceasedStatus);
+            else if (string.Equals(request.LifeStatus, "ALIVE", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(c => c.CustomerStatus != DeceasedStatus);
+        }
+
         var hasSearch = !string.IsNullOrWhiteSpace(request.Search);
         if (hasSearch)
         {
@@ -300,6 +318,8 @@ public class CustomerService : ICustomerService
                 Cccd = mask ? MaskCccd(c.Profile.Cccd) : c.Profile.Cccd,
                 Phone = mask ? MaskPhone(c.Profile.Phone) : c.Profile.Phone,
                 CustomerStatus = c.CustomerStatus,
+                IsDeceased = c.CustomerStatus == DeceasedStatus,
+                // Companies nạp tách ở dưới (tra từ điển tên) — tránh subquery lồng khó dịch SQL.
                 CreatedAt = c.CreatedAt,
                 Tags = context.CustomerTags
                     .Where(x => x.CustomerId == c.Id)
@@ -311,7 +331,8 @@ public class CustomerService : ICustomerService
                     }).ToArray()
             });
 
-        var anyFilter = hasSearch || hasContextFilter || hasTagFilter || !string.IsNullOrWhiteSpace(request.CustomerStatus);
+        var anyFilter = hasSearch || hasContextFilter || hasTagFilter || hasLifeFilter
+            || !string.IsNullOrWhiteSpace(request.CustomerStatus);
 
         int totalCount;
         CustomerListItemDto[] items;
@@ -333,6 +354,53 @@ public class CustomerService : ICustomerService
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToArrayAsync(ct);
+        }
+
+        // Nạp công ty phụ trách + nhân viên phụ trách cho ĐÚNG trang hiện tại (≤ pageSize khách).
+        // Tách truy vấn + tra từ điển tên cho chắc chắn dịch được SQL, thay vì subquery lồng.
+        var pageCustomerIds = items.Select(i => i.Id).ToList();
+        if (pageCustomerIds.Count > 0)
+        {
+            // Chốt chống lộ: khách có thể gắn nhiều công ty, kể cả công ty người gọi KHÔNG được phủ.
+            // Chỉ giữ context trong phạm vi (scope.Allows đúng cả khi toàn cục lẫn theo công ty).
+            var contexts = (await context.CustomerCompanyContexts.AsNoTracking()
+                    .Where(ctx => pageCustomerIds.Contains(ctx.CustomerId))
+                    .Select(ctx => new { ctx.CustomerId, ctx.CompanyId, ctx.AssignedStaffId })
+                    .ToListAsync(ct))
+                .Where(x => scope.Allows(x.CompanyId))
+                .ToList();
+
+            var companyIds = contexts.Select(x => x.CompanyId).Distinct().ToList();
+            var companyNames = companyIds.Count == 0
+                ? new System.Collections.Generic.Dictionary<long, string>()
+                : await context.Companies.AsNoTracking()
+                    .Where(co => companyIds.Contains(co.Id))
+                    .ToDictionaryAsync(co => co.Id, co => co.Name, ct);
+
+            var staffIds = contexts.Where(x => x.AssignedStaffId.HasValue)
+                .Select(x => x.AssignedStaffId!.Value).Distinct().ToList();
+            var staffNames = staffIds.Count == 0
+                ? new System.Collections.Generic.Dictionary<long, string>()
+                : await context.Users.AsNoTracking()
+                    .Where(u => staffIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+
+            var byCustomer = contexts
+                .GroupBy(x => x.CustomerId)
+                .ToDictionary(g => g.Key, g => g
+                    .OrderBy(x => x.CompanyId)
+                    .Select(x => new CustomerCompanyBriefDto
+                    {
+                        CompanyId = x.CompanyId,
+                        CompanyName = companyNames.TryGetValue(x.CompanyId, out var cn) ? cn : null,
+                        AssignedStaffId = x.AssignedStaffId,
+                        AssignedStaffName = x.AssignedStaffId.HasValue
+                            && staffNames.TryGetValue(x.AssignedStaffId.Value, out var sn) ? sn : null,
+                    }).ToArray());
+
+            foreach (var item in items)
+                item.Companies = byCustomer.TryGetValue(item.Id, out var list)
+                    ? list : Array.Empty<CustomerCompanyBriefDto>();
         }
 
         return new PagedResult<CustomerListItemDto>

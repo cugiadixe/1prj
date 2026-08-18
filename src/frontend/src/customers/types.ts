@@ -14,6 +14,13 @@ export const CUSTOMER_STATUS_COLORS: Record<string, string> = {
 
 export type { Tag } from '../tags/types';
 
+export interface CustomerCompanyBrief {
+  companyId: number;
+  companyName: string | null;
+  assignedStaffId: number | null;
+  assignedStaffName: string | null;
+}
+
 export interface CustomerListItem {
   id: number;
   customerCode: string;
@@ -21,6 +28,11 @@ export interface CustomerListItem {
   cccd: string | null;
   phone: string | null;
   customerStatus: string;
+  // Suy từ customerStatus === 'DECEASED': khách đã mất (đã thành cốt trong mộ). Chỉ endpoint danh
+  // sách trả về; optional để các nơi dựng CustomerListItem tổng hợp (vd ô gợi ý) không phải khai.
+  isDeceased?: boolean;
+  // Công ty phụ trách + nhân viên phụ trách (đã lọc theo phạm vi quyền người xem).
+  companies?: CustomerCompanyBrief[];
   createdAt: string;
   tags?: import('../tags/types').Tag[];
 }
@@ -92,6 +104,8 @@ export interface CreateCustomerRequest {
   deathDateLunar?: string | null;
   deathPlace?: string | null;
   hometown?: string | null;
+  // Tạo khách ở tình trạng đã mất → backend đặt CustomerStatus = DECEASED. Mặc định false.
+  isDeceased?: boolean;
   initialCompanyId?: number | null;
   assignedStaffId?: number | null;
   internalNotes?: string | null;
@@ -146,6 +160,8 @@ export interface DuplicateCheckResult {
 export interface CustomerSearchParams {
   search?: string;
   customerStatus?: string;
+  // 'ALIVE' | 'DECEASED' — lọc tình trạng sống/mất.
+  lifeStatus?: string;
   companyId?: number;
   assignedStaffId?: number;
   unassignedStaff?: boolean;

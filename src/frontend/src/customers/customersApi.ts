@@ -24,6 +24,7 @@ export async function searchCustomers(
     params: {
       search: params.search || undefined,
       customerStatus: params.customerStatus || undefined,
+      lifeStatus: params.lifeStatus || undefined,
       companyId: params.companyId ?? undefined,
       assignedStaffId: params.assignedStaffId ?? undefined,
       unassignedStaff: params.unassignedStaff ? true : undefined,

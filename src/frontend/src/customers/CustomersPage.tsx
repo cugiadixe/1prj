@@ -18,6 +18,7 @@ const CustomersPage: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [lifeStatusFilter, setLifeStatusFilter] = useState<string | undefined>(undefined);
   const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
   const [staffFilter, setStaffFilter] = useState<number | typeof UNASSIGNED_STAFF | undefined>(undefined);
   const [tagFilter, setTagFilter] = useState<number[]>([]);
@@ -28,11 +29,12 @@ const CustomersPage: React.FC = () => {
   const unassignedStaff = staffFilter === UNASSIGNED_STAFF;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['customers', search, statusFilter, companyFilter, staffFilter, tagFilter, page, pageSize],
+    queryKey: ['customers', search, statusFilter, lifeStatusFilter, companyFilter, staffFilter, tagFilter, page, pageSize],
     queryFn: () =>
       searchCustomers({
         search,
         customerStatus: statusFilter,
+        lifeStatus: lifeStatusFilter,
         companyId: companyFilter,
         assignedStaffId,
         unassignedStaff,
@@ -104,6 +106,32 @@ const CustomersPage: React.FC = () => {
       ),
     },
     {
+      title: 'Tình trạng',
+      key: 'lifeStatus',
+      render: (_: unknown, r: CustomerListItem) =>
+        r.isDeceased ? <Tag color="volcano">Đã mất</Tag> : <Tag color="green">Còn sống</Tag>,
+    },
+    {
+      title: 'Công ty phụ trách',
+      key: 'companies',
+      render: (_: unknown, r: CustomerListItem) =>
+        !r.companies || r.companies.length === 0
+          ? '—'
+          : r.companies.map((c) => <div key={c.companyId}>{c.companyName ?? `#${c.companyId}`}</div>),
+    },
+    {
+      title: 'Nhân viên phụ trách',
+      key: 'assignedStaff',
+      render: (_: unknown, r: CustomerListItem) =>
+        !r.companies || r.companies.length === 0
+          ? '—'
+          : r.companies.map((c) => (
+              <div key={c.companyId} style={{ color: c.assignedStaffName ? undefined : '#94a3b8' }}>
+                {c.assignedStaffName ?? '— (chưa phân)'}
+              </div>
+            )),
+    },
+    {
       title: 'Thẻ',
       key: 'tags',
       render: (_: unknown, r: CustomerListItem) => <TagChips tags={r.tags} size="small" />,
@@ -147,6 +175,18 @@ const CustomersPage: React.FC = () => {
             { label: 'Hoạt động', value: 'ACTIVE' },
             { label: 'Ngừng HĐ', value: 'INACTIVE' },
             { label: 'Đã gộp', value: 'MERGED' },
+          ]}
+        />
+        <Select
+          placeholder="Tình trạng"
+          allowClear
+          style={{ width: 140 }}
+          onChange={(val) => { setLifeStatusFilter(val); setPage(1); }}
+          value={lifeStatusFilter}
+          data-testid="customer-life-status-filter"
+          options={[
+            { label: 'Còn sống', value: 'ALIVE' },
+            { label: 'Đã mất', value: 'DECEASED' },
           ]}
         />
         <Select
