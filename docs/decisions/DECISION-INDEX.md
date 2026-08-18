@@ -31,6 +31,7 @@ Hệ quả thực tế: muốn biết *"vì sao endpoint `/auth/me/permissions` 
 | `OD-1B8-001…015` | 15 | Module In lại thẻ | ❌ | Hỏi: `phase-1b8-card-reprint-discovery-and-scope-plan.md`<br>Đáp: `phase-1b8a-project-owner-blocker-decision-response.md` |
 | `B1-BLOCKER-001…006` | 6 | Gỡ chặn triển khai In lại thẻ (vòng 2) | ❌ | `phase-1b8b1-project-owner-blocker-decision-response.md` |
 | `OD-1B9-001…018` | 18 | Module Bán gói chăm sóc | ❌ | `phase-1b9a-project-owner-blocker-decision-response.md` |
+| `SR-06`, `SR-09` | 2 | Đánh giá bảo mật 2026-08-18: quyền global xuyên công ty · quyền xoá payment | ✅ **Có** | `docs/decisions/2026-08-18-security-review-owner-decisions.md` |
 | *(không mã)* | ~20 | Chặn giữa chừng, chọn việc kế tiếp, phát hành | ❌ | Xem §4 và §5 |
 
 **Lưu ý cấu trúc:** nhóm `OD-1B7` và `OD-1B8` tách **câu hỏi** và **câu trả lời** ra hai file khác nhau. File `discovery-and-scope-plan` chỉ nêu vấn đề còn ngỏ; muốn biết đã chốt gì phải mở file `scope-acceptance` / `blocker-decision-response`.

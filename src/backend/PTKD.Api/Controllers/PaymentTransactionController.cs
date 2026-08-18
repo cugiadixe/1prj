@@ -14,6 +14,8 @@ namespace PTKD.Api.Controllers;
 [ApiController]
 [Route("api/v2/payments")]
 [Authorize]
+// Đường tự-kiểm bằng EvaluateAsync: quyền GLOBAL được phép thao tác xuyên công ty (KHÔNG đòi thành
+// viên). QUYẾT ĐỊNH có chủ đích SR-06 (docs/decisions/2026-08-18-security-review-owner-decisions.md).
 public class PaymentTransactionController : ControllerBase
 {
     private readonly IPaymentTransactionService _paymentService;
@@ -142,6 +144,9 @@ public class PaymentTransactionController : ControllerBase
         if (payment == null)
             return NotFound(new { Title = "Not Found", Detail = "Payment not found." });
 
+        // Dùng chung quyền PAYMENT_CREATE_DRAFT có chủ đích (SR-09): xoá mềm CHỈ tác động bản nháp —
+        // PaymentTransaction.SoftDelete() gọi EnsureNotConfirmed() chặn payment đã xác nhận. "Ai tạo
+        // nháp thì xoá nháp". Nếu sau này mở xoá cho payment đã xác nhận thì phải tách quyền riêng.
         if (!await _permissionEvaluator.EvaluateAsync(userId, "PAYMENT_CREATE_DRAFT", payment.CompanyId, ct))
             return Forbid();
 

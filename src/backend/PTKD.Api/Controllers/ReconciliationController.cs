@@ -14,6 +14,9 @@ namespace PTKD.Api.Controllers;
 [ApiController]
 [Route("api/v2/reconciliation")]
 [Authorize]
+// Đường tự-kiểm bằng EvaluateAsync: quyền GLOBAL được phép thao tác xuyên công ty (KHÔNG đòi thành
+// viên). Đây là QUYẾT ĐỊNH có chủ đích SR-06 (docs/decisions/2026-08-18-security-review-owner-decisions.md),
+// không phải lỗ hổng — đừng "vá" thêm chốt thành viên nếu chưa xem lại quyết định đó.
 public class ReconciliationController : ControllerBase
 {
     private readonly IReconciliationService _reconciliationService;
