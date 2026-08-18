@@ -26,6 +26,8 @@ import UserManagementPage from './organizations/UserManagementPage';
 import SystemStoragePage from './system/SystemStoragePage';
 import CustomersPage from './customers/CustomersPage';
 import CustomerDetailPage from './customers/CustomerDetailPage';
+import RelationshipsPage from './customers/RelationshipsPage';
+import RelationshipKindsPage from './customers/RelationshipKindsPage';
 import CustomerCreatePage from './customers/CustomerCreatePage';
 import CustomerEditPage from './customers/CustomerEditPage';
 import WorkflowDefinitionsPage from './workflow/WorkflowDefinitionsPage';
@@ -140,6 +142,8 @@ const App: React.FC = () => {
               <Route path="organizations/users" element={<UserManagementPage />} />
               {/* Phase 1B.2-B2 — Customer Frontend UI */}
               <Route path="customers" element={<CustomersPage />} />
+              <Route path="relationships" element={<RelationshipsPage />} />
+              <Route path="relationships/kinds" element={<RelationshipKindsPage />} />
               <Route path="customers/new" element={<CustomerCreatePage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="customers/:customerId/edit" element={<CustomerEditPage />} />

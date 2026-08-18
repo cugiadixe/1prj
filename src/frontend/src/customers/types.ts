@@ -186,3 +186,86 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
 }
+
+export interface RelationshipKind {
+  kindCode: string;
+  label: string;
+  inverseCode: string;
+  isSymmetric: boolean;
+  sortOrder: number;
+}
+
+export interface CustomerRelationship {
+  id: number;
+  fromCustomerId: number;
+  otherCustomerId: number;
+  otherCustomerCode: string;
+  otherCustomerName: string;
+  relationKind: string;
+  relationLabel: string;
+  isDerived: boolean;
+  needsConfirmation: boolean;
+  note: string | null;
+  rowVersion: string;
+}
+
+export interface CreateCustomerRelationshipRequest {
+  otherCustomerId: number;
+  relationKind: string;
+  note?: string | null;
+}
+
+export interface RelationshipListItem {
+  id: number;
+  fromCustomerId: number;
+  fromCustomerCode: string;
+  fromCustomerName: string;
+  toCustomerId: number;
+  toCustomerCode: string;
+  toCustomerName: string;
+  relationKind: string;
+  relationLabel: string;
+  isDerived: boolean;
+  needsConfirmation: boolean;
+  note: string | null;
+}
+
+export interface RelationshipSearchParams {
+  search?: string;
+  kind?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface RelationshipKindDetail {
+  kindCode: string;
+  labelMale: string;
+  labelFemale: string;
+  labelNeutral: string;
+  inverseCode: string;
+  inverseLabelNeutral: string | null;
+  isSymmetric: boolean;
+  sortOrder: number;
+  isCore: boolean;
+  deletable: boolean;
+}
+
+export interface RelationshipKindSideInput {
+  labelMale: string;
+  labelFemale: string;
+  labelNeutral: string;
+}
+
+export interface CreateRelationshipKindRequest {
+  isSymmetric: boolean;
+  sideA: RelationshipKindSideInput;
+  sideB?: RelationshipKindSideInput | null;
+  sortOrder: number;
+}
+
+export interface UpdateRelationshipKindRequest {
+  labelMale: string;
+  labelFemale: string;
+  labelNeutral: string;
+  sortOrder: number;
+}

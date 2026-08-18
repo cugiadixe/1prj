@@ -55,6 +55,7 @@ const navLabel = (testId: string, text: string) => <span data-testid={testId}>{t
  */
 const MENU_GROUPS: ReadonlyArray<{ key: string; prefixes: string[] }> = [
   { key: 'customers-group', prefixes: ['/customers'] },
+  { key: 'relationships-group', prefixes: ['/relationships'] },
   { key: 'payments-group', prefixes: ['/payments', '/reconciliation'] },
   { key: 'services-group', prefixes: ['/services', '/care-packages'] },
   { key: 'workflow-group', prefixes: ['/workflow'] },
@@ -175,6 +176,25 @@ const AuthenticatedShell: React.FC = () => {
           label: navLabel('nav-customers-merge-search', 'Tìm trùng lặp'),
           icon: <FileSearchOutlined />,
           onClick: () => navigate('/customers/merge/search'),
+        } : null,
+      ].filter(Boolean),
+    } : null,
+    hasPermission('CUSTOMER_VIEW_BASIC') ? {
+      key: 'relationships-group',
+      icon: <ApartmentOutlined />,
+      label: navLabel('nav-relationships-group', 'Quan hệ gia đình'),
+      children: [
+        {
+          key: '/relationships',
+          label: navLabel('nav-relationships', 'Danh sách quan hệ'),
+          icon: <ApartmentOutlined />,
+          onClick: () => navigate('/relationships'),
+        },
+        hasPermission('RELATIONSHIP_KIND_MANAGE') ? {
+          key: '/relationships/kinds',
+          label: navLabel('nav-relationship-kinds', 'Loại quan hệ'),
+          icon: <TagsOutlined />,
+          onClick: () => navigate('/relationships/kinds'),
         } : null,
       ].filter(Boolean),
     } : null,

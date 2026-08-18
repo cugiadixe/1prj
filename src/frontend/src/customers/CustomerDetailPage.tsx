@@ -21,6 +21,7 @@ const genderLabel = (g: string | null | undefined): string =>
   g === 'MALE' ? 'Nam' : g === 'FEMALE' ? 'Nữ' : g === 'OTHER' ? 'Khác' : (g ?? '—');
 import CustomerMasterChangeRequestForm from './CustomerMasterChangeRequestForm';
 import CustomerCarePackagesSection from '../customerCarePackages/CustomerCarePackagesSection';
+import CustomerRelationshipsSection from './CustomerRelationshipsSection';
 
 const { Title } = Typography;
 
@@ -216,6 +217,8 @@ const CustomerDetailPage: React.FC = () => {
       />
 
       <CustomerCarePackagesSection customerId={id} />
+
+      <CustomerRelationshipsSection customerId={id} canManage={hasPermission('CUSTOMER_RELATIONSHIP_MANAGE')} />
 
       <Card title="Công ty / nhân viên phụ trách" data-testid="company-contexts-card">
         <Space style={{ marginBottom: 8 }}>

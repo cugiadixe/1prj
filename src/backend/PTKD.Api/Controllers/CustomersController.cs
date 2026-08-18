@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using PTKD.Api.Security.Authorization;
 using PTKD.Application.Customers.DTOs;
 using PTKD.Application.Customers.Services;
+using PTKD.Application.Relationships.DTOs;
+using PTKD.Application.Relationships.Services;
 using PTKD.Application.Security.Authorization.Attributes;
 using PTKD.Application.Security.Authorization.Interfaces;
 using PTKD.Application.Security.Authorization.Models;
@@ -18,11 +20,16 @@ namespace PTKD.API.Controllers;
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
+    private readonly ICustomerRelationshipService _relationshipService;
     private readonly IPermissionEvaluator _permissionEvaluator;
 
-    public CustomersController(ICustomerService customerService, IPermissionEvaluator permissionEvaluator)
+    public CustomersController(
+        ICustomerService customerService,
+        ICustomerRelationshipService relationshipService,
+        IPermissionEvaluator permissionEvaluator)
     {
         _customerService = customerService;
+        _relationshipService = relationshipService;
         _permissionEvaluator = permissionEvaluator;
     }
 
@@ -111,6 +118,49 @@ public class CustomersController : ControllerBase
     {
         var result = await _customerService.CheckDuplicatesAsync(request, GetActorUserId(), ct);
         return Ok(result);
+    }
+
+    // ─── Quan hệ gia đình (đồ thị Customer_Relationships) ────────────────────────
+
+    [HttpGet("relationship-kinds")]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetRelationshipKinds(CancellationToken ct)
+    {
+        var kinds = await _relationshipService.GetKindsAsync(ct);
+        return Ok(kinds);
+    }
+
+    // Danh sách TOÀN BỘ quan hệ cho trang quản lý (mỗi cặp một dòng). Route literal — không đụng {id}.
+    [HttpGet("relationships")]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> SearchRelationships([FromQuery] RelationshipSearchRequest request, CancellationToken ct)
+    {
+        var result = await _relationshipService.SearchAllAsync(request, GetActorUserId(), ct);
+        return Ok(result);
+    }
+
+    [HttpGet("{id}/relationships")]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetRelationships(long id, CancellationToken ct)
+    {
+        var items = await _relationshipService.GetForCustomerAsync(id, GetActorUserId(), ct);
+        return Ok(items);
+    }
+
+    [HttpPost("{id}/relationships")]
+    [RequirePermission(PermissionCodes.CustomerRelationshipManage, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> CreateRelationship(long id, [FromBody] CreateCustomerRelationshipRequest request, CancellationToken ct)
+    {
+        var dto = await _relationshipService.CreateAsync(id, request, GetActorUserId(), ct);
+        return CreatedAtAction(nameof(GetRelationships), new { id }, dto);
+    }
+
+    [HttpDelete("{id}/relationships/{relationshipId}")]
+    [RequirePermission(PermissionCodes.CustomerRelationshipManage, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> DeleteRelationship(long id, long relationshipId, CancellationToken ct)
+    {
+        await _relationshipService.DeleteAsync(id, relationshipId, GetActorUserId(), ct);
+        return NoContent();
     }
 
     private long GetActorUserId()

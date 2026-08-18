@@ -62,6 +62,21 @@ public static class PermissionCodes
 
     public const string CustomerMasterUpdate = "CUSTOMER_MASTER_UPDATE";
 
+    /// <summary>
+    /// Khai/xoá quan hệ gia đình giữa hai khách hàng (đồ thị Customer_Relationships). Nền tảng cho
+    /// việc gán cốt vào mộ (chỉ người có quan hệ gia đình với chủ mộ mới được đặt). Là dữ liệu gia
+    /// đình nhạy cảm (NĐ13) nên is_sensitive. Seed V0047, cấp cho ai đang có CUSTOMER_MASTER_UPDATE.
+    /// data_scope = COMPANY (đòi cả hai khách đều trong phạm vi người thao tác).
+    /// </summary>
+    public const string CustomerRelationshipManage = "CUSTOMER_RELATIONSHIP_MANAGE";
+
+    /// <summary>
+    /// Quản lý DANH MỤC loại quan hệ gia đình (Relationship_Kinds) dùng chung toàn hệ: thêm/sửa/xoá
+    /// loại quan hệ + nhãn theo giới tính + cặp nghịch đảo. Là cấu hình hệ thống (không phải dữ liệu
+    /// cá nhân) nên data_scope GLOBAL. Seed V0048, cấp cho ai đang có SYSTEM_SETTING_MANAGE.
+    /// </summary>
+    public const string RelationshipKindManage = "RELATIONSHIP_KIND_MANAGE";
+
     public const string WorkflowView = "WORKFLOW_VIEW";
 
     /// <summary>

@@ -136,6 +136,8 @@ builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMergeSer
 // Grave Management Services
 builder.Services.AddScoped<PTKD.Application.Graves.Services.IGraveService, PTKD.Application.Graves.Services.GraveService>();
 builder.Services.AddScoped<PTKD.Application.Relationships.Services.IRelationshipDerivationService, PTKD.Application.Relationships.Services.RelationshipDerivationService>();
+builder.Services.AddScoped<PTKD.Application.Relationships.Services.ICustomerRelationshipService, PTKD.Application.Relationships.Services.CustomerRelationshipService>();
+builder.Services.AddScoped<PTKD.Application.Relationships.Services.IRelationshipKindService, PTKD.Application.Relationships.Services.RelationshipKindService>();
 builder.Services.AddScoped<PTKD.Application.Graves.Services.IGraveAttachmentService, PTKD.Application.Graves.Services.GraveAttachmentService>();
 builder.Services.AddScoped<PTKD.Application.Common.Interfaces.IGraveFileStorage, PTKD.Infrastructure.Files.GraveFileStorage>();
 builder.Services.AddScoped<PTKD.Application.Common.Interfaces.IAppSettingsService, PTKD.Infrastructure.Persistence.AppSettingsService>();

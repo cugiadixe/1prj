@@ -28,6 +28,34 @@ public class RelationshipKind
 
     private RelationshipKind() { }
 
+    public RelationshipKind(
+        string kindCode, string labelMale, string labelFemale, string labelNeutral,
+        string inverseCode, bool isSymmetric, int sortOrder)
+    {
+        KindCode = Require(kindCode, nameof(kindCode));
+        LabelMale = Require(labelMale, nameof(labelMale));
+        LabelFemale = Require(labelFemale, nameof(labelFemale));
+        LabelNeutral = Require(labelNeutral, nameof(labelNeutral));
+        InverseCode = Require(inverseCode, nameof(inverseCode));
+        IsSymmetric = isSymmetric;
+        SortOrder = sortOrder;
+    }
+
+    /// <summary>Sửa nhãn + thứ tự. KHÔNG đổi mã/nghịch đảo (đổi cấu trúc thì xoá & tạo lại).</summary>
+    public void Update(string labelMale, string labelFemale, string labelNeutral, int sortOrder)
+    {
+        LabelMale = Require(labelMale, nameof(labelMale));
+        LabelFemale = Require(labelFemale, nameof(labelFemale));
+        LabelNeutral = Require(labelNeutral, nameof(labelNeutral));
+        SortOrder = sortOrder;
+    }
+
+    /// <summary>Gắn mã loại nghịch đảo (dùng khi tạo cặp bất đối xứng — nối 2 chiều).</summary>
+    public void SetInverse(string inverseCode) => InverseCode = Require(inverseCode, nameof(inverseCode));
+
+    private static string Require(string v, string name)
+        => string.IsNullOrWhiteSpace(v) ? throw new System.ArgumentException($"{name} không được trống.") : v.Trim();
+
     /// <summary>Nhãn tiếng Việt theo giới tính đối tượng ('MALE'/'FEMALE'/khác).</summary>
     public string LabelFor(string? gender) => gender switch
     {
