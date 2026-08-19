@@ -1,15 +1,20 @@
 import axiosClient from '../api/axiosClient';
 import type {
+  AssignableGrave,
   CreateEmergencyContactRequest,
-  CreateGraveOccupantRequest,
   CreateGraveRequest,
   GraveDetail,
   GraveEmergencyContact,
   GraveListItem,
   GraveOccupant,
   GraveSearchParams,
+  OccupantCandidate,
+  OwnerDeathRequest,
+  OwnerDeathResult,
   OwnershipHistoryItem,
   PagedResult,
+  PlaceGraveOccupantRequest,
+  RelocateOccupantRequest,
   TransferOwnershipRequest,
   TransferOwnershipResult,
   UpdateEmergencyContactRequest,
@@ -109,9 +114,20 @@ export async function updateGrave(
   return data;
 }
 
+export async function getOccupantCandidates(
+  graveId: number,
+  search?: string,
+): Promise<OccupantCandidate[]> {
+  const { data } = await axiosClient.get<OccupantCandidate[]>(
+    `${BASE}/${graveId}/occupant-candidates`,
+    { params: { search: search || undefined } },
+  );
+  return data;
+}
+
 export async function addOccupant(
   graveId: number,
-  request: CreateGraveOccupantRequest,
+  request: PlaceGraveOccupantRequest,
 ): Promise<GraveOccupant> {
   const { data } = await axiosClient.post<GraveOccupant>(
     `${BASE}/${graveId}/occupants`,
@@ -129,6 +145,30 @@ export async function updateOccupant(
     `${BASE}/${graveId}/occupants/${occupantId}`,
     request,
   );
+  return data;
+}
+
+export async function relocateOccupant(
+  graveId: number,
+  occupantId: number,
+  request: RelocateOccupantRequest,
+): Promise<GraveOccupant> {
+  const { data } = await axiosClient.post<GraveOccupant>(
+    `${BASE}/${graveId}/occupants/${occupantId}/relocate`,
+    request,
+  );
+  return data;
+}
+
+export async function processOwnerDeath(request: OwnerDeathRequest): Promise<OwnerDeathResult> {
+  const { data } = await axiosClient.post<OwnerDeathResult>(`${BASE}/owner-death`, request);
+  return data;
+}
+
+export async function getAssignableGraves(customerId: number, search?: string): Promise<AssignableGrave[]> {
+  const { data } = await axiosClient.get<AssignableGrave[]>(`${BASE}/assignable`, {
+    params: { customerId, search: search || undefined },
+  });
   return data;
 }
 

@@ -4,9 +4,15 @@ namespace PTKD.Domain.Entities;
 
 public class GraveOccupant
 {
+    public const string StatusActive = "ACTIVE";        // đang an táng trong mộ
+    public const string StatusRelocated = "RELOCATED";  // đã bốc/cải táng — suất không còn hiệu lực
+
     public long Id { get; private set; }
     public long GraveId { get; private set; }
     public long? DeceasedCustomerId { get; private set; }   // cốt LÀ khách hàng (status DECEASED)
+    public string Status { get; private set; } = StatusActive;
+    public DateTime? RelocatedAt { get; private set; }
+    public string? RelocationNote { get; private set; }
     public string FullName { get; private set; } = null!;
     public string? Gender { get; private set; }
     public DateTime? Dob { get; private set; }
@@ -67,6 +73,22 @@ public class GraveOccupant
     public void SetCreatedBy(long userId)
     {
         CreatedByUserId = userId;
+    }
+
+    /// <summary>Nối cốt với bản ghi khách hàng đã mất (cốt LÀ khách hàng status DECEASED).</summary>
+    public void LinkDeceasedCustomer(long customerId)
+    {
+        DeceasedCustomerId = customerId;
+    }
+
+    /// <summary>Bốc/cải táng: suất chuyển RELOCATED, giải phóng người + chỗ trong mộ.</summary>
+    public void Relocate(DateTime? relocatedAt, string? note, long? updatedByUserId)
+    {
+        Status = StatusRelocated;
+        RelocatedAt = relocatedAt ?? DateTime.UtcNow;
+        RelocationNote = note;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedByUserId = updatedByUserId;
     }
 
     /// <summary>Cập nhật nhãn quan hệ 2 chiều (dùng khi tái suy diễn lúc đổi chủ mộ).</summary>

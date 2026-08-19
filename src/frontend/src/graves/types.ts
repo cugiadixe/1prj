@@ -64,6 +64,9 @@ export interface GraveOccupant {
   id: number;
   graveId: number;
   deceasedCustomerId: number | null;
+  status: string;                 // ACTIVE / RELOCATED
+  relocatedAt: string | null;
+  relocationNote: string | null;
   fullName: string;
   gender: string | null;
   dob: string | null;
@@ -75,6 +78,46 @@ export interface GraveOccupant {
   deceasedRelationship: string | null;
   notes: string | null;
   rowVersion: string;
+}
+
+export interface OccupantCandidate {
+  customerId: number;
+  customerCode: string;
+  fullName: string;
+  relationLabel: string;
+}
+
+export interface PlaceGraveOccupantRequest {
+  deceasedCustomerId: number;
+  burialDate?: string | null;
+  notes?: string | null;
+}
+
+export interface RelocateOccupantRequest {
+  relocatedAt?: string | null;
+  note?: string | null;
+}
+
+export interface AssignableGrave {
+  graveId: number;
+  graveCode: string;
+  zone: string;
+  rowVersion: string;
+}
+
+export interface OwnerDeathRequest {
+  deceasedCustomerId: number;
+  deathDateSolar?: string | null;
+  heirCustomerId: number;
+  reason?: string | null;
+}
+
+export interface OwnerDeathResult {
+  deceasedCustomerId: number;
+  heirCustomerId: number;
+  gravesOwned: number;
+  gravesTransferred: number;
+  occupantsRederived: number;
 }
 
 export interface GraveEmergencyContact {

@@ -14,6 +14,9 @@ public class GraveOccupantConfiguration : IEntityTypeConfiguration<GraveOccupant
         builder.Property(o => o.Id).HasColumnName("id");
         builder.Property(o => o.GraveId).HasColumnName("grave_id");
         builder.Property(o => o.DeceasedCustomerId).HasColumnName("deceased_customer_id");
+        builder.Property(o => o.Status).HasColumnName("status").HasMaxLength(20);
+        builder.Property(o => o.RelocatedAt).HasColumnName("relocated_at");
+        builder.Property(o => o.RelocationNote).HasColumnName("relocation_note").HasMaxLength(500);
         builder.Property(o => o.FullName).HasColumnName("full_name").HasMaxLength(200);
         builder.Property(o => o.Gender).HasColumnName("gender").HasMaxLength(10);
         builder.Property(o => o.Dob).HasColumnName("dob");

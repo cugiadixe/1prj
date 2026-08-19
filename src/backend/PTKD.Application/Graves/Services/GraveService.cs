@@ -33,6 +33,7 @@ public class GraveService : IGraveService
     private const string CreatePermission = "GRAVE_CREATE";
     private const string UpdatePermission = "GRAVE_UPDATE";
     private const string TransferPermission = "GRAVE_TRANSFER_OWNERSHIP";
+    private const string CustomerDeceasedStatus = "DECEASED";
 
     private readonly IOrganizationDbContextFactory _dbContextFactory;
     private readonly ITransactionalAuditWriter _auditWriter;
@@ -317,8 +318,6 @@ public class GraveService : IGraveService
             if (await context.Graves.AnyAsync(g => g.GraveCode == request.GraveCode, ct))
                 throw new BusinessRuleValidationException("GRAVE_DUPLICATE_CODE", "Grave code already exists.");
 
-            await EnsureOwnerExistsAsync(context, request.OwnerCustomerId, ct);
-
             var cemeteryId = await ResolveCemeteryIdAsync(context, request.CemeteryId, ct);
 
             // Mộ thuộc công ty QUA nghĩa trang: chỉ cho tạo nếu quyền GRAVE_CREATE của người gọi
@@ -329,6 +328,9 @@ public class GraveService : IGraveService
             if (!GraveCompanyScope.AllowsCompany(createScope, cemeteryCompanyId))
                 throw new PermissionDeniedException("GRAVE_CREATE_FORBIDDEN_COMPANY",
                     "Bạn không có quyền tạo mộ ở công ty của nghĩa trang này.");
+
+            // Chủ mộ (nếu có) phải là khách của công ty quản lý mộ này.
+            await EnsureOwnerInGraveCompanyAsync(context, request.OwnerCustomerId, cemeteryCompanyId, ct);
 
             var grave = new Grave(
                 cemeteryId,
@@ -394,7 +396,12 @@ public class GraveService : IGraveService
             if (!grave.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("GRAVE_INVALID_ROW_VERSION", "The grave has been modified by another process.");
 
-            await EnsureOwnerExistsAsync(context, request.OwnerCustomerId, ct);
+            // Chỉ kiểm khi ĐỔI chủ (tránh chặn sửa các mộ cũ có chủ lệch công ty từ dữ liệu cũ).
+            if (request.OwnerCustomerId != grave.OwnerCustomerId)
+            {
+                var graveCompanyId = await GraveCompanyIdAsync(context, grave.CemeteryId, ct);
+                await EnsureOwnerInGraveCompanyAsync(context, request.OwnerCustomerId, graveCompanyId, ct);
+            }
 
             var beforeState = JsonSerializer.Serialize(new { grave.Zone, grave.PlotNumber, grave.Status, grave.OwnerCustomerId });
 
@@ -433,8 +440,31 @@ public class GraveService : IGraveService
         });
     }
 
-    public async Task<GraveOccupantDto> AddOccupantAsync(long graveId, CreateGraveOccupantRequest request, long actorUserId, CancellationToken ct = default)
+    public async Task<GraveOccupantDto> AddOccupantAsync(long graveId, PlaceGraveOccupantRequest request, long actorUserId, CancellationToken ct = default)
     {
+        // 1) Đọc chủ mộ ngoài transaction (fail nhanh) — phải có chủ mới đặt cốt được.
+        long ownerId;
+        await using (var readCtx = _dbContextFactory.CreateDbContext())
+        {
+            var g = await readCtx.Graves.AsNoTracking()
+                .Where(x => x.Id == graveId)
+                .Select(x => new { x.OwnerCustomerId })
+                .FirstOrDefaultAsync(ct);
+            if (g == null)
+                throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
+            if (g.OwnerCustomerId is not long oid)
+                throw new BusinessRuleValidationException("GRAVE_NO_OWNER", "Mộ chưa có chủ — cần gán chủ mộ trước khi đặt cốt.");
+            ownerId = oid;
+        }
+
+        // 2) Suy nhãn quan hệ chủ→khách ngoài transaction. Không có quan hệ gia đình thật (rơi về
+        //    OTHER) thì KHÔNG cho đặt cốt (theo quyết định D1).
+        var derived = await _derivationService.DeriveOwnerToOccupantsAsync(ownerId, new[] { request.DeceasedCustomerId }, ct);
+        var rel = derived.FirstOrDefault();
+        if (rel == null || rel.RelationKind == RelationshipKind.Other)
+            throw new BusinessRuleValidationException("GRAVE_OCC_NO_FAMILY",
+                "Người này chưa có quan hệ gia đình với chủ mộ — hãy khai quan hệ trước khi đặt cốt.");
+
         await using var tempContext = _dbContextFactory.CreateDbContext();
         var strategy = tempContext.CreateExecutionStrategy();
 
@@ -443,18 +473,45 @@ public class GraveService : IGraveService
             await using var context = _dbContextFactory.CreateDbContext();
             await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
 
-            if (!await context.Graves.AnyAsync(g => g.Id == graveId, ct))
+            var grave = await context.Graves.FirstOrDefaultAsync(g => g.Id == graveId, ct);
+            if (grave == null)
                 throw new EntityNotFoundException("GRAVE_NOT_FOUND", "Grave not found.");
 
             var addOccScope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
             await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, addOccScope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
 
+            var customer = await context.Customers.Include(c => c.Profile)
+                .FirstOrDefaultAsync(c => c.Id == request.DeceasedCustomerId, ct);
+            if (customer == null)
+                throw new EntityNotFoundException("GRAVE_OCC_CUSTOMER_NOT_FOUND", "Không tìm thấy khách hàng.");
+            if (customer.CustomerStatus != CustomerDeceasedStatus)
+                throw new BusinessRuleValidationException("GRAVE_OCC_NOT_DECEASED", "Chỉ đặt được người ĐÃ MẤT vào cốt.");
+
+            // Chưa nằm mộ nào ĐANG HIỆU LỰC (suất đã bốc/cải táng không tính — cho phép đặt lại).
+            if (await context.GraveOccupants.AnyAsync(o => o.DeceasedCustomerId == customer.Id && o.Status == GraveOccupant.StatusActive, ct))
+                throw new BusinessRuleValidationException("GRAVE_OCC_ALREADY_PLACED", "Người này đang được an táng ở một mộ.");
+
+            // Sức chứa theo số cốt — chỉ đếm suất đang hiệu lực.
+            var currentCount = await context.GraveOccupants.CountAsync(o => o.GraveId == graveId && o.Status == GraveOccupant.StatusActive, ct);
+            if (currentCount >= grave.CotCount)
+                throw new BusinessRuleValidationException("GRAVE_FULL", $"Mộ đã đủ {grave.CotCount} cốt.");
+
+            // Chụp thông tin từ hồ sơ khách + nhãn quan hệ đã suy.
+            var p = customer.Profile;
             var occupant = new GraveOccupant(
-                graveId, request.FullName, request.Gender, request.Dob,
-                request.DeathDateSolar, request.DeathDateLunar, request.BurialDate, request.Hometown,
-                request.OwnerRelationship, request.DeceasedRelationship, request.Notes);
+                graveId, p.FullName, p.Gender, p.Dob, p.DeathDateSolar, p.DeathDateLunar,
+                request.BurialDate, p.Hometown, rel.OwnerRelationshipLabel, rel.DeceasedRelationshipLabel, request.Notes);
+            occupant.LinkDeceasedCustomer(customer.Id);
             occupant.SetCreatedBy(actorUserId);
             context.GraveOccupants.Add(occupant);
+
+            // Có cốt đầu tiên → mộ chuyển sang ĐÃ AN TÁNG (nếu đang trống/đặt trước).
+            if (grave.Status == Grave.StatusEmpty || grave.Status == Grave.StatusReserved)
+                grave.Update(grave.Zone, grave.PlotNumber, grave.GraveType, Grave.StatusOccupied,
+                    grave.RowLabel, grave.ColLabel, grave.AreaM2, grave.CotCount, grave.OwnerCustomerId,
+                    grave.EmergencyContactName, grave.EmergencyContactPhone, grave.EmergencyContactRelationship,
+                    grave.Notes, actorUserId);
+
             await context.SaveChangesAsync(ct);
 
             var audit = new SecurityAuditEventRecord
@@ -465,7 +522,7 @@ public class GraveService : IGraveService
                 Outcome = "SUCCESS",
                 CorrelationId = Guid.NewGuid(),
                 ActorUserId = actorUserId,
-                AfterStateJson = JsonSerializer.Serialize(new { graveId, occupant.FullName })
+                AfterStateJson = JsonSerializer.Serialize(new { graveId, deceasedCustomerId = customer.Id })
             };
             audit.ThrowIfContainsSensitiveData();
             await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
@@ -474,6 +531,57 @@ public class GraveService : IGraveService
 
             return MapToOccupantDto(occupant);
         });
+    }
+
+    public async Task<IReadOnlyList<OccupantCandidateDto>> GetOccupantCandidatesAsync(long graveId, string? search, long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        // Không thấy mộ (khác công ty) → không gợi ý ứng viên.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!await GraveCompanyScope.CanAccessGraveAsync(context, graveId, scope, ct))
+            return Array.Empty<OccupantCandidateDto>();
+
+        var ownerId = await context.Graves.AsNoTracking()
+            .Where(g => g.Id == graveId).Select(g => g.OwnerCustomerId).FirstOrDefaultAsync(ct);
+        if (ownerId is not long owner)
+            return Array.Empty<OccupantCandidateDto>();
+
+        // Ứng viên = khách có cạnh quan hệ TRỰC TIẾP với chủ mộ (chủ đã khai), ĐÃ MẤT, chưa nằm mộ nào.
+        var relatedIds = await context.CustomerRelationships.AsNoTracking()
+            .Where(r => r.FromCustomerId == owner)
+            .Select(r => r.ToCustomerId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (relatedIds.Count == 0) return Array.Empty<OccupantCandidateDto>();
+
+        var placedIds = (await context.GraveOccupants.AsNoTracking()
+            .Where(o => o.DeceasedCustomerId != null && o.Status == GraveOccupant.StatusActive
+                && relatedIds.Contains(o.DeceasedCustomerId.Value))
+            .Select(o => o.DeceasedCustomerId!.Value)
+            .ToListAsync(ct)).ToHashSet();
+
+        var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+        var candidates = await context.Customers.AsNoTracking()
+            .Where(c => relatedIds.Contains(c.Id) && c.CustomerStatus == CustomerDeceasedStatus
+                && (term == null || c.CustomerCode.Contains(term) || c.Profile.FullName.Contains(term)))
+            .Select(c => new { c.Id, c.CustomerCode, c.Profile.FullName })
+            .ToListAsync(ct);
+
+        var freeCandidates = candidates.Where(c => !placedIds.Contains(c.Id)).ToList();
+        if (freeCandidates.Count == 0) return Array.Empty<OccupantCandidateDto>();
+
+        // Nhãn quan hệ (cốt LÀ gì của chủ) cho từng ứng viên.
+        var derived = (await _derivationService.DeriveOwnerToOccupantsAsync(owner, freeCandidates.Select(c => c.Id).ToList(), ct))
+            .ToDictionary(d => d.OccupantCustomerId);
+
+        return freeCandidates.Select(c => new OccupantCandidateDto
+        {
+            CustomerId = c.Id,
+            CustomerCode = c.CustomerCode,
+            FullName = c.FullName,
+            RelationLabel = derived.TryGetValue(c.Id, out var d) ? d.DeceasedRelationshipLabel : "",
+        }).ToList();
     }
 
     public async Task<GraveOccupantDto> UpdateOccupantAsync(long graveId, long occupantId, UpdateGraveOccupantRequest request, long actorUserId, CancellationToken ct = default)
@@ -521,6 +629,62 @@ public class GraveService : IGraveService
                 CorrelationId = Guid.NewGuid(),
                 ActorUserId = actorUserId,
                 AfterStateJson = JsonSerializer.Serialize(new { graveId, occupant.FullName })
+            };
+            audit.ThrowIfContainsSensitiveData();
+            await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
+
+            await transaction.CommitAsync(ct);
+
+            return MapToOccupantDto(occupant);
+        });
+    }
+
+    public async Task<GraveOccupantDto> RelocateOccupantAsync(long graveId, long occupantId, RelocateOccupantRequest request, long actorUserId, CancellationToken ct = default)
+    {
+        await using var tempContext = _dbContextFactory.CreateDbContext();
+        var strategy = tempContext.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var context = _dbContextFactory.CreateDbContext();
+            await using var transaction = await context.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+
+            var occupant = await context.GraveOccupants.FirstOrDefaultAsync(o => o.Id == occupantId && o.GraveId == graveId, ct);
+            if (occupant == null)
+                throw new EntityNotFoundException("GRAVE_OCCUPANT_NOT_FOUND", "Grave occupant not found.");
+
+            var scope = await _permissionEvaluator.ResolveAsync(actorUserId, UpdatePermission, ct);
+            await GraveCompanyScope.EnsureGraveAccessibleAsync(context, graveId, scope, "GRAVE_UPDATE_FORBIDDEN_COMPANY", ct);
+
+            if (occupant.Status != GraveOccupant.StatusActive)
+                throw new BusinessRuleValidationException("GRAVE_OCC_NOT_ACTIVE", "Suất này đã được bốc/cải táng trước đó.");
+
+            occupant.Relocate(request.RelocatedAt, request.Note, actorUserId);
+            await context.SaveChangesAsync(ct);
+
+            // Hết suất đang hiệu lực → mộ về TRỐNG (giải phóng để tái sử dụng); còn thì giữ ĐÃ AN TÁNG.
+            var activeLeft = await context.GraveOccupants
+                .CountAsync(o => o.GraveId == graveId && o.Status == GraveOccupant.StatusActive, ct);
+            if (activeLeft == 0)
+            {
+                var grave = await context.Graves.FirstAsync(g => g.Id == graveId, ct);
+                if (grave.Status == Grave.StatusOccupied)
+                    grave.Update(grave.Zone, grave.PlotNumber, grave.GraveType, Grave.StatusEmpty,
+                        grave.RowLabel, grave.ColLabel, grave.AreaM2, grave.CotCount, grave.OwnerCustomerId,
+                        grave.EmergencyContactName, grave.EmergencyContactPhone, grave.EmergencyContactRelationship,
+                        grave.Notes, actorUserId);
+                await context.SaveChangesAsync(ct);
+            }
+
+            var audit = new SecurityAuditEventRecord
+            {
+                EventCode = "GRAVE_OCCUPANT_RELOCATE",
+                EntityType = "GraveOccupant",
+                EntityId = occupant.Id.ToString(),
+                Outcome = "SUCCESS",
+                CorrelationId = Guid.NewGuid(),
+                ActorUserId = actorUserId,
+                AfterStateJson = JsonSerializer.Serialize(new { graveId, occupantId, occupant.DeceasedCustomerId })
             };
             audit.ThrowIfContainsSensitiveData();
             await _auditWriter.WriteAsync(audit, context.GetDbConnection(), context.GetCurrentDbTransaction()!, ct);
@@ -695,6 +859,39 @@ public class GraveService : IGraveService
             .FirstAsync(ct);
     }
 
+    public async Task<IReadOnlyList<AssignableGraveDto>> GetAssignableGravesAsync(long customerId, string? search, long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!scope.Granted) return Array.Empty<AssignableGraveDto>();
+
+        // Chỉ gợi ý mộ TRONG công ty của khách — để gán chủ không vi phạm P5 (chủ ∈ công ty của mộ).
+        var customerCompanyIds = await context.CustomerCompanyContexts.AsNoTracking()
+            .Where(cc => cc.CustomerId == customerId).Select(cc => cc.CompanyId).Distinct().ToListAsync(ct);
+        if (customerCompanyIds.Count == 0) return Array.Empty<AssignableGraveDto>();
+
+        var q = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope)
+            .Where(g => g.OwnerCustomerId == null && g.Status == Grave.StatusEmpty
+                && customerCompanyIds.Contains(g.Cemetery!.CompanyId));
+
+        var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+        if (term != null)
+            q = q.Where(g => g.GraveCode.Contains(term) || g.Zone.Contains(term));
+
+        var raw = await q.OrderBy(g => g.GraveCode).Take(50)
+            .Select(g => new { g.Id, g.GraveCode, g.Zone, g.RowVersion })
+            .ToListAsync(ct);
+
+        return raw.Select(x => new AssignableGraveDto
+        {
+            GraveId = x.Id,
+            GraveCode = x.GraveCode,
+            Zone = x.Zone,
+            RowVersion = Convert.ToBase64String(x.RowVersion),
+        }).ToList();
+    }
+
     public async Task<TransferOwnershipResultDto> TransferOwnershipAsync(long graveId, TransferOwnershipRequest request, long actorUserId, CancellationToken ct = default)
     {
         if (!AllowedTransferTypes.Contains(request.TransferType))
@@ -735,8 +932,9 @@ public class GraveService : IGraveService
             if (!grave.RowVersion.SequenceEqual(rowVersion))
                 throw new ConcurrencyException("GRAVE_INVALID_ROW_VERSION", "The grave has been modified by another process.");
 
-            if (!await context.Customers.AnyAsync(c => c.Id == request.NewOwnerCustomerId, ct))
-                throw new EntityNotFoundException("GRAVE_OWNER_NOT_FOUND", "Owner customer not found.");
+            // Chủ mới phải là khách của công ty quản lý mộ (bao luôn ProcessOwnerDeath vì nó gọi hàm này).
+            var graveCompanyId = await GraveCompanyIdAsync(context, grave.CemeteryId, ct);
+            await EnsureOwnerInGraveCompanyAsync(context, request.NewOwnerCustomerId, graveCompanyId, ct);
 
             var previousOwnerId = grave.OwnerCustomerId;
             if (previousOwnerId == request.NewOwnerCustomerId)
@@ -936,12 +1134,22 @@ public class GraveService : IGraveService
         return items;
     }
 
-    private static async Task EnsureOwnerExistsAsync(IOrganizationDbContext context, long? ownerCustomerId, CancellationToken ct)
+    // Chủ mộ phải là khách hàng THUỘC công ty quản lý mộ (qua nghĩa trang) — chống gán/chuyển quyền
+    // cho khách của công ty khác chỉ bằng cách gửi id (bỏ qua khi không đặt chủ).
+    private static async Task EnsureOwnerInGraveCompanyAsync(
+        IOrganizationDbContext context, long? ownerCustomerId, long cemeteryCompanyId, CancellationToken ct)
     {
-        if (ownerCustomerId.HasValue &&
-            !await context.Customers.AnyAsync(c => c.Id == ownerCustomerId.Value, ct))
+        if (!ownerCustomerId.HasValue) return;
+        if (!await context.Customers.AnyAsync(c => c.Id == ownerCustomerId.Value, ct))
             throw new EntityNotFoundException("GRAVE_OWNER_NOT_FOUND", "Owner customer not found.");
+        if (!await context.CustomerCompanyContexts.AnyAsync(
+                cc => cc.CustomerId == ownerCustomerId.Value && cc.CompanyId == cemeteryCompanyId, ct))
+            throw new PermissionDeniedException("GRAVE_OWNER_WRONG_COMPANY",
+                "Chủ mộ phải là khách hàng thuộc công ty quản lý mộ này.");
     }
+
+    private static async Task<long> GraveCompanyIdAsync(IOrganizationDbContext context, long cemeteryId, CancellationToken ct)
+        => await context.Cemeteries.Where(cm => cm.Id == cemeteryId).Select(cm => cm.CompanyId).FirstAsync(ct);
 
     /// <summary>
     /// Mộ thuộc công ty QUA nghĩa trang, nên mỗi mộ phải có nghĩa trang. Nếu người tạo chỉ rõ thì
@@ -1022,6 +1230,9 @@ public class GraveService : IGraveService
             Id = o.Id,
             GraveId = o.GraveId,
             DeceasedCustomerId = o.DeceasedCustomerId,
+            Status = o.Status,
+            RelocatedAt = o.RelocatedAt,
+            RelocationNote = o.RelocationNote,
             FullName = o.FullName,
             Gender = o.Gender,
             Dob = o.Dob,

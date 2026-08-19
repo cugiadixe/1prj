@@ -14,8 +14,11 @@ public interface IGraveService
     Task<GraveDetailDto?> GetGraveByIdAsync(long id, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> CreateGraveAsync(CreateGraveRequest request, long actorUserId, CancellationToken ct = default);
     Task<GraveDetailDto> UpdateGraveAsync(long id, UpdateGraveRequest request, long actorUserId, CancellationToken ct = default);
-    Task<GraveOccupantDto> AddOccupantAsync(long graveId, CreateGraveOccupantRequest request, long actorUserId, CancellationToken ct = default);
+    Task<GraveOccupantDto> AddOccupantAsync(long graveId, PlaceGraveOccupantRequest request, long actorUserId, CancellationToken ct = default);
+    Task<System.Collections.Generic.IReadOnlyList<OccupantCandidateDto>> GetOccupantCandidatesAsync(long graveId, string? search, long actorUserId, CancellationToken ct = default);
+    Task<System.Collections.Generic.IReadOnlyList<AssignableGraveDto>> GetAssignableGravesAsync(long customerId, string? search, long actorUserId, CancellationToken ct = default);
     Task<GraveOccupantDto> UpdateOccupantAsync(long graveId, long occupantId, UpdateGraveOccupantRequest request, long actorUserId, CancellationToken ct = default);
+    Task<GraveOccupantDto> RelocateOccupantAsync(long graveId, long occupantId, RelocateOccupantRequest request, long actorUserId, CancellationToken ct = default);
 
     /// <summary>Thêm liên hệ khẩn cấp (là khách hàng) cho phần mộ — ưu tiên tự gán kế tiếp.</summary>
     Task<GraveEmergencyContactDto> AddEmergencyContactAsync(long graveId, CreateGraveEmergencyContactRequest request, long actorUserId, CancellationToken ct = default);

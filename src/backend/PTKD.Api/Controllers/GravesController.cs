@@ -77,9 +77,27 @@ public class GravesController : ControllerBase
         return Ok(grave);
     }
 
+    // Phần mộ có thể gán chủ cho một khách (trống + chưa có chủ + thuộc công ty của khách).
+    [HttpGet("assignable")]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetAssignableGraves([FromQuery] long customerId, [FromQuery] string? search, CancellationToken ct)
+    {
+        var graves = await _graveService.GetAssignableGravesAsync(customerId, search, GetActorUserId(), ct);
+        return Ok(graves);
+    }
+
+    // Khách hàng đủ điều kiện đặt vào cốt của mộ này (đã mất + có quan hệ với chủ mộ + chưa nằm mộ).
+    [HttpGet("{id}/occupant-candidates")]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetOccupantCandidates(long id, [FromQuery] string? search, CancellationToken ct)
+    {
+        var candidates = await _graveService.GetOccupantCandidatesAsync(id, search, GetActorUserId(), ct);
+        return Ok(candidates);
+    }
+
     [HttpPost("{id}/occupants")]
     [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
-    public async Task<IActionResult> AddOccupant(long id, [FromBody] CreateGraveOccupantRequest request, CancellationToken ct)
+    public async Task<IActionResult> AddOccupant(long id, [FromBody] PlaceGraveOccupantRequest request, CancellationToken ct)
     {
         var actorUserId = GetActorUserId();
         var occupant = await _graveService.AddOccupantAsync(id, request, actorUserId, ct);
@@ -92,6 +110,15 @@ public class GravesController : ControllerBase
     {
         var actorUserId = GetActorUserId();
         var occupant = await _graveService.UpdateOccupantAsync(id, occupantId, request, actorUserId, ct);
+        return Ok(occupant);
+    }
+
+    // Bốc/cải táng một suất cốt.
+    [HttpPost("{id}/occupants/{occupantId}/relocate")]
+    [RequirePermission(PermissionCodes.GraveUpdate, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> RelocateOccupant(long id, long occupantId, [FromBody] RelocateOccupantRequest request, CancellationToken ct)
+    {
+        var occupant = await _graveService.RelocateOccupantAsync(id, occupantId, request, GetActorUserId(), ct);
         return Ok(occupant);
     }
 

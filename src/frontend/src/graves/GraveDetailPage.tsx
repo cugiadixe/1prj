@@ -9,7 +9,8 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { usePermissions } from '../auth/AuthProvider';
 import {
   addOccupant, getGraveById, updateOccupant, transferOwnership, getOwnershipHistory,
-  addEmergencyContact, updateEmergencyContact, removeEmergencyContact,
+  addEmergencyContact, updateEmergencyContact, removeEmergencyContact, getOccupantCandidates, relocateOccupant,
+  processOwnerDeath,
 } from './gravesApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
 import {
@@ -51,6 +52,8 @@ const GraveDetailPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<GraveOccupant | null>(null);
   const [viewing, setViewing] = useState<GraveOccupant | null>(null);
+  const [relocating, setRelocating] = useState<GraveOccupant | null>(null);
+  const [relocForm] = Form.useForm();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['grave', id],
@@ -66,21 +69,27 @@ const GraveDetailPage: React.FC = () => {
 
   const saveMutation = useMutation({
     mutationFn: (values: Record<string, unknown>) => {
-      const payload = {
-        fullName: values.fullName as string,
-        gender: (values.gender as string) || null,
-        dob: d(values.dob as Dayjs),
-        deathDateSolar: d(values.deathDateSolar as Dayjs),
-        deathDateLunar: (values.deathDateLunar as string) || null,
+      // SỬA cốt cũ: giữ luồng nhập tay (occupant có thể chưa nối khách). THÊM cốt: chọn khách đã mất.
+      if (editing) {
+        const payload = {
+          fullName: values.fullName as string,
+          gender: (values.gender as string) || null,
+          dob: d(values.dob as Dayjs),
+          deathDateSolar: d(values.deathDateSolar as Dayjs),
+          deathDateLunar: (values.deathDateLunar as string) || null,
+          burialDate: d(values.burialDate as Dayjs),
+          hometown: (values.hometown as string) || null,
+          ownerRelationship: (values.ownerRelationship as string) || null,
+          deceasedRelationship: (values.deceasedRelationship as string) || null,
+          notes: (values.notes as string) || null,
+        };
+        return updateOccupant(id, editing.id, { ...payload, targetVersion: editing.rowVersion });
+      }
+      return addOccupant(id, {
+        deceasedCustomerId: values.deceasedCustomerId as number,
         burialDate: d(values.burialDate as Dayjs),
-        hometown: (values.hometown as string) || null,
-        ownerRelationship: (values.ownerRelationship as string) || null,
-        deceasedRelationship: (values.deceasedRelationship as string) || null,
         notes: (values.notes as string) || null,
-      };
-      return editing
-        ? updateOccupant(id, editing.id, { ...payload, targetVersion: editing.rowVersion })
-        : addOccupant(id, payload);
+      });
     },
     onSuccess: () => {
       message.success(editing ? 'Đã cập nhật người an táng' : 'Đã thêm người an táng');
@@ -98,6 +107,28 @@ const GraveDetailPage: React.FC = () => {
     queryKey: ['grave-owner-profile', data?.ownerCustomerId],
     queryFn: () => getCustomerById(data!.ownerCustomerId!),
     enabled: modalOpen && !!data?.ownerCustomerId && canViewCustomer,
+  });
+
+  // Ứng viên đặt cốt: khách đã mất có quan hệ với chủ mộ + chưa nằm mộ (chỉ khi THÊM cốt).
+  const { data: candidates } = useQuery({
+    queryKey: ['occupant-candidates', id],
+    queryFn: () => getOccupantCandidates(id),
+    enabled: modalOpen && !editing,
+  });
+
+  const relocateMutation = useMutation({
+    mutationFn: (values: Record<string, unknown>) =>
+      relocateOccupant(id, relocating!.id, {
+        relocatedAt: d(values.relocatedAt as Dayjs),
+        note: (values.note as string) || null,
+      }),
+    onSuccess: () => {
+      message.success('Đã bốc/cải táng');
+      setRelocating(null);
+      relocForm.resetFields();
+      queryClient.invalidateQueries({ queryKey: ['grave', id] });
+    },
+    onError: (err) => message.error(getErrorMessage(err)),
   });
 
   const openAdd = () => {
@@ -205,6 +236,8 @@ const GraveDetailPage: React.FC = () => {
   const canTransfer = hasPermission('GRAVE_TRANSFER_OWNERSHIP');
   const [transferForm] = Form.useForm();
   const [transferOpen, setTransferOpen] = useState(false);
+  const [ownerDeathOpen, setOwnerDeathOpen] = useState(false);
+  const [ownerDeathForm] = Form.useForm();
   const [transferFile, setTransferFile] = useState<File | null>(null);
   const [ownerOptions, setOwnerOptions] = useState<CustomerListItem[]>([]);
   const [ownerSearching, setOwnerSearching] = useState(false);
@@ -269,6 +302,28 @@ const GraveDetailPage: React.FC = () => {
     onError: (err) => message.error(getErrorMessage(err)),
   });
 
+  const ownerDeathMutation = useMutation({
+    mutationFn: (values: Record<string, unknown>) =>
+      processOwnerDeath({
+        deceasedCustomerId: data!.ownerCustomerId!,
+        heirCustomerId: values.heirCustomerId as number,
+        deathDateSolar: d(values.deathDateSolar as Dayjs),
+        reason: (values.reason as string) || null,
+      }),
+    onSuccess: (res) => {
+      message.success(
+        `Đã xử lý chủ mộ qua đời — chuyển ${res.gravesTransferred}/${res.gravesOwned} mộ cho người thừa kế. `
+        + 'Có thể đặt chủ cũ làm cốt qua "Thêm người an táng".',
+      );
+      setOwnerDeathOpen(false);
+      ownerDeathForm.resetFields();
+      queryClient.invalidateQueries({ queryKey: ['grave', id] });
+      queryClient.invalidateQueries({ queryKey: ['grave-ownership-history', id] });
+      queryClient.invalidateQueries({ queryKey: ['occupant-candidates', id] });
+    },
+    onError: (err) => message.error(getErrorMessage(err)),
+  });
+
   if (isPermissionDenied(error)) return <Alert type="error" message="Bạn không có quyền xem phần mộ." />;
   if (isLoading) return <Spin />;
   if (error || !data) return <Alert type="error" message={getErrorMessage(error)} />;
@@ -296,15 +351,33 @@ const GraveDetailPage: React.FC = () => {
       key: 'ownerRelationship',
       render: (v: string | null) => (v ? <Tag color="purple">{v}</Tag> : '—'),
     },
+    {
+      title: 'Trạng thái',
+      key: 'status',
+      render: (_: unknown, o: GraveOccupant) =>
+        o.status === 'RELOCATED' ? (
+          <Tag color="default" title={o.relocationNote ?? undefined}>
+            Đã bốc{o.relocatedAt ? ` (${fmtDate(o.relocatedAt)})` : ''}
+          </Tag>
+        ) : (
+          <Tag color="green">Đang an táng</Tag>
+        ),
+    },
     ...(canUpdate ? [{
       title: '',
       key: 'actions',
-      width: 60,
-      render: (_: unknown, o: GraveOccupant) => (
-        <Button type="text" icon={<EditOutlined />}
-          onClick={(e) => { e.stopPropagation(); openEdit(o); }}
-          data-testid={`edit-occupant-${o.id}`} />
-      ),
+      width: 120,
+      render: (_: unknown, o: GraveOccupant) =>
+        o.status === 'RELOCATED' ? null : (
+          <Space>
+            <Button type="text" icon={<EditOutlined />}
+              onClick={(e) => { e.stopPropagation(); openEdit(o); }}
+              data-testid={`edit-occupant-${o.id}`} />
+            <Button type="text" icon={<SwapOutlined />} title="Bốc / Cải táng"
+              onClick={(e) => { e.stopPropagation(); setRelocating(o); relocForm.resetFields(); }}
+              data-testid={`relocate-occupant-${o.id}`} />
+          </Space>
+        ),
     }] : []),
   ];
 
@@ -350,10 +423,23 @@ const GraveDetailPage: React.FC = () => {
         title="Chủ mộ & liên hệ khẩn cấp"
         style={{ marginBottom: 16 }}
         extra={canTransfer && data.ownerCustomerId && (
-          <Button icon={<SwapOutlined />} onClick={() => { transferForm.resetFields(); setTransferOpen(true); }}
-            data-testid="transfer-owner-btn">
-            Chuyển quyền sở hữu
-          </Button>
+          <Space>
+            <Button icon={<SwapOutlined />} onClick={() => { transferForm.resetFields(); setTransferOpen(true); }}
+              data-testid="transfer-owner-btn">
+              Chuyển quyền sở hữu
+            </Button>
+            <Button danger onClick={() => {
+              // Gợi ý người thừa kế = liên hệ khẩn cấp ưu tiên nhất (priority nhỏ nhất) có liên kết KH.
+              const top = [...(data.emergencyContacts ?? [])]
+                .filter((c) => c.contactCustomerId)
+                .sort((a, b) => a.priority - b.priority)[0];
+              ownerDeathForm.resetFields();
+              if (top?.contactCustomerId) ownerDeathForm.setFieldsValue({ heirCustomerId: top.contactCustomerId });
+              setOwnerDeathOpen(true);
+            }} data-testid="owner-death-btn">
+              Chủ mộ qua đời
+            </Button>
+          </Space>
         )}
       >
         <Descriptions column={1} bordered size="small">
@@ -520,6 +606,59 @@ const GraveDetailPage: React.FC = () => {
       )}
 
       <Modal
+        title="Chủ mộ qua đời"
+        open={ownerDeathOpen}
+        onCancel={() => { setOwnerDeathOpen(false); ownerDeathForm.resetFields(); }}
+        onOk={() => ownerDeathForm.submit()}
+        confirmLoading={ownerDeathMutation.isPending}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        {(() => {
+          const heirOptions = [...(data.emergencyContacts ?? [])]
+            .filter((c) => c.contactCustomerId)
+            .sort((a, b) => a.priority - b.priority)
+            .map((c) => ({
+              label: `${c.contactName ?? `KH ${c.contactCustomerId}`} — ưu tiên ${c.priority}${c.relationshipNote ? ` (${c.relationshipNote})` : ''}`,
+              value: c.contactCustomerId as number,
+            }));
+          return (
+            <Form form={ownerDeathForm} layout="vertical" onFinish={(v) => ownerDeathMutation.mutate(v)}>
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message={`Chủ mộ: ${data.ownerName ?? `KH ${data.ownerCustomerId}`}`}
+                description="Đánh dấu chủ mộ đã mất và chuyển quyền MỌI mộ của họ cho người thừa kế. Sau đó có thể đặt chủ cũ làm cốt qua 'Thêm người an táng'."
+              />
+              {heirOptions.length === 0 ? (
+                <Alert
+                  type="error"
+                  showIcon
+                  message="Chưa có liên hệ khẩn cấp để làm người thừa kế. Hãy thêm liên hệ khẩn cấp (là khách hàng) trước."
+                />
+              ) : (
+                <Form.Item
+                  name="heirCustomerId"
+                  label="Người thừa kế (từ liên hệ khẩn cấp)"
+                  rules={[{ required: true, message: 'Chọn người thừa kế' }]}
+                >
+                  <Select options={heirOptions} data-testid="heir-select" />
+                </Form.Item>
+              )}
+              <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)">
+                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+              </Form.Item>
+              <Form.Item name="reason" label="Lý do / ghi chú">
+                <Input.TextArea rows={2} placeholder="VD: chủ mộ qua đời, chuyển cho con trưởng." />
+              </Form.Item>
+            </Form>
+          );
+        })()}
+      </Modal>
+
+      <Modal
         title="Chuyển quyền sở hữu phần mộ"
         open={transferOpen}
         onCancel={() => { setTransferOpen(false); setOwnerOptions([]); setTransferFile(null); }}
@@ -595,28 +734,91 @@ const GraveDetailPage: React.FC = () => {
         destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={(v) => saveMutation.mutate(v)}>
-          <Form.Item name="fullName" label="Họ tên" rules={[{ required: true, message: 'Họ tên là bắt buộc' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="gender" label="Giới tính">
-            <Select allowClear options={Object.entries(GENDERS).map(([value, label]) => ({ label, value }))} />
-          </Form.Item>
-          <Form.Item name="dob" label="Ngày sinh"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
-          <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
-          <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20 }]}>
-            <Input placeholder="VD: 15/7 Giáp Thìn" />
-          </Form.Item>
-          <Form.Item name="burialDate" label="Ngày an táng"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
-          <Form.Item name="hometown" label="Nguyên quán"><Input /></Form.Item>
-          <OccupantRelationshipFields
-            form={form}
-            ownerName="ownerRelationship"
-            deceasedName="deceasedRelationship"
-            genderName="gender"
-            ownerGender={ownerProfile?.profile.gender}
-          />
-          <Form.Item name="notes" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
+          {editing ? (
+            <>
+              <Form.Item name="fullName" label="Họ tên" rules={[{ required: true, message: 'Họ tên là bắt buộc' }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="gender" label="Giới tính">
+                <Select allowClear options={Object.entries(GENDERS).map(([value, label]) => ({ label, value }))} />
+              </Form.Item>
+              <Form.Item name="dob" label="Ngày sinh"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
+              <Form.Item name="deathDateSolar" label="Ngày mất (Dương lịch)"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
+              <Form.Item name="deathDateLunar" label="Ngày mất (Âm lịch)" rules={[{ max: 20 }]}>
+                <Input placeholder="VD: 15/7 Giáp Thìn" />
+              </Form.Item>
+              <Form.Item name="burialDate" label="Ngày an táng"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
+              <Form.Item name="hometown" label="Nguyên quán"><Input /></Form.Item>
+              <OccupantRelationshipFields
+                form={form}
+                ownerName="ownerRelationship"
+                deceasedName="deceasedRelationship"
+                genderName="gender"
+                ownerGender={ownerProfile?.profile.gender}
+              />
+              <Form.Item name="notes" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
+            </>
+          ) : (
+            <>
+              {candidates && candidates.length === 0 && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                  message="Chưa có ứng viên"
+                  description="Người an táng phải là khách hàng ĐÃ MẤT có quan hệ gia đình với chủ mộ và chưa nằm mộ nào. Hãy đánh dấu khách đã mất + khai quan hệ với chủ mộ trước."
+                />
+              )}
+              <Form.Item
+                name="deceasedCustomerId"
+                label="Người an táng (khách đã mất, có quan hệ với chủ mộ)"
+                rules={[{ required: true, message: 'Chọn người an táng' }]}
+              >
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Chọn người đã mất..."
+                  data-testid="occupant-candidate-select"
+                  options={(candidates ?? []).map((c) => ({
+                    label: `${c.fullName} (${c.customerCode}) — ${c.relationLabel}`,
+                    value: c.customerId,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item name="burialDate" label="Ngày an táng"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
+              <Form.Item name="notes" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
+            </>
+          )}
         </Form>
+      </Modal>
+
+      <Modal
+        title="Bốc / Cải táng"
+        open={!!relocating}
+        onCancel={() => { setRelocating(null); relocForm.resetFields(); }}
+        onOk={() => relocForm.submit()}
+        confirmLoading={relocateMutation.isPending}
+        okText="Xác nhận bốc"
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        {relocating && (
+          <Form form={relocForm} layout="vertical" onFinish={(v) => relocateMutation.mutate(v)}>
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={`Bốc/cải táng: ${relocating.fullName}`}
+              description="Suất này sẽ chuyển 'đã bốc', giải phóng người (được đặt sang mộ khác) và chỗ trong mộ."
+            />
+            <Form.Item name="relocatedAt" label="Ngày bốc/cải táng">
+              <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            </Form.Item>
+            <Form.Item name="note" label="Lý do / ghi chú">
+              <Input.TextArea rows={2} placeholder="VD: cải táng về quê, dồn mộ..." />
+            </Form.Item>
+          </Form>
+        )}
       </Modal>
 
       <Modal

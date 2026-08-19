@@ -109,6 +109,9 @@ public class GraveOccupantDto
     public long Id { get; set; }
     public long GraveId { get; set; }
     public long? DeceasedCustomerId { get; set; }
+    public string Status { get; set; } = null!;         // ACTIVE / RELOCATED
+    public DateTime? RelocatedAt { get; set; }
+    public string? RelocationNote { get; set; }
     public string FullName { get; set; } = null!;
     public string? Gender { get; set; }
     public DateTime? Dob { get; set; }
@@ -176,6 +179,42 @@ public class CreateGraveOccupantRequest
     public string? OwnerRelationship { get; set; }
     public string? DeceasedRelationship { get; set; }
     public string? Notes { get; set; }
+}
+
+/// <summary>
+/// Đặt một khách hàng ĐÃ MẤT vào cốt (luồng mới): occupant nối với bản ghi khách, thông tin cốt
+/// chụp từ hồ sơ khách, nhãn quan hệ tự suy. Khác CreateGraveOccupantRequest (nhập tay, legacy).
+/// </summary>
+public class PlaceGraveOccupantRequest
+{
+    public long DeceasedCustomerId { get; set; }
+    public DateTime? BurialDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+/// <summary>Bốc/cải táng một suất: chuyển RELOCATED, giải phóng người + chỗ.</summary>
+public class RelocateOccupantRequest
+{
+    public DateTime? RelocatedAt { get; set; }
+    public string? Note { get; set; }
+}
+
+/// <summary>Phần mộ có thể gán chủ cho một khách: TRỐNG + CHƯA có chủ + thuộc công ty của khách.</summary>
+public class AssignableGraveDto
+{
+    public long GraveId { get; set; }
+    public string GraveCode { get; set; } = null!;
+    public string Zone { get; set; } = null!;
+    public string RowVersion { get; set; } = null!;   // để gọi chuyển-quyền (kiểm tương tranh)
+}
+
+/// <summary>Khách hàng đủ điều kiện đặt vào cốt của một mộ (đã mất + có quan hệ với chủ + chưa nằm mộ).</summary>
+public class OccupantCandidateDto
+{
+    public long CustomerId { get; set; }
+    public string CustomerCode { get; set; } = null!;
+    public string FullName { get; set; } = null!;
+    public string RelationLabel { get; set; } = null!; // cốt LÀ gì của chủ mộ (đã suy theo giới tính)
 }
 
 public class UpdateGraveOccupantRequest
