@@ -312,6 +312,9 @@ public class CustomerService : ICustomerService
         var query = CustomerCompanyScope.ApplyScope(
             context.Customers.AsNoTracking().Include(c => c.Profile), context, scope);
 
+        // Phạm vi MỘ của người xem — dùng cho cột "phần mộ sở hữu" và bộ lọc; không lộ mộ ngoài quyền.
+        var graveScope = await _permissionEvaluator.ResolveAsync(actorUserId, GraveViewPermission, ct);
+
         if (!string.IsNullOrWhiteSpace(request.CustomerStatus))
             query = query.Where(c => c.CustomerStatus == request.CustomerStatus);
 
@@ -369,6 +372,33 @@ public class CustomerService : ICustomerService
             query = query.Where(c => context.CustomerTags.Any(x => x.CustomerId == c.Id && tagIds.Contains(x.TagId)));
         }
 
+        // Lọc theo SỞ HỮU MỘ (trong phạm vi GRAVE_VIEW của người gọi). Inline mệnh đề công ty của mộ
+        // cho chắc chắn dịch được SQL (mộ thuộc công ty qua Cemetery).
+        var hasOwnsGraveFilter = request.OwnsGrave.HasValue;
+        if (hasOwnsGraveFilter)
+        {
+            var wantOwner = request.OwnsGrave!.Value;
+            if (!graveScope.Granted)
+            {
+                // Không có quyền xem mộ ⇒ theo phạm vi coi như không sở hữu mộ nào.
+                if (wantOwner) query = query.Where(_ => false);
+            }
+            else if (graveScope.IsUnrestricted)
+            {
+                var excluded = graveScope.ExcludedCompanyIds;
+                query = wantOwner
+                    ? query.Where(c => context.Graves.Any(g => g.OwnerCustomerId == c.Id && !excluded.Contains(g.Cemetery!.CompanyId)))
+                    : query.Where(c => !context.Graves.Any(g => g.OwnerCustomerId == c.Id && !excluded.Contains(g.Cemetery!.CompanyId)));
+            }
+            else
+            {
+                var allowed = graveScope.AllowedCompanyIds;
+                query = wantOwner
+                    ? query.Where(c => context.Graves.Any(g => g.OwnerCustomerId == c.Id && allowed.Contains(g.Cemetery!.CompanyId)))
+                    : query.Where(c => !context.Graves.Any(g => g.OwnerCustomerId == c.Id && allowed.Contains(g.Cemetery!.CompanyId)));
+            }
+        }
+
         var mask = !canViewSensitive;
 
         var projectedQuery = query
@@ -394,7 +424,7 @@ public class CustomerService : ICustomerService
                     }).ToArray()
             });
 
-        var anyFilter = hasSearch || hasContextFilter || hasTagFilter || hasLifeFilter
+        var anyFilter = hasSearch || hasContextFilter || hasTagFilter || hasLifeFilter || hasOwnsGraveFilter
             || !string.IsNullOrWhiteSpace(request.CustomerStatus);
 
         int totalCount;
@@ -464,6 +494,21 @@ public class CustomerService : ICustomerService
             foreach (var item in items)
                 item.Companies = byCustomer.TryGetValue(item.Id, out var list)
                     ? list : Array.Empty<CustomerCompanyBriefDto>();
+
+            // Phần mộ khách đang sở hữu — ĐÃ lọc theo phạm vi GRAVE_VIEW (ApplyScope trên truy vấn mộ).
+            var owned = await GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), graveScope)
+                .Where(g => g.OwnerCustomerId != null && pageCustomerIds.Contains(g.OwnerCustomerId.Value))
+                .Select(g => new { g.Id, g.GraveCode, OwnerId = g.OwnerCustomerId!.Value })
+                .ToListAsync(ct);
+            var gravesByOwner = owned
+                .GroupBy(x => x.OwnerId)
+                .ToDictionary(g => g.Key, g => g
+                    .OrderBy(x => x.GraveCode)
+                    .Select(x => new OwnedGraveDto { GraveId = x.Id, GraveCode = x.GraveCode }).ToArray());
+
+            foreach (var item in items)
+                item.OwnedGraves = gravesByOwner.TryGetValue(item.Id, out var og)
+                    ? og : Array.Empty<OwnedGraveDto>();
         }
 
         return new PagedResult<CustomerListItemDto>

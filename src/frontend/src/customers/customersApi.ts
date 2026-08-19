@@ -30,6 +30,7 @@ export async function searchCustomers(
       assignedStaffId: params.assignedStaffId ?? undefined,
       unassignedStaff: params.unassignedStaff ? true : undefined,
       tagIds: params.tagIds && params.tagIds.length > 0 ? params.tagIds : undefined,
+      ownsGrave: params.ownsGrave === undefined ? undefined : params.ownsGrave,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 20,
     },

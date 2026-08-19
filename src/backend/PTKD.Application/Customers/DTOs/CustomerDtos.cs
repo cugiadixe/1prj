@@ -17,8 +17,17 @@ public class CustomerListItemDto
     // Các công ty phụ trách khách này (kèm nhân viên phụ trách). ĐÃ được lọc theo phạm vi quyền của
     // người gọi — không liệt kê công ty người gọi không được phủ.
     public CustomerCompanyBriefDto[] Companies { get; set; } = Array.Empty<CustomerCompanyBriefDto>();
+    // Phần mộ khách này đang SỞ HỮU (chủ mộ). ĐÃ lọc theo phạm vi GRAVE_VIEW của người gọi.
+    public OwnedGraveDto[] OwnedGraves { get; set; } = Array.Empty<OwnedGraveDto>();
     public DateTime CreatedAt { get; set; }
     public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
+}
+
+/// <summary>Một phần mộ khách đang sở hữu (dùng cho cột danh sách khách).</summary>
+public class OwnedGraveDto
+{
+    public long GraveId { get; set; }
+    public string GraveCode { get; set; } = null!;
 }
 
 // ─── Bảng điều khiển 360 của khách (mộ sở hữu + mộ được an táng) ─────────────────
@@ -215,6 +224,8 @@ public class CustomerSearchRequest
     public long? AssignedStaffId { get; set; }
     public bool? UnassignedStaff { get; set; }
     public long[]? TagIds { get; set; }
+    // Lọc theo sở hữu phần mộ: true = đang sở hữu ≥1 mộ (trong phạm vi), false = không sở hữu mộ nào.
+    public bool? OwnsGrave { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }

@@ -21,6 +21,11 @@ export interface CustomerCompanyBrief {
   assignedStaffName: string | null;
 }
 
+export interface OwnedGrave {
+  graveId: number;
+  graveCode: string;
+}
+
 // ─── Bảng điều khiển 360 (mộ sở hữu + mộ được an táng) ───
 export interface OverviewGrave {
   graveId: number;
@@ -73,6 +78,8 @@ export interface CustomerListItem {
   isDeceased?: boolean;
   // Công ty phụ trách + nhân viên phụ trách (đã lọc theo phạm vi quyền người xem).
   companies?: CustomerCompanyBrief[];
+  // Phần mộ khách đang sở hữu (đã lọc theo phạm vi GRAVE_VIEW).
+  ownedGraves?: OwnedGrave[];
   createdAt: string;
   tags?: import('../tags/types').Tag[];
 }
@@ -206,6 +213,7 @@ export interface CustomerSearchParams {
   assignedStaffId?: number;
   unassignedStaff?: boolean;
   tagIds?: number[];
+  ownsGrave?: boolean;
   page?: number;
   pageSize?: number;
 }

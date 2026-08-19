@@ -22,6 +22,7 @@ const CustomersPage: React.FC = () => {
   const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
   const [staffFilter, setStaffFilter] = useState<number | typeof UNASSIGNED_STAFF | undefined>(undefined);
   const [tagFilter, setTagFilter] = useState<number[]>([]);
+  const [ownsGraveFilter, setOwnsGraveFilter] = useState<boolean | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -29,7 +30,7 @@ const CustomersPage: React.FC = () => {
   const unassignedStaff = staffFilter === UNASSIGNED_STAFF;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['customers', search, statusFilter, lifeStatusFilter, companyFilter, staffFilter, tagFilter, page, pageSize],
+    queryKey: ['customers', search, statusFilter, lifeStatusFilter, companyFilter, staffFilter, tagFilter, ownsGraveFilter, page, pageSize],
     queryFn: () =>
       searchCustomers({
         search,
@@ -39,6 +40,7 @@ const CustomersPage: React.FC = () => {
         assignedStaffId,
         unassignedStaff,
         tagIds: tagFilter,
+        ownsGrave: ownsGraveFilter,
         page,
         pageSize,
       }),
@@ -128,6 +130,18 @@ const CustomersPage: React.FC = () => {
           : r.companies.map((c) => (
               <div key={c.companyId} style={{ color: c.assignedStaffName ? undefined : '#94a3b8' }}>
                 {c.assignedStaffName ?? '— (chưa phân)'}
+              </div>
+            )),
+    },
+    {
+      title: 'Phần mộ sở hữu',
+      key: 'ownedGraves',
+      render: (_: unknown, r: CustomerListItem) =>
+        !r.ownedGraves || r.ownedGraves.length === 0
+          ? '—'
+          : r.ownedGraves.map((g) => (
+              <div key={g.graveId}>
+                <Link to={`/graves/${g.graveId}`} onClick={(e) => e.stopPropagation()}>{g.graveCode}</Link>
               </div>
             )),
     },
@@ -225,6 +239,18 @@ const CustomersPage: React.FC = () => {
           value={tagFilter}
           data-testid="customer-tag-filter"
           options={(tagOptions ?? []).map((t) => ({ label: `#${t.name}`, value: t.id }))}
+        />
+        <Select
+          placeholder="Sở hữu mộ"
+          allowClear
+          style={{ width: 140 }}
+          onChange={(val) => { setOwnsGraveFilter(val); setPage(1); }}
+          value={ownsGraveFilter}
+          data-testid="customer-owns-grave-filter"
+          options={[
+            { label: 'Có sở hữu mộ', value: true },
+            { label: 'Không sở hữu', value: false },
+          ]}
         />
       </Space>
 
