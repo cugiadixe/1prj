@@ -1,7 +1,8 @@
 import React from 'react';
-import { Alert, Button, Card, Descriptions, Space, Spin, Table, Tag, Typography } from 'antd';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Descriptions, Form, Input, Modal, Select, Space, Spin, Table, Tag, Typography, message } from 'antd';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
+import { getAssignableGraves, transferOwnership } from '../graves/gravesApi';
 import { usePermissions } from '../auth/AuthProvider';
 import { getCustomerById, getCompanyContexts } from './customersApi';
 import EntityTagsSection from '../tags/EntityTagsSection';
@@ -50,6 +51,40 @@ const CustomerDetailPage: React.FC = () => {
     queryKey: ['customer-contexts', id],
     queryFn: () => getCompanyContexts(id),
     enabled: !isNaN(id),
+  });
+
+  // ─── Gán khách làm CHỦ một phần mộ (chỉ mộ trống + chưa có chủ + thuộc công ty của khách) ───
+  const canAssignGrave = hasPermission('GRAVE_TRANSFER_OWNERSHIP');
+  const [assignOpen, setAssignOpen] = React.useState(false);
+  const [assignForm] = Form.useForm();
+  const { data: assignableGraves } = useQuery({
+    queryKey: ['assignable-graves', id],
+    queryFn: () => getAssignableGraves(id),
+    enabled: assignOpen && !isNaN(id),
+  });
+  const assignMutation = useMutation({
+    mutationFn: (values: Record<string, unknown>) => {
+      const graveId = values.graveId as number;
+      const g = (assignableGraves ?? []).find((x) => x.graveId === graveId);
+      return transferOwnership(graveId, {
+        newOwnerCustomerId: id,
+        transferType: 'SALE',
+        reason: (values.reason as string) || null,
+        targetVersion: g?.rowVersion ?? '',
+      });
+    },
+    onSuccess: () => {
+      message.success('Đã gán khách làm chủ phần mộ.');
+      setAssignOpen(false);
+      assignForm.resetFields();
+      queryClient.invalidateQueries({ queryKey: ['assignable-graves', id] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      // Gán chủ mộ đổi tập mộ khách sở hữu → làm mới ngay bảng điều khiển 360 và danh sách mộ của
+      // phần gói chăm sóc (nếu không, section "Phần mộ sở hữu" đọc cache cũ, tưởng là xử lý chậm).
+      queryClient.invalidateQueries({ queryKey: ['customer-overview', id] });
+      queryClient.invalidateQueries({ queryKey: ['owner-graves', id] });
+    },
+    onError: (e) => message.error(getErrorMessage(e)),
   });
 
   if (isLoading) return <Spin data-testid="customer-detail-loading" />;
@@ -143,6 +178,11 @@ const CustomerDetailPage: React.FC = () => {
           <Button>
             <Link to="/customers">Quay lại danh sách</Link>
           </Button>
+          {canAssignGrave && (
+            <Button data-testid="assign-grave-btn" onClick={() => { assignForm.resetFields(); setAssignOpen(true); }}>
+              Gán vào phần mộ
+            </Button>
+          )}
           {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') && (
             <Button data-testid="request-change-btn" onClick={() => setShowChangeForm(true)}>
               Yêu cầu thay đổi
@@ -248,6 +288,49 @@ const CustomerDetailPage: React.FC = () => {
           />
         )}
       </Card>
+
+      <Modal
+        title="Gán khách làm chủ phần mộ"
+        open={assignOpen}
+        onCancel={() => { setAssignOpen(false); assignForm.resetFields(); }}
+        onOk={() => assignForm.submit()}
+        confirmLoading={assignMutation.isPending}
+        okText="Gán"
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        <Form form={assignForm} layout="vertical" onFinish={(v) => assignMutation.mutate(v)}>
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="Chỉ hiện phần mộ TRỐNG, CHƯA có chủ và thuộc công ty của khách hàng này."
+          />
+          {assignableGraves && assignableGraves.length === 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message="Không có phần mộ trống/chưa chủ phù hợp để gán."
+            />
+          )}
+          <Form.Item name="graveId" label="Phần mộ" rules={[{ required: true, message: 'Chọn phần mộ' }]}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder="Chọn phần mộ trống..."
+              data-testid="assignable-grave-select"
+              options={(assignableGraves ?? []).map((g) => ({
+                label: `${g.graveCode} — khu ${g.zone}`,
+                value: g.graveId,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item name="reason" label="Ghi chú / lý do">
+            <Input.TextArea rows={2} placeholder="VD: khách mua phần mộ." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
