@@ -399,6 +399,13 @@ public class CustomerService : ICustomerService
             }
         }
 
+        // Lọc "chưa có phần mộ": khách CHƯA là cốt đang an táng ở mộ nào (dùng cho ô chọn người thân
+        // đã mất khi khai quan hệ). Người đã bốc/cải táng (suất RELOCATED) vẫn tính là chưa có mộ.
+        var hasNotBuriedFilter = request.NotBuried == true;
+        if (hasNotBuriedFilter)
+            query = query.Where(c => !context.GraveOccupants.Any(o =>
+                o.DeceasedCustomerId == c.Id && o.Status == GraveOccupant.StatusActive));
+
         var mask = !canViewSensitive;
 
         var projectedQuery = query
@@ -425,7 +432,7 @@ public class CustomerService : ICustomerService
             });
 
         var anyFilter = hasSearch || hasContextFilter || hasTagFilter || hasLifeFilter || hasOwnsGraveFilter
-            || !string.IsNullOrWhiteSpace(request.CustomerStatus);
+            || hasNotBuriedFilter || !string.IsNullOrWhiteSpace(request.CustomerStatus);
 
         int totalCount;
         CustomerListItemDto[] items;

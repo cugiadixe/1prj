@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, message } from 'antd';
+import { Alert, Button, Card, Form, Input, Modal, Popconfirm, Segmented, Select, Space, Spin, Table, Tag, message } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -28,6 +28,8 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
   const [modalOpen, setModalOpen] = useState(false);
   const [custOptions, setCustOptions] = useState<CustOption[]>([]);
   const [searching, setSearching] = useState(false);
+  // Lọc ô chọn người thân theo tình trạng: người sống, hay người chết (người chết CHƯA an táng).
+  const [personType, setPersonType] = useState<'ALIVE' | 'DECEASED'>('ALIVE');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const { data: relationships, isLoading } = useQuery({
@@ -50,6 +52,7 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
       setModalOpen(false);
       form.resetFields();
       setCustOptions([]);
+      setPersonType('ALIVE');
       queryClient.invalidateQueries({ queryKey: ['customer-relationships', customerId] });
     },
     onError: (e) => message.error(getErrorMessage(e)),
@@ -74,7 +77,13 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
     timer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchCustomers({ search: term, pageSize: 10 });
+        const res = await searchCustomers({
+          search: term,
+          pageSize: 10,
+          lifeStatus: personType,
+          // Người chết: chỉ hiện người CHƯA an táng ở mộ nào (để đặt cốt sau khi khai quan hệ).
+          notBuried: personType === 'DECEASED' ? true : undefined,
+        });
         setCustOptions(
           res.items
             .filter((c) => c.id !== customerId)
@@ -162,7 +171,7 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
     <Card title="Quan hệ gia đình" style={{ marginBottom: 16 }} data-testid="customer-relationships-card">
       {canManage && (
         <Space style={{ marginBottom: 8 }}>
-          <Button type="primary" size="small" onClick={() => setModalOpen(true)} data-testid="add-relationship-btn">
+          <Button type="primary" size="small" onClick={() => { setPersonType('ALIVE'); setModalOpen(true); }} data-testid="add-relationship-btn">
             Thêm quan hệ
           </Button>
         </Space>
@@ -189,6 +198,7 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
           setModalOpen(false);
           form.resetFields();
           setCustOptions([]);
+          setPersonType('ALIVE');
         }}
         onOk={() => form.submit()}
         confirmLoading={createMut.isPending}
@@ -197,14 +207,30 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
         destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={(v) => createMut.mutate(v)}>
+          <Form.Item label="Tình trạng người thân">
+            <Segmented
+              value={personType}
+              onChange={(v) => {
+                setPersonType(v as 'ALIVE' | 'DECEASED');
+                setCustOptions([]);
+                form.setFieldValue('otherCustomerId', undefined);
+              }}
+              options={[
+                { label: 'Người sống', value: 'ALIVE' },
+                { label: 'Người chết', value: 'DECEASED' },
+              ]}
+              data-testid="relationship-person-type"
+            />
+          </Form.Item>
           <Form.Item
             name="otherCustomerId"
             label="Người thân (khách hàng)"
             rules={[{ required: true, message: 'Chọn khách hàng người thân' }]}
+            extra={personType === 'DECEASED' ? 'Chỉ hiện người đã mất và CHƯA an táng ở mộ nào.' : undefined}
           >
             <Select
               showSearch
-              placeholder="Tìm theo tên/mã/CCCD..."
+              placeholder={personType === 'DECEASED' ? 'Tìm người đã mất, chưa an táng...' : 'Tìm theo tên/mã/CCCD...'}
               filterOption={false}
               onSearch={handleSearch}
               notFoundContent={searching ? <Spin size="small" /> : null}

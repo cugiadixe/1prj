@@ -226,6 +226,9 @@ public class CustomerSearchRequest
     public long[]? TagIds { get; set; }
     // Lọc theo sở hữu phần mộ: true = đang sở hữu ≥1 mộ (trong phạm vi), false = không sở hữu mộ nào.
     public bool? OwnsGrave { get; set; }
+    // Lọc "chưa có phần mộ": true = khách CHƯA là cốt đang an táng ở mộ nào (dùng cho ô chọn người
+    // thân đã mất khi khai quan hệ, để lọc ra người cần đặt cốt).
+    public bool? NotBuried { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }

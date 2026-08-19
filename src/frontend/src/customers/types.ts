@@ -214,6 +214,8 @@ export interface CustomerSearchParams {
   unassignedStaff?: boolean;
   tagIds?: number[];
   ownsGrave?: boolean;
+  // true = chỉ khách CHƯA an táng (chưa là cốt ở mộ nào) — dùng khi chọn người thân đã mất.
+  notBuried?: boolean;
   page?: number;
   pageSize?: number;
 }

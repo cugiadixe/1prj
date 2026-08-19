@@ -31,6 +31,7 @@ export async function searchCustomers(
       unassignedStaff: params.unassignedStaff ? true : undefined,
       tagIds: params.tagIds && params.tagIds.length > 0 ? params.tagIds : undefined,
       ownsGrave: params.ownsGrave === undefined ? undefined : params.ownsGrave,
+      notBuried: params.notBuried === undefined ? undefined : params.notBuried,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 20,
     },
