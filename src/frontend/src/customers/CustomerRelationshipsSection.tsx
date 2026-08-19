@@ -109,6 +109,34 @@ const CustomerRelationshipsSection: React.FC<Props> = ({ customerId, canManage }
         </Space>
       ),
     },
+    {
+      title: 'Tình trạng',
+      key: 'life',
+      render: (_: unknown, r: CustomerRelationship) =>
+        r.isDeceased ? <Tag color="volcano">Đã mất</Tag> : <Tag color="green">Còn sống</Tag>,
+    },
+    {
+      title: 'Phần mộ',
+      key: 'graves',
+      render: (_: unknown, r: CustomerRelationship) => {
+        const owned = r.ownedGraves ?? [];
+        if (owned.length === 0 && !r.buriedIn) return '—';
+        return (
+          <Space size={4} wrap>
+            {owned.map((g) => (
+              <Link key={g.graveId} to={`/graves/${g.graveId}`}>
+                <Tag color="blue">{g.graveCode}</Tag>
+              </Link>
+            ))}
+            {r.buriedIn && (
+              <Link to={`/graves/${r.buriedIn.graveId}`}>
+                <Tag color="green">an táng: {r.buriedIn.graveCode}</Tag>
+              </Link>
+            )}
+          </Space>
+        );
+      },
+    },
     { title: 'Ghi chú', dataIndex: 'note', key: 'note', render: (v: string | null) => v ?? '—' },
     ...(canManage
       ? [

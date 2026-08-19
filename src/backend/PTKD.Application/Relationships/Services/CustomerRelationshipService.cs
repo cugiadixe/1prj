@@ -19,6 +19,8 @@ public class CustomerRelationshipService : ICustomerRelationshipService
 {
     private const string ViewPermission = "CUSTOMER_VIEW_BASIC";
     private const string ManagePermission = "CUSTOMER_RELATIONSHIP_MANAGE";
+    private const string GraveViewPermission = "GRAVE_VIEW";
+    private const string DeceasedStatus = "DECEASED";
 
     // Nhãn hiển thị Anh/Chị vs Em suy theo TUỔI lúc xem, không cho khai trực tiếp.
     private static readonly HashSet<string> NonDeclarableKinds =
@@ -151,9 +153,39 @@ public class CustomerRelationshipService : ICustomerRelationshipService
 
         var others = await context.Customers.AsNoTracking()
             .Where(c => otherIds.Contains(c.Id))
-            .Select(c => new { c.Id, c.CustomerCode, c.Profile.FullName, c.Profile.Gender })
+            .Select(c => new { c.Id, c.CustomerCode, c.Profile.FullName, c.Profile.Gender, c.CustomerStatus })
             .ToDictionaryAsync(x => x.Id, ct);
         var kinds = await context.RelationshipKinds.AsNoTracking().ToDictionaryAsync(k => k.KindCode, ct);
+
+        // Dấu vết phần mộ của NGƯỜI THÂN — nạp theo phạm vi GRAVE_VIEW RIÊNG (không dùng scope khách).
+        // Chỉ nạp cho những người thân người gọi được phép thấy. Không có quyền mộ → để trống.
+        var accessibleOtherIds = otherIds.Where(accessible.Contains).ToList();
+        var ownedByRelative = new Dictionary<long, List<GraveRefDto>>();
+        var buriedByRelative = new Dictionary<long, GraveRefDto>();
+        var graveScope = await _permissionEvaluator.ResolveAsync(actorUserId, GraveViewPermission, ct);
+        if (graveScope.Granted && accessibleOtherIds.Count > 0)
+        {
+            var scopedGraves = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), graveScope);
+
+            var owned = await scopedGraves
+                .Where(g => g.OwnerCustomerId != null && accessibleOtherIds.Contains(g.OwnerCustomerId.Value))
+                .Select(g => new { OwnerId = g.OwnerCustomerId!.Value, g.Id, g.GraveCode })
+                .ToListAsync(ct);
+            foreach (var grp in owned.GroupBy(x => x.OwnerId))
+                ownedByRelative[grp.Key] = grp.OrderBy(x => x.GraveCode)
+                    .Select(x => new GraveRefDto { GraveId = x.Id, GraveCode = x.GraveCode }).ToList();
+
+            // Nơi an táng: chỉ suất còn hiệu lực (ACTIVE) — một người tối đa một suất ACTIVE.
+            var buried = await scopedGraves
+                .SelectMany(
+                    g => g.Occupants.Where(o => o.DeceasedCustomerId != null
+                        && accessibleOtherIds.Contains(o.DeceasedCustomerId.Value)
+                        && o.Status == GraveOccupant.StatusActive),
+                    (g, o) => new { CustomerId = o.DeceasedCustomerId!.Value, g.Id, g.GraveCode })
+                .ToListAsync(ct);
+            foreach (var b in buried)
+                buriedByRelative[b.CustomerId] = new GraveRefDto { GraveId = b.Id, GraveCode = b.GraveCode };
+        }
 
         var result = new List<CustomerRelationshipDto>();
         foreach (var e in edges)
@@ -175,6 +207,10 @@ public class CustomerRelationshipService : ICustomerRelationshipService
                 NeedsConfirmation = e.NeedsConfirmation,
                 Note = e.Note,
                 RowVersion = Convert.ToBase64String(e.RowVersion),
+                IsDeceased = other.CustomerStatus == DeceasedStatus,
+                OwnedGraves = ownedByRelative.TryGetValue(e.ToCustomerId, out var og)
+                    ? og.ToArray() : Array.Empty<GraveRefDto>(),
+                BuriedIn = buriedByRelative.TryGetValue(e.ToCustomerId, out var bi) ? bi : null,
             });
         }
         return result;

@@ -21,6 +21,46 @@ export interface CustomerCompanyBrief {
   assignedStaffName: string | null;
 }
 
+// ─── Bảng điều khiển 360 (mộ sở hữu + mộ được an táng) ───
+export interface OverviewGrave {
+  graveId: number;
+  graveCode: string;
+  cemeteryName: string | null;
+  zone: string;
+  plotNumber: string;
+  graveType: string;
+  status: string;
+  cotCount: number;              // sức chứa
+  activeOccupantCount: number;   // số cốt đang an táng
+}
+
+export interface BuriedInGrave {
+  graveId: number;
+  graveCode: string;
+  cemeteryName: string | null;
+  zone: string;
+  graveStatus: string;
+  occupantStatus: string;        // ACTIVE / RELOCATED
+  burialDate: string | null;
+  relocatedAt: string | null;
+  deceasedRelationship: string | null;
+  ownerCustomerId: number | null;
+  ownerName: string | null;
+}
+
+export interface CustomerOverview {
+  ownedGraves: OverviewGrave[];
+  buriedIn: BuriedInGrave[];
+  // true nếu người xem KHÔNG có quyền GRAVE_VIEW (dữ liệu mộ để rỗng có chủ đích).
+  graveAccessDenied: boolean;
+}
+
+/// Tham chiếu gọn tới một phần mộ (dùng trong đan chéo quan hệ).
+export interface GraveRef {
+  graveId: number;
+  graveCode: string;
+}
+
 export interface CustomerListItem {
   id: number;
   customerCode: string;
@@ -207,6 +247,10 @@ export interface CustomerRelationship {
   needsConfirmation: boolean;
   note: string | null;
   rowVersion: string;
+  // ─── Đan chéo 360: tình trạng + dấu vết phần mộ của người thân ───
+  isDeceased?: boolean;
+  ownedGraves?: GraveRef[];        // mộ người thân đang sở hữu (đã lọc theo quyền mộ)
+  buriedIn?: GraveRef | null;      // nơi người thân được an táng (suất còn hiệu lực)
 }
 
 export interface CreateCustomerRelationshipRequest {

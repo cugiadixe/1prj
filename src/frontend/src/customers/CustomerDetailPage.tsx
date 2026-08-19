@@ -22,6 +22,8 @@ const genderLabel = (g: string | null | undefined): string =>
 import CustomerMasterChangeRequestForm from './CustomerMasterChangeRequestForm';
 import CustomerCarePackagesSection from '../customerCarePackages/CustomerCarePackagesSection';
 import CustomerRelationshipsSection from './CustomerRelationshipsSection';
+import Customer360Summary from './Customer360Summary';
+import CustomerGravesSection from './CustomerGravesSection';
 
 const { Title } = Typography;
 
@@ -154,6 +156,8 @@ const CustomerDetailPage: React.FC = () => {
         </Space>
       </Space>
 
+      <Customer360Summary customerId={id} customerStatus={customer.customerStatus} />
+
       <Card title="Thông tin khách hàng" style={{ marginBottom: 16 }} data-testid="customer-info-card">
         <Descriptions column={2}>
           <Descriptions.Item label="Mã khách hàng">{customer.customerCode}</Descriptions.Item>
@@ -215,6 +219,8 @@ const CustomerDetailPage: React.FC = () => {
         onSaved={() => queryClient.invalidateQueries({ queryKey: ['customer', id] })}
         testId="customer-tags-section"
       />
+
+      <CustomerGravesSection customerId={id} />
 
       <CustomerCarePackagesSection customerId={id} />
 

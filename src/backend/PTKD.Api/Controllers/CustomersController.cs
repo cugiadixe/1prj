@@ -86,6 +86,17 @@ public class CustomersController : ControllerBase
         return Ok(customer);
     }
 
+    // Bảng điều khiển 360: mộ khách SỞ HỮU + mộ khách ĐƯỢC AN TÁNG. Dữ liệu mộ lọc theo GRAVE_VIEW
+    // riêng bên trong service; người không có quyền mộ nhận rỗng + cờ GraveAccessDenied.
+    [HttpGet("{id}/overview")]
+    [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetOverview(long id, CancellationToken ct)
+    {
+        var overview = await _customerService.GetCustomerOverviewAsync(id, GetActorUserId(), ct);
+        if (overview == null) return NotFound();
+        return Ok(overview);
+    }
+
     [HttpGet("{id}/company-contexts")]
     [RequirePermission(PermissionCodes.CustomerViewBasic, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetCompanyContexts(long id, CancellationToken ct)

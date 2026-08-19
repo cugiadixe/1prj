@@ -21,6 +21,46 @@ public class CustomerListItemDto
     public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
 }
 
+// ─── Bảng điều khiển 360 của khách (mộ sở hữu + mộ được an táng) ─────────────────
+// Dữ liệu MỘ theo phạm vi GRAVE_VIEW riêng, KHÔNG dùng chung scope khách. Nếu người gọi không có
+// GRAVE_VIEW thì trả rỗng + GraveAccessDenied=true để FE báo "không đủ quyền" thay vì "không có mộ".
+public class CustomerOverviewDto
+{
+    public OverviewGraveDto[] OwnedGraves { get; set; } = Array.Empty<OverviewGraveDto>();
+    public BuriedInGraveDto[] BuriedIn { get; set; } = Array.Empty<BuriedInGraveDto>();
+    public bool GraveAccessDenied { get; set; }
+}
+
+/// <summary>Một phần mộ khách đang SỞ HỮU (chủ mộ) — kèm nghĩa trang + số cốt đang an táng/sức chứa.</summary>
+public class OverviewGraveDto
+{
+    public long GraveId { get; set; }
+    public string GraveCode { get; set; } = null!;
+    public string? CemeteryName { get; set; }
+    public string Zone { get; set; } = null!;
+    public string PlotNumber { get; set; } = null!;
+    public string GraveType { get; set; } = null!;
+    public string Status { get; set; } = null!;
+    public int CotCount { get; set; }              // sức chứa thiết kế
+    public int ActiveOccupantCount { get; set; }   // số cốt đang an táng (suất ACTIVE)
+}
+
+/// <summary>Một phần mộ khách ĐƯỢC AN TÁNG (là cốt) — qua GraveOccupant.DeceasedCustomerId.</summary>
+public class BuriedInGraveDto
+{
+    public long GraveId { get; set; }
+    public string GraveCode { get; set; } = null!;
+    public string? CemeteryName { get; set; }
+    public string Zone { get; set; } = null!;
+    public string GraveStatus { get; set; } = null!;      // trạng thái phần mộ
+    public string OccupantStatus { get; set; } = null!;   // suất của khách: ACTIVE / RELOCATED
+    public DateTime? BurialDate { get; set; }
+    public DateTime? RelocatedAt { get; set; }
+    public string? DeceasedRelationship { get; set; }     // khách (người mất) → chủ mộ
+    public long? OwnerCustomerId { get; set; }
+    public string? OwnerName { get; set; }
+}
+
 /// <summary>Tóm tắt công ty phụ trách + nhân viên phụ trách của khách, dùng cho cột danh sách.</summary>
 public class CustomerCompanyBriefDto
 {

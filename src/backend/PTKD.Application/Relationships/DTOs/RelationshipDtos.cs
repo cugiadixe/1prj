@@ -26,6 +26,21 @@ public class CustomerRelationshipDto
     public bool NeedsConfirmation { get; set; }
     public string? Note { get; set; }
     public string RowVersion { get; set; } = null!;
+
+    // ─── Đan chéo 360: dấu vết phần mộ + tình trạng của NGƯỜI THÂN ───
+    // Tình trạng sống/mất (từ CustomerStatus của người thân — không cần quyền mộ).
+    public bool IsDeceased { get; set; }
+    // Phần mộ người thân đang SỞ HỮU và nơi người thân ĐƯỢC AN TÁNG (suất còn hiệu lực). CHỈ điền khi
+    // người gọi có GRAVE_VIEW; rỗng/null nếu không đủ quyền mộ (không lộ mộ ngoài phạm vi).
+    public GraveRefDto[] OwnedGraves { get; set; } = System.Array.Empty<GraveRefDto>();
+    public GraveRefDto? BuriedIn { get; set; }
+}
+
+/// <summary>Tham chiếu gọn tới một phần mộ (id + mã) để hiển thị link.</summary>
+public class GraveRefDto
+{
+    public long GraveId { get; set; }
+    public string GraveCode { get; set; } = null!;
 }
 
 public class CreateCustomerRelationshipRequest

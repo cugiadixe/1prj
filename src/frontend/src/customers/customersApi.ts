@@ -6,6 +6,7 @@ import type {
   CustomerCompanyContext,
   CustomerDetail,
   CustomerListItem,
+  CustomerOverview,
   CustomerSearchParams,
   DuplicateCheckRequest,
   DuplicateCheckResult,
@@ -51,6 +52,13 @@ export async function getCustomerById(
   id: number,
 ): Promise<CustomerDetail> {
   const { data } = await axiosClient.get<CustomerDetail>(`${BASE}/${id}`);
+  return data;
+}
+
+export async function getCustomerOverview(
+  id: number,
+): Promise<CustomerOverview> {
+  const { data } = await axiosClient.get<CustomerOverview>(`${BASE}/${id}/overview`);
   return data;
 }
 

@@ -19,6 +19,7 @@ public class CustomerService : ICustomerService
 {
     // Mã quyền dạng chuỗi (PermissionCodes nằm ở tầng PTKD.Api, không tham chiếu ngược được).
     private const string ViewBasicPermission = "CUSTOMER_VIEW_BASIC";
+    private const string GraveViewPermission = "GRAVE_VIEW";
     private const string CreateFinalPermission = "CUSTOMER_CREATE_FINAL";
     private const string MasterUpdatePermission = "CUSTOMER_MASTER_UPDATE";
     // Trạng thái "đã mất" — đặt khi khách trở thành cốt trong mộ (xem GraveService). "Còn sống" là
@@ -237,6 +238,68 @@ public class CustomerService : ICustomerService
             })
             .ToArrayAsync(ct);
         return dto;
+    }
+
+    public async Task<CustomerOverviewDto?> GetCustomerOverviewAsync(long customerId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        // Phải thấy được khách trước (như GetById) — không thấy khách thì 404.
+        var custScope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewBasicPermission, ct);
+        if (!await CustomerCompanyScope.CanAccessCustomerAsync(context, customerId, custScope, ct))
+            return null;
+
+        // Dữ liệu MỘ theo phạm vi GRAVE_VIEW RIÊNG — KHÔNG dùng chung scope khách (footgun ServiceFiltered).
+        var graveScope = await _permissionEvaluator.ResolveAsync(actorUserId, GraveViewPermission, ct);
+        var result = new CustomerOverviewDto();
+        if (!graveScope.Granted)
+        {
+            result.GraveAccessDenied = true;
+            return result;
+        }
+
+        var scopedGraves = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), graveScope);
+
+        // Mộ khách SỞ HỮU (chủ mộ) — kèm nghĩa trang + số cốt đang an táng (chỉ suất ACTIVE).
+        result.OwnedGraves = await scopedGraves
+            .Where(g => g.OwnerCustomerId == customerId)
+            .OrderBy(g => g.GraveCode)
+            .Select(g => new OverviewGraveDto
+            {
+                GraveId = g.Id,
+                GraveCode = g.GraveCode,
+                CemeteryName = g.Cemetery!.Name,
+                Zone = g.Zone,
+                PlotNumber = g.PlotNumber,
+                GraveType = g.GraveType,
+                Status = g.Status,
+                CotCount = g.CotCount,
+                ActiveOccupantCount = g.Occupants.Count(o => o.Status == GraveOccupant.StatusActive),
+            })
+            .ToArrayAsync(ct);
+
+        // Mộ khách ĐƯỢC AN TÁNG (là cốt) — qua Occupants.DeceasedCustomerId, cùng phạm vi mộ. Gồm cả
+        // suất đã bốc (RELOCATED) để thấy lịch sử; FE phân biệt theo OccupantStatus.
+        result.BuriedIn = await scopedGraves
+            .SelectMany(
+                g => g.Occupants.Where(o => o.DeceasedCustomerId == customerId),
+                (g, o) => new BuriedInGraveDto
+                {
+                    GraveId = g.Id,
+                    GraveCode = g.GraveCode,
+                    CemeteryName = g.Cemetery!.Name,
+                    Zone = g.Zone,
+                    GraveStatus = g.Status,
+                    OccupantStatus = o.Status,
+                    BurialDate = o.BurialDate,
+                    RelocatedAt = o.RelocatedAt,
+                    DeceasedRelationship = o.DeceasedRelationship,
+                    OwnerCustomerId = g.OwnerCustomerId,
+                    OwnerName = g.Owner != null ? g.Owner.Profile!.FullName : null,
+                })
+            .ToArrayAsync(ct);
+
+        return result;
     }
 
     public async Task<PagedResult<CustomerListItemDto>> SearchCustomersAsync(CustomerSearchRequest request, bool canViewSensitive, long actorUserId, CancellationToken ct = default)
