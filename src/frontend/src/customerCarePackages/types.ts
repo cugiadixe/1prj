@@ -11,6 +11,8 @@ export interface CustomerCarePackage {
   cotCount: number;
   unitPrice: number;
   totalPrice: number;
+  // Cách tính giá của loại dịch vụ: 'PER_COT' (× số cốt) hoặc 'PER_GRAVE' (theo phần mộ, × 1).
+  pricingBasis?: string | null;
   startDate: string;
   endDate: string | null;
   status: string;

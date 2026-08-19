@@ -16,6 +16,8 @@ public class CustomerCarePackageDto
     public int CotCount { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice { get; set; }
+    // Cách tính giá của loại dịch vụ: PER_COT (× số cốt) hoặc PER_GRAVE (theo phần mộ, × 1).
+    public string? PricingBasis { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string Status { get; set; } = null!;

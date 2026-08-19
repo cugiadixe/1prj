@@ -126,7 +126,8 @@ public class CustomerCarePackageService : ICustomerCarePackageService
 
                 var entity = CustomerCarePackage.Create(
                     request.CustomerId, request.ServiceTypeId, request.CotCount,
-                    unitPrice, request.StartDate, endDate, request.Notes, actorUserId, requiresApproval);
+                    unitPrice, request.StartDate, endDate, request.Notes, actorUserId, requiresApproval,
+                    serviceType.PricingBasis);
                 context.CustomerCarePackages.Add(entity);
                 await context.SaveChangesAsync(ct);
 
@@ -418,7 +419,7 @@ public class CustomerCarePackageService : ICustomerCarePackageService
         var serviceTypeInfo = await context.ServiceTypes
             .AsNoTracking()
             .Where(s => serviceTypeIds.Contains(s.Id))
-            .Select(s => new { s.Id, s.Name, s.CycleDurationMonths })
+            .Select(s => new { s.Id, s.Name, s.CycleDurationMonths, s.PricingBasis })
             .ToDictionaryAsync(s => s.Id, ct);
 
         var graveIds = dtos.Where(d => d.GraveId.HasValue).Select(d => d.GraveId!.Value).Distinct().ToArray();
@@ -439,6 +440,7 @@ public class CustomerCarePackageService : ICustomerCarePackageService
             {
                 d.ServiceTypeName = st.Name;
                 d.CycleDurationMonths = st.CycleDurationMonths;
+                d.PricingBasis = st.PricingBasis;
             }
             if (d.GraveId.HasValue && graveInfo.TryGetValue(d.GraveId.Value, out var gi))
             {

@@ -113,7 +113,18 @@ const CustomerCarePackagesSection: React.FC<Props> = ({ customerId }) => {
       key: 'period',
       render: (_: unknown, r: CustomerCarePackage) => `${fmtDate(r.startDate)} → ${r.endDate ? fmtDate(r.endDate) : 'Không kỳ hạn'}`,
     },
-    { title: 'Thành tiền', dataIndex: 'totalPrice', key: 'totalPrice', render: (v: number) => fmtMoney(v) },
+    {
+      title: 'Thành tiền',
+      key: 'totalPrice',
+      render: (_: unknown, r: CustomerCarePackage) => (
+        <span>
+          {fmtMoney(r.totalPrice)}
+          {r.pricingBasis === 'PER_GRAVE' && (
+            <Tag color="geekblue" style={{ marginLeft: 6 }}>theo mộ</Tag>
+          )}
+        </span>
+      ),
+    },
     {
       title: 'Mộ đã gán',
       key: 'grave',

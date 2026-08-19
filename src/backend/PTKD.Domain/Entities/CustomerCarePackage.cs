@@ -35,12 +35,17 @@ public class CustomerCarePackage
     public static CustomerCarePackage Create(
         long customerId, long serviceTypeId,
         int cotCount, decimal unitPrice, DateTime startDate, DateTime? endDate,
-        string? notes, long createdByUserId, bool requiresApproval = false)
+        string? notes, long createdByUserId, bool requiresApproval = false,
+        string pricingBasis = ServiceType.PricingBasisPerCot)
     {
         if (cotCount <= 0)
             throw new ArgumentException("Cot count must be positive.", nameof(cotCount));
         if (unitPrice < 0)
             throw new ArgumentException("Unit price cannot be negative.", nameof(unitPrice));
+
+        // PER_GRAVE: tính theo phần mộ (× 1, không nhân số cốt); PER_COT (mặc định): × số cốt.
+        // Trước đây LUÔN × số cốt nên gói PER_GRAVE bị tính đắt — nay tôn trọng cờ của loại dịch vụ.
+        var totalPrice = pricingBasis == ServiceType.PricingBasisPerGrave ? unitPrice : unitPrice * cotCount;
 
         return new CustomerCarePackage
         {
@@ -49,7 +54,7 @@ public class CustomerCarePackage
             GraveId = null,
             CotCount = cotCount,
             UnitPrice = unitPrice,
-            TotalPrice = unitPrice * cotCount,
+            TotalPrice = totalPrice,
             StartDate = startDate,
             EndDate = endDate,
             // Có quy trình phê duyệt → chờ duyệt; không thì sẵn sàng gán mộ như cũ.
