@@ -27,11 +27,15 @@ const CustomerMergeRequestCreatePage: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const preselectedSourceId = searchParams.get('sourceCustomerId');
+  const preselectedTargetId = searchParams.get('targetCustomerId');
 
   const [sourceId, setSourceId] = useState<number | null>(
     preselectedSourceId ? Number(preselectedSourceId) : null,
   );
-  const [targetId, setTargetId] = useState<number | null>(null);
+  // KH đích được tự điền khi từ màn "Tìm trùng lặp" chuyển sang (còn đúng 1 ứng viên khác).
+  const [targetId, setTargetId] = useState<number | null>(
+    preselectedTargetId ? Number(preselectedTargetId) : null,
+  );
 
   const {
     data: sourceCustomer,

@@ -34,6 +34,15 @@ export async function createMergeRequest(
   return data;
 }
 
+export async function submitMergeRequest(
+  id: string,
+): Promise<CustomerMergeRequestDto> {
+  const { data } = await axiosClient.post<CustomerMergeRequestDto>(
+    `${BASE}/merge-requests/${id}/submit`,
+  );
+  return data;
+}
+
 export async function getMergeRequestById(
   id: string,
 ): Promise<CustomerMergeRequestDto> {

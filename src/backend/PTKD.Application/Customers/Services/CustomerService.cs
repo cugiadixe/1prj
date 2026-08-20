@@ -77,6 +77,16 @@ public class CustomerService : ICustomerService
                     throw new BusinessRuleValidationException("CUS_DUPLICATE_CCCD", "An active customer with this CCCD already exists.");
             }
 
+            // Trùng SĐT: CHẶN MỀM (khác CCCD khoá cứng) — SĐT có thể dùng chung trong gia đình. Nếu
+            // người dùng đã xác nhận (ConfirmDuplicatePhone) thì cho tạo. Không có unique index cho phone.
+            if (!request.ConfirmDuplicatePhone && !string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var phoneDuplicate = await context.Profiles
+                    .AnyAsync(p => p.Phone == request.Phone && p.IsActive, ct);
+                if (phoneDuplicate)
+                    throw new BusinessRuleValidationException("CUS_DUPLICATE_PHONE", "An active customer with this phone number already exists.");
+            }
+
             var profile = new Profile(
                 request.FullName, request.Cccd, request.Dob, request.DobPartial, request.DobPrecision,
                 request.Gender, request.PermanentAddress, request.CccdIssueDate, request.CccdIssuePlace,

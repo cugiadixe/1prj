@@ -20,7 +20,7 @@ describe('errorMessages', () => {
 
   it('maps known error codes', () => {
     const err = { response: { status: 409, data: { extensions: { errorCode: 'CUS_INVALID_ROW_VERSION' } } } };
-    expect(getErrorMessage(err)).toContain('modified by another user');
+    expect(getErrorMessage(err)).toContain('người khác chỉnh sửa');
   });
 
   it('returns GENERIC_ERROR for unknown error code', () => {

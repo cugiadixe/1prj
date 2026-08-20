@@ -89,6 +89,43 @@ describe('CustomerCreatePage', () => {
     });
   });
 
+  it('soft-blocks on duplicate phone, then retries with confirm flag after user confirms', async () => {
+    const successResult = {
+      id: 7,
+      customerCode: 'C007',
+      customerStatus: 'ACTIVE',
+      rowVersion: 'AA',
+      createdAt: '2026-01-01',
+      updatedAt: null,
+      profile: {
+        id: 7, fullName: 'Test', cccd: null, dob: null, dobPartial: null, dobPrecision: null,
+        gender: null, permanentAddress: null, cccdIssueDate: null, cccdIssuePlace: null,
+        taxCode: null, phone: '0912000001', contactAddress: null, deathDateSolar: null,
+        deathDateLunar: null, deathPlace: null, hometown: null, isActive: true, rowVersion: 'BB',
+      },
+    };
+    mockCreate
+      .mockRejectedValueOnce({
+        response: { status: 409, data: { extensions: { errorCode: 'CUS_DUPLICATE_PHONE' } } },
+      })
+      .mockResolvedValueOnce(successResult);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('input-customerCode'), { target: { value: 'C007' } });
+    fireEvent.change(screen.getByTestId('input-fullName'), { target: { value: 'Test' } });
+    fireEvent.click(screen.getByTestId('submit-create'));
+
+    // Chặn mềm → hiện hộp xác nhận "vẫn tạo".
+    const okBtn = await screen.findByText('Vẫn tạo');
+    fireEvent.click(okBtn);
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+      expect(mockCreate.mock.calls[1][0]).toMatchObject({ confirmDuplicatePhone: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/customers/7');
+    });
+  });
+
   it('navigates to detail on successful create', async () => {
     mockCreate.mockResolvedValue({
       id: 5,

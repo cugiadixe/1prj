@@ -139,6 +139,11 @@ public class CreateCustomerRequest
     // mất nhưng chưa gắn mộ). Mặc định false (còn sống). Xem CustomerService.CreateCustomerAsync.
     public bool IsDeceased { get; set; }
 
+    // Xác nhận "vẫn tạo dù trùng SĐT". Mặc định false → nếu SĐT trùng với khách đang hoạt động thì
+    // CHẶN MỀM (lỗi CUS_DUPLICATE_PHONE) để người dùng xác nhận. Khác CCCD (khoá cứng) vì SĐT có thể
+    // dùng chung trong gia đình. Xem CustomerService.CreateCustomerAsync.
+    public bool ConfirmDuplicatePhone { get; set; }
+
     public long? InitialCompanyId { get; set; }
     public long? AssignedStaffId { get; set; }
     public string? InternalNotes { get; set; }

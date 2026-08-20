@@ -76,14 +76,19 @@ const CustomerMergeDuplicateSearchPage: React.FC = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_: unknown, record: CustomerListItem) => (
-        <Link
-          to={`/customers/merge/new?sourceCustomerId=${record.id}`}
-          data-testid={`select-source-${record.id}`}
-        >
-          Chọn làm nguồn
-        </Link>
-      ),
+      render: (_: unknown, record: CustomerListItem) => {
+        // Nếu còn ĐÚNG một ứng viên khác thì tự chọn nó làm KH đích (giữ lại) để prefill trang tạo gộp.
+        const others = (result?.matches ?? []).filter((m) => m.id !== record.id);
+        const targetParam = others.length === 1 ? `&targetCustomerId=${others[0].id}` : '';
+        return (
+          <Link
+            to={`/customers/merge/new?sourceCustomerId=${record.id}${targetParam}`}
+            data-testid={`select-source-${record.id}`}
+          >
+            Chọn làm nguồn
+          </Link>
+        );
+      },
     },
   ];
 

@@ -6,6 +6,10 @@ using Moq;
 using PTKD.Application.Customers.DTOs;
 using PTKD.Application.Customers.Services;
 using PTKD.Application.Common.Interfaces;
+using PTKD.Application.Customers.Handlers;
+using PTKD.Application.Security.Audit;
+using PTKD.Application.Security.Authorization.Interfaces;
+using PTKD.Application.Workflows.Services;
 using PTKD.Domain.Entities;
 using Xunit;
 
@@ -19,7 +23,10 @@ public class CustomerMergeServiceTests
         var mockDb = new Mock<IOrganizationDbContext>();
         var mockFactory = new Mock<IOrganizationDbContextFactory>();
         mockFactory.Setup(f => f.CreateDbContext()).Returns(mockDb.Object);
-        var service = new CustomerMergeService(mockFactory.Object);
+        var mockEvaluator = new Mock<IPermissionEvaluator>();
+        var mockWorkflowRuntime = new Mock<IWorkflowRuntimeService>();
+        var executor = new CustomerMergeExecutor(mockFactory.Object, Mock.Of<ITransactionalAuditWriter>());
+        var service = new CustomerMergeService(mockFactory.Object, mockEvaluator.Object, mockWorkflowRuntime.Object, executor);
 
         var request = new CreateCustomerMergeRequestDto
         {

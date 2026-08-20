@@ -4,15 +4,17 @@ import {
   Button,
   Card,
   Descriptions,
+  Popconfirm,
   Space,
   Spin,
   Table,
   Tag,
   Typography,
+  message,
 } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { getMergeRequestById } from './customerMergeApi';
+import { getMergeRequestById, submitMergeRequest } from './customerMergeApi';
 import { getMergeErrorMessage } from './customerMergeErrorMessages';
 const { Title } = Typography;
 
@@ -27,6 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const CustomerMergeRequestDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const {
     data: request,
@@ -36,6 +39,21 @@ const CustomerMergeRequestDetailPage: React.FC = () => {
     queryKey: ['merge-request', id],
     queryFn: () => getMergeRequestById(id!),
     enabled: !!id,
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: () => submitMergeRequest(id!),
+    onSuccess: (result) => {
+      message.success(
+        result.requestStatus === 'EXECUTED'
+          ? 'Đã duyệt và gộp xong: dữ liệu KH nguồn đã dồn về KH đích.'
+          : 'Đã gửi duyệt yêu cầu gộp. Chờ người có thẩm quyền phê duyệt.',
+      );
+      queryClient.invalidateQueries({ queryKey: ['merge-request', id] });
+    },
+    onError: (err) => {
+      message.error(getMergeErrorMessage(err));
+    },
   });
 
   if (isLoading) {
@@ -85,6 +103,23 @@ const CustomerMergeRequestDetailPage: React.FC = () => {
           Chi tiết yêu cầu gộp
         </Title>
         <Space>
+          {request.requestStatus === 'DRAFT' && (
+            <Popconfirm
+              title="Gửi duyệt yêu cầu gộp"
+              description="Yêu cầu sẽ vào luồng duyệt. Sau khi duyệt, dữ liệu KH nguồn sẽ dồn về KH đích và không thể hoàn tác."
+              okText="Gửi duyệt"
+              cancelText="Huỷ"
+              onConfirm={() => submitMutation.mutate()}
+            >
+              <Button
+                type="primary"
+                loading={submitMutation.isPending}
+                data-testid="submit-merge-btn"
+              >
+                Gửi duyệt
+              </Button>
+            </Popconfirm>
+          )}
           {request.workflowInstanceId && (
             <Button>
               <Link

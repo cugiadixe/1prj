@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Form, Input, Radio, Row, Select, Space, Tabs, Typography } from 'antd';
+import React, { useRef, useState } from 'react';
+import { Alert, Button, Card, Col, DatePicker, Form, Input, Modal, Radio, Row, Select, Space, Tabs, Typography } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createCustomer, checkDuplicates } from './customersApi';
-import { getErrorMessage } from './errorMessages';
+import { getErrorCode, getErrorMessage } from './errorMessages';
 import type { CreateCustomerRequest, DuplicateCheckResult } from './types';
 
 const { Title } = Typography;
@@ -16,6 +16,8 @@ const CustomerCreatePage: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateCheckResult | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
+  // Giữ lại yêu cầu vừa gửi để tạo lại kèm cờ xác nhận khi backend chặn mềm vì trùng SĐT.
+  const pendingRequestRef = useRef<CreateCustomerRequest | null>(null);
   // Loại giấy tờ tuỳ thân: CCCD = 12 số, CMND = 10 số. Chỉ điều khiển kiểm tra ở FE;
   // số giấy tờ vẫn lưu vào trường cccd (loại suy theo độ dài).
   const docType = (Form.useWatch('docType', form) as string) || 'CCCD';
@@ -44,6 +46,24 @@ const CustomerCreatePage: React.FC = () => {
       navigate(`/customers/${result.id}`);
     },
     onError: (err) => {
+      // Trùng SĐT: backend chặn mềm → hỏi xác nhận "vẫn tạo" rồi gửi lại kèm cờ confirmDuplicatePhone.
+      // (Trùng CCCD là chặn cứng nên rơi xuống nhánh báo lỗi bên dưới, không có xác nhận.)
+      const req = pendingRequestRef.current;
+      if (getErrorCode(err) === 'CUS_DUPLICATE_PHONE' && req && !req.confirmDuplicatePhone) {
+        Modal.confirm({
+          title: 'Số điện thoại đã tồn tại',
+          content:
+            'Đã có khách hàng đang hoạt động dùng số điện thoại này. Số điện thoại có thể dùng chung trong gia đình — bạn có chắc vẫn tạo khách hàng mới?',
+          okText: 'Vẫn tạo',
+          cancelText: 'Xem lại',
+          onOk: () => {
+            const confirmed = { ...req, confirmDuplicatePhone: true };
+            pendingRequestRef.current = confirmed;
+            createMutation.mutate(confirmed);
+          },
+        });
+        return;
+      }
       setSubmitError(getErrorMessage(err));
     },
   });
@@ -95,6 +115,7 @@ const CustomerCreatePage: React.FC = () => {
       assignedStaffId: values.assignedStaffId ? Number(values.assignedStaffId) : null,
       internalNotes: (values.internalNotes as string) || null,
     };
+    pendingRequestRef.current = request;
     createMutation.mutate(request);
   };
 

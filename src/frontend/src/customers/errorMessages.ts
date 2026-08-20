@@ -1,19 +1,20 @@
 const ERROR_MESSAGES: Record<string, string> = {
   CUS_INVALID_ROW_VERSION:
-    'This customer was modified by another user. Please refresh and try again.',
-  CUS_DUPLICATE_CCCD: 'An active customer with this CCCD already exists.',
-  CUS_DUPLICATE_CUSTOMER_CODE: 'This customer code is already in use.',
-  CUS_CUSTOMER_NOT_FOUND: 'Customer not found.',
-  CUS_COMPANY_NOT_FOUND: 'Company not found or inactive.',
+    'Khách hàng này vừa được người khác chỉnh sửa. Vui lòng tải lại và thử lại.',
+  CUS_DUPLICATE_CCCD: 'Đã có khách hàng đang hoạt động dùng số CCCD này.',
+  CUS_DUPLICATE_CUSTOMER_CODE: 'Mã khách hàng này đã được sử dụng.',
+  CUS_DUPLICATE_PHONE: 'Đã có khách hàng đang hoạt động dùng số điện thoại này.',
+  CUS_CUSTOMER_NOT_FOUND: 'Không tìm thấy khách hàng.',
+  CUS_COMPANY_NOT_FOUND: 'Không tìm thấy công ty hoặc công ty đã ngừng hoạt động.',
   CUS_DUPLICATE_COMPANY_CONTEXT:
-    'Customer already has a relationship with this company.',
-  CUS_CONTEXT_NOT_FOUND: 'Company context not found.',
+    'Khách hàng đã có quan hệ với công ty này.',
+  CUS_CONTEXT_NOT_FOUND: 'Không tìm thấy quan hệ công ty.',
 };
 
-export const GENERIC_ERROR = 'An error occurred. Please try again.';
+export const GENERIC_ERROR = 'Đã xảy ra lỗi. Vui lòng thử lại.';
 export const PERMISSION_DENIED =
-  'You do not have permission to perform this action.';
-export const CUSTOMER_NOT_FOUND = 'Customer not found.';
+  'Bạn không có quyền thực hiện thao tác này.';
+export const CUSTOMER_NOT_FOUND = 'Không tìm thấy khách hàng.';
 
 export function getErrorMessage(error: unknown): string {
   try {

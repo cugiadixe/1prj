@@ -153,6 +153,9 @@ export interface CreateCustomerRequest {
   hometown?: string | null;
   // Tạo khách ở tình trạng đã mất → backend đặt CustomerStatus = DECEASED. Mặc định false.
   isDeceased?: boolean;
+  // Xác nhận "vẫn tạo dù trùng SĐT". Khi trùng SĐT backend chặn mềm (CUS_DUPLICATE_PHONE); đặt true
+  // sau khi người dùng bấm xác nhận để tạo tiếp. SĐT có thể dùng chung nên không khoá cứng như CCCD.
+  confirmDuplicatePhone?: boolean;
   initialCompanyId?: number | null;
   assignedStaffId?: number | null;
   internalNotes?: string | null;

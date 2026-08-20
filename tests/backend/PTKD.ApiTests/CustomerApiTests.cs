@@ -169,6 +169,41 @@ public class CustomerApiTests : IClassFixture<SafeTestWebApplicationFactory>, IA
     }
 
     [Fact]
+    public async Task Customer_DuplicatePhone_SoftBlocked_Returns400()
+    {
+        var phone = "09" + Guid.NewGuid().ToString("N")[..8];
+        var request1 = MakeCreateRequest();
+        request1.Phone = phone;
+        (await _client.PostAsJsonAsync("/api/v2/customers", request1)).EnsureSuccessStatusCode();
+
+        // Không xác nhận → chặn mềm.
+        var request2 = MakeCreateRequest();
+        request2.Phone = phone;
+        var response = await _client.PostAsJsonAsync("/api/v2/customers", request2);
+
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict);
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.Contains("CUS_DUPLICATE_PHONE", content);
+    }
+
+    [Fact]
+    public async Task Customer_DuplicatePhone_WithConfirm_Succeeds()
+    {
+        var phone = "09" + Guid.NewGuid().ToString("N")[..8];
+        var request1 = MakeCreateRequest();
+        request1.Phone = phone;
+        (await _client.PostAsJsonAsync("/api/v2/customers", request1)).EnsureSuccessStatusCode();
+
+        // Đã xác nhận vẫn tạo dù trùng SĐT → cho tạo.
+        var request2 = MakeCreateRequest();
+        request2.Phone = phone;
+        request2.ConfirmDuplicatePhone = true;
+        var response = await _client.PostAsJsonAsync("/api/v2/customers", request2);
+
+        Assert.True(response.IsSuccessStatusCode, $"Expected success, got {response.StatusCode}");
+    }
+
+    [Fact]
     public async Task Customer_DuplicateCheck_Returns200()
     {
         var cccd = "DC_" + Guid.NewGuid().ToString("N")[..10];
@@ -182,6 +217,94 @@ public class CustomerApiTests : IClassFixture<SafeTestWebApplicationFactory>, IA
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
         Assert.True(doc.RootElement.GetProperty("hasDuplicates").GetBoolean());
+    }
+
+    // ── Merge: company-scope enforcement ────────────────────────
+
+    [Fact]
+    public async Task Merge_CreateOutOfCompanyScope_Returns403()
+    {
+        var companyA = await CreateCompanyAsync();
+        var companyB = await CreateCompanyAsync();
+        var custA = await CreateCustomerInCompanyAsync(companyA.Id);
+        var custB = await CreateCustomerInCompanyAsync(companyB.Id);
+
+        // Người dùng chỉ có quyền merge ở công ty A (và chỉ thuộc công ty A).
+        var (scopedUserId, token) = await SeedUserAndGetTokenAsync("merge_scoped");
+        await AssignUserToCompanyAsync(scopedUserId, companyA.Id);
+        await GrantPermissionAsync(scopedUserId, "CUSTOMER_MERGE_REQUEST_CREATE", companyA.Id);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        // Gộp custA (trong phạm vi) -> custB (NGOÀI phạm vi công ty A) => bị chặn 403.
+        var req = new
+        {
+            SourceCustomerId = custA.Id,
+            TargetCustomerId = custB.Id,
+            SurvivorshipPayload = "{}",
+            SourceRowVersionSnapshot = custA.RowVersion,
+            TargetRowVersionSnapshot = custB.RowVersion,
+            Candidates = Array.Empty<object>()
+        };
+        var response = await client.PostAsJsonAsync("/api/v2/customers/merge-requests", req);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Merge_CreateWithinCompanyScope_Succeeds()
+    {
+        var companyA = await CreateCompanyAsync();
+        var companyB = await CreateCompanyAsync();
+        var custA = await CreateCustomerInCompanyAsync(companyA.Id);
+        var custB = await CreateCustomerInCompanyAsync(companyB.Id);
+
+        // Người dùng thuộc + có quyền merge ở CẢ hai công ty → được phép tạo yêu cầu gộp.
+        var (scopedUserId, token) = await SeedUserAndGetTokenAsync("merge_ok");
+        await AssignUserToCompanyAsync(scopedUserId, companyA.Id, isPrimary: true);
+        await AssignUserToCompanyAsync(scopedUserId, companyB.Id, isPrimary: false);
+        await GrantCompanyPermissionAsync(scopedUserId, "CUSTOMER_MERGE_REQUEST_CREATE", companyA.Id);
+        await GrantCompanyPermissionAsync(scopedUserId, "CUSTOMER_MERGE_REQUEST_CREATE", companyB.Id);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var req = new
+        {
+            SourceCustomerId = custA.Id,
+            TargetCustomerId = custB.Id,
+            SurvivorshipPayload = "{}",
+            SourceRowVersionSnapshot = custA.RowVersion,
+            TargetRowVersionSnapshot = custB.RowVersion,
+            Candidates = Array.Empty<object>()
+        };
+        var response = await client.PostAsJsonAsync("/api/v2/customers/merge-requests", req);
+        Assert.True(response.IsSuccessStatusCode, $"Expected success, got {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+    }
+
+    [Fact]
+    public async Task Merge_CreateSameCompanyDuplicates_Succeeds()
+    {
+        // Ca chống trùng phổ biến nhất: hai bản ghi CÙNG một công ty. Không được bị chặn.
+        var company = await CreateCompanyAsync();
+        var custA = await CreateCustomerInCompanyAsync(company.Id);
+        var custB = await CreateCustomerInCompanyAsync(company.Id);
+
+        var (scopedUserId, token) = await SeedUserAndGetTokenAsync("merge_same");
+        await AssignUserToCompanyAsync(scopedUserId, company.Id);
+        await GrantCompanyPermissionAsync(scopedUserId, "CUSTOMER_MERGE_REQUEST_CREATE", company.Id);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var req = new
+        {
+            SourceCustomerId = custA.Id,
+            TargetCustomerId = custB.Id,
+            SurvivorshipPayload = "{}",
+            SourceRowVersionSnapshot = custA.RowVersion,
+            TargetRowVersionSnapshot = custB.RowVersion,
+            Candidates = Array.Empty<object>()
+        };
+        var response = await client.PostAsJsonAsync("/api/v2/customers/merge-requests", req);
+        Assert.True(response.IsSuccessStatusCode, $"Expected success, got {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
     }
 
     // ── Company Contexts ────────────────────────────────────────
@@ -315,6 +438,83 @@ public class CustomerApiTests : IClassFixture<SafeTestWebApplicationFactory>, IA
             CustomerCode = code,
             FullName = "Customer " + code,
             InitialCompanyId = company.Id
+        };
+        var response = await _client.PostAsJsonAsync("/api/v2/customers", request);
+        response.EnsureSuccessStatusCode();
+        return await ParseCustomerAsync(response);
+    }
+
+    // Grant quyền theo TỪNG công ty (dedup theo user+mã+công ty). GrantPermissionAsync gốc dedup theo
+    // mã nên không cấp được cùng một quyền cho nhiều công ty — cần cho kịch bản merge xuyên công ty.
+    private async Task GrantCompanyPermissionAsync(long userId, string permissionCode, long companyId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var perm = db.Set<PTKD.Domain.Security.Authorization.Permission>().FirstOrDefault(p => p.PermissionCode == permissionCode);
+        if (perm == null)
+        {
+            perm = new PTKD.Domain.Security.Authorization.Permission
+            {
+                PermissionCode = permissionCode,
+                ModuleCode = "TEST",
+                ActionCode = "TEST",
+                DataScope = "COMPANY",
+                IsSensitive = false,
+                RequiresReason = false,
+                IsDelegable = false,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                RowVersion = PTKD.Domain.ValueObjects.RowVersion.FromByteArray(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 })
+            };
+            db.Set<PTKD.Domain.Security.Authorization.Permission>().Add(perm);
+            await db.SaveChangesAsync();
+        }
+
+        var exists = db.Set<PTKD.Domain.Security.Authorization.UserIndividualPermission>()
+            .Any(p => p.UserId == userId && p.PermissionCode == permissionCode && p.CompanyId == companyId);
+        if (exists) return;
+
+        db.Set<PTKD.Domain.Security.Authorization.UserIndividualPermission>().Add(new PTKD.Domain.Security.Authorization.UserIndividualPermission
+        {
+            UserId = userId,
+            PermissionCode = permissionCode,
+            ScopeType = "COMPANY",
+            CompanyId = companyId,
+            GrantType = "ALLOW",
+            AssignmentStatus = "ACTIVE",
+            EffectiveFrom = DateTime.UtcNow.AddDays(-1),
+            CreatedAt = DateTime.UtcNow,
+            RowVersion = PTKD.Domain.ValueObjects.RowVersion.FromByteArray(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 })
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private async Task AssignUserToCompanyAsync(long userId, long companyId, bool isPrimary = true)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<PTKD.Application.Common.Interfaces.IOrganizationDbContextFactory>();
+        using var db = (PTKD.Infrastructure.Persistence.AppDbContext)dbFactory.CreateDbContext();
+
+        var exists = db.Set<PTKD.Domain.Entities.UserCompanyAssignment>()
+            .Any(a => a.UserId == userId && a.CompanyId == companyId);
+        if (exists) return;
+
+        // Mỗi user chỉ được MỘT công ty primary (UQ_User_Primary_Company) → công ty thứ 2 phải non-primary.
+        db.Set<PTKD.Domain.Entities.UserCompanyAssignment>()
+            .Add(new PTKD.Domain.Entities.UserCompanyAssignment(userId, companyId, isPrimary, DateTime.UtcNow.AddDays(-1)));
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<CustomerResponse> CreateCustomerInCompanyAsync(long companyId)
+    {
+        var code = "CUS_" + Guid.NewGuid().ToString("N")[..10];
+        var request = new
+        {
+            CustomerCode = code,
+            FullName = "Customer " + code,
+            InitialCompanyId = companyId
         };
         var response = await _client.PostAsJsonAsync("/api/v2/customers", request);
         response.EnsureSuccessStatusCode();

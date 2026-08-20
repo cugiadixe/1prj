@@ -131,6 +131,7 @@ builder.Services.AddScoped<IUserAssignmentService, UserAssignmentService>();
 
 // Customer Services (Phase 1B.2-B1)
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerService, PTKD.Application.Customers.Services.CustomerService>();
+builder.Services.AddScoped<PTKD.Application.Customers.Handlers.CustomerMergeExecutor>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMergeService, PTKD.Application.Customers.Services.CustomerMergeService>();
 
 // Grave Management Services

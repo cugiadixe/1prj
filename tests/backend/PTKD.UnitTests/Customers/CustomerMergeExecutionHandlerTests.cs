@@ -23,7 +23,8 @@ public class CustomerMergeExecutionHandlerTests
         var mockFactory = new Mock<IOrganizationDbContextFactory>();
         var mockAudit = new Mock<ITransactionalAuditWriter>();
 
-        var handler = new CustomerMergeExecutionHandler(mockFactory.Object, mockAudit.Object);
+        var executor = new CustomerMergeExecutor(mockFactory.Object, mockAudit.Object);
+        var handler = new CustomerMergeExecutionHandler(executor);
         Assert.Equal("CUSTOMER_MERGE_DUPLICATE", handler.ProcessCode);
     }
 }

@@ -2,28 +2,27 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using PTKD.Application.Common.Exceptions;
-using PTKD.Application.Common.Interfaces;
-using PTKD.Application.Security.Audit;
 using PTKD.Application.Workflows.Services;
 using PTKD.Domain.Entities;
 
 namespace PTKD.Application.Customers.Handlers;
 
+/// <summary>
+/// Bộ xử lý workflow cho quy trình gộp khách hàng trùng: được engine gọi sau khi hồ sơ duyệt xong.
+/// Logic gộp thật nằm ở <see cref="CustomerMergeExecutor"/> (dùng chung với đường tự duyệt của admin).
+///
+/// Định danh yêu cầu gộp (Guid) lấy từ PayloadJson vì WorkflowInstance.BusinessEntityId là long
+/// không chứa được Guid (BusinessEntityId chỉ dùng làm "mỏ neo" hiển thị = TargetCustomerId).
+/// </summary>
 public class CustomerMergeExecutionHandler : IWorkflowExecutionHandler
 {
-    private readonly IOrganizationDbContextFactory _dbContextFactory;
-    private readonly ITransactionalAuditWriter _auditWriter;
+    private readonly CustomerMergeExecutor _executor;
 
-    public string ProcessCode => "CUSTOMER_MERGE_DUPLICATE"; // Process code identified in plan
+    public string ProcessCode => "CUSTOMER_MERGE_DUPLICATE";
 
-    public CustomerMergeExecutionHandler(
-        IOrganizationDbContextFactory dbContextFactory,
-        ITransactionalAuditWriter auditWriter)
+    public CustomerMergeExecutionHandler(CustomerMergeExecutor executor)
     {
-        _dbContextFactory = dbContextFactory;
-        _auditWriter = auditWriter;
+        _executor = executor;
     }
 
     public async Task ExecuteAsync(WorkflowInstance instance, CancellationToken ct = default)
@@ -31,90 +30,29 @@ public class CustomerMergeExecutionHandler : IWorkflowExecutionHandler
         if (instance.BusinessEntityType != "CustomerMergeRequest")
             throw new InvalidOperationException("Invalid business entity type for this handler.");
 
-        if (!Guid.TryParse(instance.BusinessEntityId.ToString(), out var mergeRequestId))
-            throw new InvalidOperationException("Invalid merge request ID.");
+        var mergeRequestId = ParseMergeRequestId(instance);
+        await _executor.ExecuteAsync(mergeRequestId, instance.RequesterId, instance.CorrelationId, ct);
+    }
 
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var mergeRequest = await dbContext.CustomerMergeRequests
-            .Include(r => r.Candidates)
-            .FirstOrDefaultAsync(c => c.Id == mergeRequestId, ct);
-
-        if (mergeRequest == null) throw new InvalidOperationException("Customer merge request not found.");
-
-        // Idempotency check
-        if (mergeRequest.RequestStatus == "EXECUTED")
+    public async Task OnRejectedAsync(WorkflowInstance instance, CancellationToken ct = default)
+    {
+        if (instance.BusinessEntityType != "CustomerMergeRequest")
             return;
 
-        if (mergeRequest.RequestStatus == "REJECTED" || mergeRequest.RequestStatus == "WITHDRAWN")
-        {
-            // Do not mutate if rejected/withdrawn
-            return;
-        }
+        var mergeRequestId = ParseMergeRequestId(instance);
+        await _executor.MarkRejectedAsync(mergeRequestId, ct);
+    }
 
-        if (mergeRequest.RequestStatus != "SUBMITTED" && mergeRequest.RequestStatus != "APPROVED")
-            throw new InvalidOperationException($"Cannot execute request in state {mergeRequest.RequestStatus}.");
-
-        var sourceCustomer = await dbContext.Customers
-            .Include(c => c.Profile)
-            .FirstOrDefaultAsync(c => c.Id == mergeRequest.SourceCustomerId, ct);
-
-        var targetCustomer = await dbContext.Customers
-            .Include(c => c.Profile)
-            .FirstOrDefaultAsync(c => c.Id == mergeRequest.TargetCustomerId, ct);
-
-        if (sourceCustomer == null || targetCustomer == null)
-            throw new InvalidOperationException("Source or target customer not found.");
-
-        if (!Convert.ToBase64String(sourceCustomer.RowVersion).Equals(Convert.ToBase64String(mergeRequest.SourceRowVersionSnapshot)))
-            throw new InvalidOperationException("Concurrency conflict: Source customer has been modified since the request was created.");
-
-        if (!Convert.ToBase64String(targetCustomer.RowVersion).Equals(Convert.ToBase64String(mergeRequest.TargetRowVersionSnapshot)))
-            throw new InvalidOperationException("Concurrency conflict: Target customer has been modified since the request was created.");
-
-        // We could parse survivorship payload here and apply it to target profile
-        // The plan just says "updates Profile fields based on survivorship".
-        // For foundation scope, simply mark source as MERGED and link survivor.
-
-        sourceCustomer.SetStatus("MERGED", 0, targetCustomer.Id);
-
-        mergeRequest.SetExecuted();
-
-        // Audit/History
-        var history = new CustomerMergeHistory(
-            mergeRequest.Id,
-            sourceCustomer.Id,
-            targetCustomer.Id,
-            "EXECUTED",
-            0, // ActorId
-            mergeRequest.SurvivorshipPayload
-        );
-        dbContext.CustomerMergeHistory.Add(history);
-
+    private static Guid ParseMergeRequestId(WorkflowInstance instance)
+    {
         try
         {
-            await using var transaction = await dbContext.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-            await dbContext.SaveChangesAsync(ct);
-
-            var audit = new SecurityAuditEventRecord
-            {
-                EventCode = "CUSTOMER_MERGE_EXECUTED",
-                EntityType = "Customer",
-                EntityId = targetCustomer.Id.ToString(),
-                Outcome = "SUCCESS",
-                CorrelationId = Guid.NewGuid(),
-                ActorUserId = 0,
-                AfterStateJson = JsonSerializer.Serialize(new { SourceId = sourceCustomer.Id, TargetId = targetCustomer.Id, RequestId = mergeRequest.Id })
-            };
-            audit.ThrowIfContainsSensitiveData();
-            await _auditWriter.WriteAsync(audit, dbContext.GetDbConnection(), dbContext.GetCurrentDbTransaction()!, ct);
-
-            await transaction.CommitAsync(ct);
+            using var doc = JsonDocument.Parse(instance.PayloadJson);
+            if (doc.RootElement.TryGetProperty("MergeRequestId", out var el) && Guid.TryParse(el.GetString(), out var id))
+                return id;
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            mergeRequest.SetRejected();
-            await dbContext.SaveChangesAsync(ct); // Save failed state outside transaction
-            throw new InvalidOperationException("Concurrency conflict during execution.");
-        }
+        catch { /* rơi xuống lỗi rõ ràng bên dưới */ }
+
+        throw new InvalidOperationException("Merge request id missing from workflow payload.");
     }
 }
