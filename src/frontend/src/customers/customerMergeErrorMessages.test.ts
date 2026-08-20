@@ -35,7 +35,7 @@ describe('customerMergeErrorMessages', () => {
       },
     };
     expect(getMergeErrorMessage(error)).toBe(
-      'Source and target customer cannot be the same.',
+      'Khách hàng nguồn và đích không được trùng nhau.',
     );
   });
 
@@ -50,7 +50,7 @@ describe('customerMergeErrorMessages', () => {
       },
     };
     expect(getMergeErrorMessage(error)).toBe(
-      'This customer has already been merged and cannot be merged again.',
+      'Khách hàng này đã được gộp trước đó, không thể gộp lại.',
     );
   });
 
@@ -65,7 +65,7 @@ describe('customerMergeErrorMessages', () => {
         },
       },
     };
-    expect(getMergeErrorMessage(error)).toContain('overlapping company relationships');
+    expect(getMergeErrorMessage(error)).toContain('chồng lấn');
   });
 
   it('maps concurrency conflict detail', () => {

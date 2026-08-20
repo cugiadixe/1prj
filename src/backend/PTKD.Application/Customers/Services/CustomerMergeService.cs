@@ -138,13 +138,9 @@ public class CustomerMergeService : ICustomerMergeService
         if (mergeRequest.RequestStatus != "DRAFT")
             throw new InvalidOperationException("Only DRAFT merge requests can be submitted for approval.");
 
-        // Quyền: người gửi duyệt phải được thao tác trên CẢ hai khách (nguồn + đích) trong phạm vi
-        // quyền merge của họ — giống lúc tạo. Ném 403 nếu chạm khách ngoài phạm vi.
-        var createScope = await _permissionEvaluator.ResolveAsync(actorUserId, CreatePermission, ct);
-        await CustomerCompanyScope.EnsureCustomerAccessibleAsync(_dbContext, mergeRequest.SourceCustomerId, createScope, "CUS_MERGE_FORBIDDEN", ct);
-        await CustomerCompanyScope.EnsureCustomerAccessibleAsync(_dbContext, mergeRequest.TargetCustomerId, createScope, "CUS_MERGE_FORBIDDEN", ct);
-
-        // Kiểm tra lại tình trạng khách ngay trước khi mở luồng duyệt (tránh gửi duyệt hồ sơ đã hỏng).
+        // Kiểm TÌNH TRẠNG KHÁCH TRƯỚC (trước khi kiểm phạm vi công ty): nếu nguồn đã bị gộp thì nó
+        // KHÔNG còn context công ty → nếu kiểm scope trước sẽ ném 403 "không có quyền" gây khó hiểu.
+        // Người dùng đã qua cổng quyền CREATE ở controller nên báo trạng thái nghiệp vụ ở đây là hợp lý.
         var sourceCustomer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.Id == mergeRequest.SourceCustomerId, ct);
         var targetCustomer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.Id == mergeRequest.TargetCustomerId, ct);
         if (sourceCustomer == null || targetCustomer == null)
@@ -153,6 +149,12 @@ public class CustomerMergeService : ICustomerMergeService
             throw new InvalidOperationException("Cannot merge a customer that is already merged.");
         if (targetCustomer.CustomerStatus != "ACTIVE")
             throw new InvalidOperationException("Target customer must be active.");
+
+        // Quyền: người gửi duyệt phải được thao tác trên CẢ hai khách (nguồn + đích) trong phạm vi
+        // quyền merge của họ — giống lúc tạo. Ném 403 nếu chạm khách ngoài phạm vi.
+        var createScope = await _permissionEvaluator.ResolveAsync(actorUserId, CreatePermission, ct);
+        await CustomerCompanyScope.EnsureCustomerAccessibleAsync(_dbContext, mergeRequest.SourceCustomerId, createScope, "CUS_MERGE_FORBIDDEN", ct);
+        await CustomerCompanyScope.EnsureCustomerAccessibleAsync(_dbContext, mergeRequest.TargetCustomerId, createScope, "CUS_MERGE_FORBIDDEN", ct);
 
         // TỰ DUYỆT: người gửi có quyền CUSTOMER_MERGE_EXECUTE phủ CẢ công ty của khách nguồn + đích
         // (toàn cục, hoặc theo công ty bao trùm cả hai) → tự tạo + tự duyệt + thực thi NGAY, không cần
