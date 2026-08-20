@@ -17,7 +17,6 @@ namespace PTKD.API.Controllers;
 [ApiController]
 [Route("api/v2/relationship-kinds")]
 [Authorize]
-[RequirePermission(PermissionCodes.RelationshipKindManage, PermissionScope.Global)]
 public class RelationshipKindsController : ControllerBase
 {
     private readonly IRelationshipKindService _service;
@@ -27,7 +26,9 @@ public class RelationshipKindsController : ControllerBase
         _service = service;
     }
 
+    // XEM danh mục cần quyền VIEW — nhẹ hơn MANAGE để nhân viên tải được dropdown khi khai quan hệ.
     [HttpGet]
+    [RequirePermission(PermissionCodes.RelationshipKindView, PermissionScope.Global)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var kinds = await _service.GetAllAsync(ct);
@@ -35,6 +36,7 @@ public class RelationshipKindsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(PermissionCodes.RelationshipKindManage, PermissionScope.Global)]
     public async Task<IActionResult> Create([FromBody] CreateRelationshipKindRequest request, CancellationToken ct)
     {
         var dto = await _service.CreateAsync(request, GetActorUserId(), ct);
@@ -42,6 +44,7 @@ public class RelationshipKindsController : ControllerBase
     }
 
     [HttpPut("{kindCode}")]
+    [RequirePermission(PermissionCodes.RelationshipKindManage, PermissionScope.Global)]
     public async Task<IActionResult> Update(string kindCode, [FromBody] UpdateRelationshipKindRequest request, CancellationToken ct)
     {
         await _service.UpdateAsync(kindCode, request, GetActorUserId(), ct);
@@ -49,6 +52,7 @@ public class RelationshipKindsController : ControllerBase
     }
 
     [HttpDelete("{kindCode}")]
+    [RequirePermission(PermissionCodes.RelationshipKindManage, PermissionScope.Global)]
     public async Task<IActionResult> Delete(string kindCode, CancellationToken ct)
     {
         await _service.DeleteAsync(kindCode, GetActorUserId(), ct);

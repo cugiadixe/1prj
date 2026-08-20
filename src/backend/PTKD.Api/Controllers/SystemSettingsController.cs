@@ -16,7 +16,6 @@ namespace PTKD.API.Controllers;
 [ApiController]
 [Route("api/v2/system/settings")]
 [Authorize]
-[RequirePermission(PermissionCodes.SystemSettingManage, PermissionScope.Global)]
 public class SystemSettingsController : ControllerBase
 {
     private readonly IAppSettingsService _settings;
@@ -45,6 +44,7 @@ public class SystemSettingsController : ControllerBase
     }
 
     [HttpGet("storage-path")]
+    [RequirePermission(PermissionCodes.SystemSettingView, PermissionScope.Global)]
     public async Task<IActionResult> GetStoragePath(CancellationToken ct)
     {
         var configured = await _settings.GetValueAsync(IAppSettingsService.FileStorageBasePathKey, ct);
@@ -59,6 +59,7 @@ public class SystemSettingsController : ControllerBase
     }
 
     [HttpPut("storage-path")]
+    [RequirePermission(PermissionCodes.SystemSettingManage, PermissionScope.Global)]
     public async Task<IActionResult> SetStoragePath([FromBody] UpdateStoragePathRequest request, CancellationToken ct)
     {
         var path = request.Path?.Trim();

@@ -77,6 +77,10 @@ public static class PermissionCodes
     /// </summary>
     public const string RelationshipKindManage = "RELATIONSHIP_KIND_MANAGE";
 
+    /// <summary>Xem DANH MỤC loại quan hệ (đọc). Cũng cấp cho nhân viên để tải dropdown khi khai
+    /// quan hệ. Sửa danh mục vẫn cần RELATIONSHIP_KIND_MANAGE. Seed V0055.</summary>
+    public const string RelationshipKindView = "RELATIONSHIP_KIND_VIEW";
+
     public const string WorkflowView = "WORKFLOW_VIEW";
 
     /// <summary>
@@ -106,6 +110,12 @@ public static class PermissionCodes
     /// <summary>Xem/sửa cấu hình hệ thống runtime (vd đường dẫn lưu file đính kèm). Chỉ quản trị. Seed V0041.</summary>
     public const string SystemSettingManage = "SYSTEM_SETTING_MANAGE";
 
+    /// <summary>Chỉ XEM cấu hình hệ thống (không sửa). Sửa vẫn cần SYSTEM_SETTING_MANAGE. Seed V0055.</summary>
+    public const string SystemSettingView = "SYSTEM_SETTING_VIEW";
+
+    /// <summary>Xem trang tình trạng hệ thống (System Health). Gác hiển thị menu "Hệ thống". Seed V0055.</summary>
+    public const string SystemHealthView = "SYSTEM_HEALTH_VIEW";
+
     public const string CarePackageView = "CARE_PACKAGE_VIEW";
     public const string CarePackageCreate = "CARE_PACKAGE_CREATE";
 
@@ -123,6 +133,10 @@ public static class PermissionCodes
     public const string CustomerCarePackageManage = "CUSTOMER_CARE_PACKAGE_MANAGE";
 
     public const string TagManage = "TAG_MANAGE";
+
+    /// <summary>Chỉ XEM danh mục thẻ (đọc-only cho trang quản lý). Sửa vẫn cần TAG_MANAGE. Danh sách
+    /// thẻ phục vụ picker/bộ lọc vẫn mở cho mọi người đăng nhập. Seed V0055.</summary>
+    public const string TagView = "TAG_VIEW";
 
     /// <summary>
     /// Khai báo thẩm quyền phê duyệt (ai được duyệt ở phòng ban/cấp nào). Tách riêng khỏi

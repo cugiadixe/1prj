@@ -184,12 +184,6 @@ const AuthenticatedShell: React.FC = () => {
           icon: <ApartmentOutlined />,
           onClick: () => navigate('/relationships'),
         },
-        hasPermission('RELATIONSHIP_KIND_MANAGE') ? {
-          key: '/relationships/kinds',
-          label: navLabel('nav-relationship-kinds', 'Loại quan hệ'),
-          icon: <TagsOutlined />,
-          onClick: () => navigate('/relationships/kinds'),
-        } : null,
       ].filter(Boolean),
     } : null,
     hasPermission('GRAVE_VIEW') ? {
@@ -241,12 +235,6 @@ const AuthenticatedShell: React.FC = () => {
       icon: <ToolOutlined />,
       label: navLabel('nav-services-group', 'Dịch vụ'),
       children: [
-        hasPermission('SERVICE_TYPE_MANAGE') ? {
-          key: '/services/types',
-          label: navLabel('nav-services-types', 'Gói dịch vụ'),
-          icon: <SettingOutlined />,
-          onClick: () => navigate('/services/types'),
-        } : null,
         hasPermission('SERVICE_VIEW') ? {
           key: '/services',
           label: navLabel('nav-services', 'Bảng tổng hợp dịch vụ'),
@@ -275,11 +263,6 @@ const AuthenticatedShell: React.FC = () => {
           key: '/cards/reprints',
           label: navLabel('nav-cards-reprints', 'Yêu cầu in lại'),
           onClick: () => navigate('/cards/reprints'),
-        },
-        {
-          key: '/cards/watermarks',
-          label: navLabel('nav-cards-watermarks', 'Hoa văn thẻ'),
-          onClick: () => navigate('/cards/watermarks'),
         },
       ],
     },
@@ -400,24 +383,52 @@ const AuthenticatedShell: React.FC = () => {
         } : null,
       ].filter(Boolean),
     } : null,
-    hasPermission('TAG_MANAGE') ? {
-      key: '/tags',
-      icon: <TagsOutlined />,
-      label: navLabel('nav-tags', 'Quản lý thẻ'),
-      onClick: () => navigate('/tags'),
-    } : null,
-    hasPermission('SYSTEM_SETTING_MANAGE') ? {
-      key: '/system/storage',
+    // ── Cài đặt hệ thống: gom mọi mục danh mục/cấu hình vào 1 nhóm cho dễ quản lý ──
+    (hasPermission('RELATIONSHIP_KIND_MANAGE') || hasPermission('SERVICE_TYPE_MANAGE')
+      || hasPermission('TAG_MANAGE') || hasPermission('CARD_ISSUE')
+      || hasPermission('SYSTEM_SETTING_MANAGE') || hasPermission('SYSTEM_HEALTH_VIEW')) ? {
+      key: 'settings-group',
       icon: <SettingOutlined />,
-      label: navLabel('nav-system-storage', 'Cấu hình lưu trữ'),
-      onClick: () => navigate('/system/storage'),
+      label: navLabel('nav-settings-group', 'Cài đặt hệ thống'),
+      children: [
+        hasPermission('RELATIONSHIP_KIND_MANAGE') ? {
+          key: '/relationships/kinds',
+          label: navLabel('nav-relationship-kinds', 'Loại quan hệ'),
+          icon: <TagsOutlined />,
+          onClick: () => navigate('/relationships/kinds'),
+        } : null,
+        hasPermission('SERVICE_TYPE_MANAGE') ? {
+          key: '/services/types',
+          label: navLabel('nav-services-types', 'Gói dịch vụ'),
+          icon: <ToolOutlined />,
+          onClick: () => navigate('/services/types'),
+        } : null,
+        hasPermission('TAG_MANAGE') ? {
+          key: '/tags',
+          label: navLabel('nav-tags', 'Quản lý thẻ'),
+          icon: <TagsOutlined />,
+          onClick: () => navigate('/tags'),
+        } : null,
+        hasPermission('CARD_ISSUE') ? {
+          key: '/cards/watermarks',
+          label: navLabel('nav-cards-watermarks', 'Hoa văn thẻ'),
+          icon: <CreditCardOutlined />,
+          onClick: () => navigate('/cards/watermarks'),
+        } : null,
+        hasPermission('SYSTEM_SETTING_MANAGE') ? {
+          key: '/system/storage',
+          label: navLabel('nav-system-storage', 'Cấu hình lưu trữ'),
+          icon: <SettingOutlined />,
+          onClick: () => navigate('/system/storage'),
+        } : null,
+        hasPermission('SYSTEM_HEALTH_VIEW') ? {
+          key: '/system-health',
+          label: navLabel('nav-system-health', 'Hệ thống'),
+          icon: <SettingOutlined />,
+          onClick: () => navigate('/system-health'),
+        } : null,
+      ].filter(Boolean),
     } : null,
-    {
-      key: '/system-health',
-      icon: <SettingOutlined />,
-      label: navLabel('nav-system-health', 'Hệ thống'),
-      onClick: () => navigate('/system-health'),
-    },
   ].filter(Boolean) as MenuProps['items'];
 
   const selectedKeys = [location.pathname];
