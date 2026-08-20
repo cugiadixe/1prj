@@ -154,14 +154,8 @@ const AuthenticatedShell: React.FC = () => {
           onClick: () => navigate('/customers'),
         },
         hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') ? {
-          key: '/customers/proposals',
-          label: navLabel('nav-customers-proposals', 'Đề xuất KH mới'),
-          icon: <FileSearchOutlined />,
-          onClick: () => navigate('/customers/proposals'),
-        } : null,
-        hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') ? {
           key: '/customers/change-requests',
-          label: navLabel('nav-customers-change-requests', 'Yêu cầu thay đổi'),
+          label: navLabel('nav-customers-change-requests', 'Danh sách khách hàng yêu cầu thay đổi'),
           icon: <SwapOutlined />,
           onClick: () => navigate('/customers/change-requests'),
         } : null,

@@ -42,9 +42,6 @@ import WorkflowMyApprovalsPage from './workflow/WorkflowMyApprovalsPage';
 import WorkflowMyRequestsPage from './workflow/WorkflowMyRequestsPage';
 import WorkflowInstancesAdminPage from './workflow/WorkflowInstancesAdminPage';
 import WorkflowInstanceDetailPage from './workflow/WorkflowInstanceDetailPage';
-import CustomerProposalCreatePage from './customers/CustomerProposalCreatePage';
-import CustomerProposalDetailPage from './customers/CustomerProposalDetailPage';
-import CustomerMyProposalsPage from './customers/CustomerMyProposalsPage';
 import CustomerMasterChangeRequestsPage from './customers/CustomerMasterChangeRequestsPage';
 import CustomerMasterChangeRequestDetailPage from './customers/CustomerMasterChangeRequestDetailPage';
 import CustomerMergeDuplicateSearchPage from './customers/CustomerMergeDuplicateSearchPage';
@@ -147,9 +144,6 @@ const App: React.FC = () => {
               <Route path="customers/new" element={<CustomerCreatePage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="customers/:customerId/edit" element={<CustomerEditPage />} />
-              <Route path="customers/proposals" element={<CustomerMyProposalsPage />} />
-              <Route path="customers/proposals/new" element={<CustomerProposalCreatePage />} />
-              <Route path="customers/proposals/:id" element={<CustomerProposalDetailPage />} />
               <Route path="customers/change-requests" element={<CustomerMasterChangeRequestsPage />} />
               <Route path="customers/change-requests/:id" element={<CustomerMasterChangeRequestDetailPage />} />
               {/* Phase 1B.5-C — Customer Merge UI */}

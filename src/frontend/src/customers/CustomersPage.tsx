@@ -162,11 +162,6 @@ const CustomersPage: React.FC = () => {
               <Link to="/customers/new">Tạo khách hàng</Link>
             </Button>
           )}
-          {hasPermission('CUSTOMER_CHANGE_REQUEST_CREATE') && (
-            <Button type="default" data-testid="submit-customer-proposal-btn">
-              <Link to="/customers/proposals/new">Gửi đề xuất</Link>
-            </Button>
-          )}
         </Space>
       </Space>
 

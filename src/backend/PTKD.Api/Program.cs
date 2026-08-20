@@ -154,8 +154,6 @@ builder.Services.AddScoped<PTKD.Application.Cards.Services.ICardDocumentService,
 builder.Services.AddScoped<PTKD.Application.Cemeteries.ICemeteryService, PTKD.Application.Cemeteries.CemeteryService>();
 builder.Services.AddScoped<PTKD.Application.CardWatermarks.ICardWatermarkService, PTKD.Application.CardWatermarks.CardWatermarkService>();
 
-// Customer Proposal Services (Phase 1B.3-B4)
-builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerProposalService, PTKD.Application.Customers.Services.CustomerProposalService>();
 builder.Services.AddScoped<PTKD.Application.Customers.Services.ICustomerMasterChangeService, PTKD.Application.Customers.Services.CustomerMasterChangeService>();
 // Bộ xử lý thực thi quy trình: TỰ QUÉT toàn bộ assembly PTKD.Application thay vì liệt kê tay.
 // (Trước đây liệt kê tay ở đây và ở khối Service Management bên dưới — CardReprintExecutionHandler
