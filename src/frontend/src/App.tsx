@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { CompanyProvider } from './auth/CompanyProvider';
 import ProtectedRoute from './components/ProtectedRoute';
+import RequirePermission from './components/RequirePermission';
 import AuthenticatedShell from './components/AuthenticatedShell';
 import LoginPage from './pages/LoginPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -112,8 +113,8 @@ const App: React.FC = () => {
             >
               <Route index element={<Home />} />
               <Route path="profile" element={<ProfilePage />} />
-              <Route path="system-health" element={<SystemHealth />} />
-              <Route path="system/storage" element={<SystemStoragePage />} />
+              <Route path="system-health" element={<RequirePermission anyOf={['SYSTEM_HEALTH_VIEW']}><SystemHealth /></RequirePermission>} />
+              <Route path="system/storage" element={<RequirePermission anyOf={['SYSTEM_SETTING_VIEW', 'SYSTEM_SETTING_MANAGE']}><SystemStoragePage /></RequirePermission>} />
               {/* Phase 1B.1-K — Account Management UI */}
               <Route path="security/accounts" element={<AccountManagementPage />} />
               <Route path="security/accounts/:accountId" element={<AccountDetailPage />} />
@@ -140,7 +141,7 @@ const App: React.FC = () => {
               {/* Phase 1B.2-B2 — Customer Frontend UI */}
               <Route path="customers" element={<CustomersPage />} />
               <Route path="relationships" element={<RelationshipsPage />} />
-              <Route path="relationships/kinds" element={<RelationshipKindsPage />} />
+              <Route path="relationships/kinds" element={<RequirePermission anyOf={['RELATIONSHIP_KIND_MANAGE']}><RelationshipKindsPage /></RequirePermission>} />
               <Route path="customers/new" element={<CustomerCreatePage />} />
               <Route path="customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="customers/:customerId/edit" element={<CustomerEditPage />} />
@@ -159,7 +160,7 @@ const App: React.FC = () => {
               <Route path="graves/:graveId/edit" element={<GraveEditPage />} />
               {/* Phase 1B.8-C — Card Reprint UI */}
               <Route path="cards" element={<CardsPage />} />
-              <Route path="cards/watermarks" element={<CemeteryWatermarkPage />} />
+              <Route path="cards/watermarks" element={<RequirePermission anyOf={['CARD_ISSUE']}><CemeteryWatermarkPage /></RequirePermission>} />
               <Route path="cards/reprints" element={<CardReprintRequestsPage />} />
               <Route path="cards/reprints/new" element={<CardReprintRequestCreatePage />} />
               <Route path="cards/reprints/:id" element={<CardReprintRequestDetailPage />} />
@@ -185,10 +186,10 @@ const App: React.FC = () => {
               <Route path="workflow/instances" element={<WorkflowInstancesAdminPage />} />
               <Route path="workflow/instances/:instanceId" element={<WorkflowInstanceDetailPage />} />
               {/* Phase 1B.6-C — Service Module UI */}
-              <Route path="services/types" element={<ServiceTypeListPage />} />
-              <Route path="services/types/new" element={<ServiceTypeFormPage />} />
-              <Route path="services/types/:id" element={<ServiceTypeDetailPage />} />
-              <Route path="services/types/:id/edit" element={<ServiceTypeFormPage />} />
+              <Route path="services/types" element={<RequirePermission anyOf={['SERVICE_TYPE_MANAGE']}><ServiceTypeListPage /></RequirePermission>} />
+              <Route path="services/types/new" element={<RequirePermission anyOf={['SERVICE_TYPE_MANAGE']}><ServiceTypeFormPage /></RequirePermission>} />
+              <Route path="services/types/:id" element={<RequirePermission anyOf={['SERVICE_TYPE_MANAGE']}><ServiceTypeDetailPage /></RequirePermission>} />
+              <Route path="services/types/:id/edit" element={<RequirePermission anyOf={['SERVICE_TYPE_MANAGE']}><ServiceTypeFormPage /></RequirePermission>} />
               <Route path="services" element={<ServiceListPage />} />
               <Route path="services/new" element={<ServiceCreatePage />} />
               <Route path="services/:id" element={<ServiceDetailPage />} />
@@ -197,7 +198,7 @@ const App: React.FC = () => {
               <Route path="care-packages/new" element={<CarePackageRequestCreatePage />} />
               <Route path="care-packages/:id" element={<CarePackageRequestDetailPage />} />
               {/* Quản lý thẻ (hashtag) */}
-              <Route path="tags" element={<TagManagementPage />} />
+              <Route path="tags" element={<RequirePermission anyOf={['TAG_MANAGE']}><TagManagementPage /></RequirePermission>} />
             </Route>
 
             {/* Catch-all */}
