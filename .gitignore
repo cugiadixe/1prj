@@ -47,3 +47,7 @@ dotnet-install.ps1
 
 # Agent artifacts
 walkthrough.md
+
+# JWT signing key & các bí mật mount vào container (KHÔNG commit)
+secrets/
+*.pem

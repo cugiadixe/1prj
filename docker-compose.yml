@@ -39,6 +39,12 @@ services:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
       ConnectionStrings__DefaultConnection: "Server=db;Database=${DB_NAME:-PTKD_PROD};User Id=sa;Password=${DB_SA_PASSWORD:?DB_SA_PASSWORD chua duoc dat trong .env};TrustServerCertificate=True"
       Cors__AllowedOrigins__0: "${CORS_ORIGIN:-http://localhost}"
+      # Khoá ký JWT BỀN (RS256): file PEM mount read-only từ host → token còn hiệu lực sau restart.
+      # Khoá nằm ở secrets/ (đã gitignore, KHÔNG commit). Sinh lại bằng:
+      #   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out secrets/jwt-signing-prod.pem
+      Jwt__SigningKeyPath: "/keys/jwt-signing.pem"
+    volumes:
+      - ./secrets/jwt-signing-prod.pem:/keys/jwt-signing.pem:ro
     depends_on:
       db:
         condition: service_healthy
