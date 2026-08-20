@@ -50,7 +50,7 @@ describe('CustomerMasterChangeRequestDetailPage', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByTestId('error-alert')).toHaveTextContent('An error occurred. Please try again.');
+      expect(screen.getByTestId('error-alert')).toHaveTextContent('Đã xảy ra lỗi. Vui lòng thử lại.');
     });
   });
 
@@ -63,6 +63,8 @@ describe('CustomerMasterChangeRequestDetailPage', () => {
       requestStatus: 'Draft',
       workflowInstanceId: 999,
       targetCustomerId: 123,
+      targetCustomerCode: 'KH0000123',
+      targetCustomerName: 'Nguyễn Văn A',
       targetRowVersion: 'v1',
       createdAt: '2023-01-01T00:00:00Z',
       updatedAt: null,

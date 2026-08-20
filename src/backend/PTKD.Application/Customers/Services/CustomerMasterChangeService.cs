@@ -107,7 +107,7 @@ public class CustomerMasterChangeService : ICustomerMasterChangeService
                 await ctx2.SaveChangesAsync(ct);
             });
 
-            return MapToDto(changeRequest, workflowInstance.Id);
+            return MapToDto(changeRequest, workflowInstance.Id, customer.CustomerCode, customer.Profile.FullName);
         });
     }
 
@@ -116,7 +116,9 @@ public class CustomerMasterChangeService : ICustomerMasterChangeService
         await using var context = _dbContextFactory.CreateDbContext();
         var ccr = await context.CustomerChangeRequests.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (ccr == null || ccr.ProcessCode != "CUSTOMER_MASTER_CHANGE") return null;
-        return MapToDto(ccr, ccr.WorkflowInstanceId);
+
+        var (code, name) = await LookupCustomerAsync(context, ccr.TargetCustomerId, ct);
+        return MapToDto(ccr, ccr.WorkflowInstanceId, code, name);
     }
 
     public async Task<CustomerMasterChangeDto[]> GetMyChangeRequestsAsync(long actorUserId, CancellationToken ct = default)
@@ -127,10 +129,42 @@ public class CustomerMasterChangeService : ICustomerMasterChangeService
             .OrderByDescending(c => c.CreatedAt)
             .ToArrayAsync(ct);
 
-        return proposals.Select(p => MapToDto(p, p.WorkflowInstanceId)).ToArray();
+        // Nạp mã + tên khách hàng đích cho từng yêu cầu (một truy vấn cho tất cả).
+        var customerIds = proposals
+            .Where(p => p.TargetCustomerId.HasValue)
+            .Select(p => p.TargetCustomerId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var customers = await context.Customers
+            .Include(c => c.Profile)
+            .Where(c => customerIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => new { c.CustomerCode, c.Profile.FullName }, ct);
+
+        return proposals.Select(p =>
+        {
+            string? code = null, name = null;
+            if (p.TargetCustomerId.HasValue && customers.TryGetValue(p.TargetCustomerId.Value, out var info))
+            {
+                code = info.CustomerCode;
+                name = info.FullName;
+            }
+            return MapToDto(p, p.WorkflowInstanceId, code, name);
+        }).ToArray();
     }
 
-    private static CustomerMasterChangeDto MapToDto(CustomerChangeRequest ccr, long? workflowInstanceId)
+    private static async Task<(string? Code, string? Name)> LookupCustomerAsync(
+        IOrganizationDbContext context, long? customerId, CancellationToken ct)
+    {
+        if (!customerId.HasValue) return (null, null);
+        var customer = await context.Customers
+            .Include(c => c.Profile)
+            .FirstOrDefaultAsync(c => c.Id == customerId.Value, ct);
+        return (customer?.CustomerCode, customer?.Profile.FullName);
+    }
+
+    private static CustomerMasterChangeDto MapToDto(
+        CustomerChangeRequest ccr, long? workflowInstanceId, string? targetCustomerCode = null, string? targetCustomerName = null)
     {
         CreateCustomerMasterChangeRequest? payload = null;
         try
@@ -148,6 +182,8 @@ public class CustomerMasterChangeService : ICustomerMasterChangeService
             RequestStatus = ccr.RequestStatus,
             WorkflowInstanceId = workflowInstanceId ?? ccr.WorkflowInstanceId,
             TargetCustomerId = ccr.TargetCustomerId,
+            TargetCustomerCode = targetCustomerCode,
+            TargetCustomerName = targetCustomerName,
             TargetRowVersion = ccr.TargetRowVersion != null ? Convert.ToBase64String(ccr.TargetRowVersion) : null,
             CreatedAt = ccr.CreatedAt,
             UpdatedAt = ccr.UpdatedAt,

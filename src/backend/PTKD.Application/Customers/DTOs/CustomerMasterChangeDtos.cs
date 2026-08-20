@@ -37,6 +37,8 @@ public class CustomerMasterChangeDto
     public string RequestStatus { get; set; } = null!;
     public long? WorkflowInstanceId { get; set; }
     public long? TargetCustomerId { get; set; }
+    public string? TargetCustomerCode { get; set; }
+    public string? TargetCustomerName { get; set; }
     public string? TargetRowVersion { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

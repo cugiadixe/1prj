@@ -44,7 +44,9 @@ public class CustomerMasterChangeController : ControllerBase
     }
 
     [HttpGet("my-change-requests")]
-    [RequirePermission(PermissionCodes.CustomerChangeRequestCreate, PermissionScope.Global)]
+    // Danh sách "của tôi": service đã lọc theo actorId nên không lộ dữ liệu chéo công ty.
+    // Dùng ServiceFiltered để khớp với cách sidebar kiểm quyền (có mã ở bất kỳ scope nào).
+    [RequirePermission(PermissionCodes.CustomerChangeRequestCreate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetMyChangeRequests(CancellationToken ct)
     {
         var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -56,7 +58,8 @@ public class CustomerMasterChangeController : ControllerBase
     }
 
     [HttpGet("change-requests/{requestId}")]
-    [RequirePermission(PermissionCodes.CustomerChangeRequestCreate, PermissionScope.Global)]
+    // Xem chi tiết: bên dưới đã tự kiểm "người tạo HOẶC có quyền admin-view" nên không cần đòi Global.
+    [RequirePermission(PermissionCodes.CustomerChangeRequestCreate, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> GetChangeRequestById([FromRoute] long requestId, CancellationToken ct)
     {
         var proposal = await _service.GetChangeRequestByIdAsync(requestId, ct);

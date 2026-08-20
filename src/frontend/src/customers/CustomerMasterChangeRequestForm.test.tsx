@@ -95,6 +95,8 @@ describe('CustomerMasterChangeRequestForm', () => {
       requestStatus: 'Draft',
       workflowInstanceId: null,
       targetCustomerId: 123,
+      targetCustomerCode: 'KH0000123',
+      targetCustomerName: 'Nguyễn Văn A',
       targetRowVersion: 'v1',
       createdAt: '2023-01-01T00:00:00Z',
       updatedAt: null,
@@ -158,7 +160,7 @@ describe('CustomerMasterChangeRequestForm', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('create-error')).toHaveTextContent(
-        'This customer was modified by another user. Please refresh and try again.'
+        'Khách hàng này vừa được người khác chỉnh sửa. Vui lòng tải lại và thử lại.'
       );
     });
   });

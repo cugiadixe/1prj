@@ -176,10 +176,18 @@ public class CustomerMasterChangeServiceTests
         typeof(CustomerChangeRequest).GetProperty("RowVersion")?.GetSetMethod(true)?.Invoke(ccr, new object[] { new byte[] { 1, 2, 3 } });
         _dbContextMock.Setup<DbSet<CustomerChangeRequest>>(c => c.CustomerChangeRequests).ReturnsDbSet(new List<CustomerChangeRequest> { ccr });
 
+        // Service tra mã + tên khách hàng đích (TargetCustomerId=10) để hiển thị → cần mock Customers.
+        var targetProfile = CreateProfile(10, "Nguyen Van A", "CCCD10");
+        var targetCustomer = CreateCustomer(10, "CUS010", "ACTIVE", targetProfile);
+        _dbContextMock.Setup<DbSet<Customer>>(c => c.Customers).ReturnsDbSet(new List<Customer> { targetCustomer });
+        _dbContextMock.Setup<DbSet<Profile>>(c => c.Profiles).ReturnsDbSet(new List<Profile> { targetProfile });
+
         var result = await _service.GetChangeRequestByIdAsync(5);
         Assert.NotNull(result);
         Assert.Equal(5, result.Id);
         Assert.Equal("CUSTOMER_MASTER_CHANGE", result.ProcessCode);
+        Assert.Equal("CUS010", result.TargetCustomerCode);
+        Assert.Equal("Nguyen Van A", result.TargetCustomerName);
     }
 
     [Fact]
@@ -196,9 +204,16 @@ public class CustomerMasterChangeServiceTests
         
         _dbContextMock.Setup<DbSet<CustomerChangeRequest>>(c => c.CustomerChangeRequests).ReturnsDbSet(new List<CustomerChangeRequest> { ccr1, ccr2, ccr3 });
 
+        // Service tra mã + tên khách hàng đích (TargetCustomerId=10) → cần mock Customers.
+        var targetProfile = CreateProfile(10, "Nguyen Van A", "CCCD10");
+        var targetCustomer = CreateCustomer(10, "CUS010", "ACTIVE", targetProfile);
+        _dbContextMock.Setup<DbSet<Customer>>(c => c.Customers).ReturnsDbSet(new List<Customer> { targetCustomer });
+        _dbContextMock.Setup<DbSet<Profile>>(c => c.Profiles).ReturnsDbSet(new List<Profile> { targetProfile });
+
         var result = await _service.GetMyChangeRequestsAsync(1);
         Assert.Single(result);
         Assert.Equal(1L, result[0].Id);
+        Assert.Equal("CUS010", result[0].TargetCustomerCode);
     }
 
     private class NoOpExecutionStrategy : IExecutionStrategy

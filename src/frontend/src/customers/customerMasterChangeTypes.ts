@@ -28,6 +28,8 @@ export interface CustomerMasterChangeDto {
   requestStatus: string;
   workflowInstanceId: number | null;
   targetCustomerId: number | null;
+  targetCustomerCode: string | null;
+  targetCustomerName: string | null;
   targetRowVersion: string | null;
   createdAt: string;
   updatedAt: string | null;
