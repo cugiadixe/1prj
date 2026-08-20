@@ -60,12 +60,19 @@ docker compose build backend frontend
 
 ---
 
-## Bước 4 — Khởi động ứng dụng
+## Bước 4 — Khởi động ứng dụng (HTTPS)
 
 ```powershell
-docker compose up -d db backend frontend
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
+- Overlay `docker-compose.prod.yml` bật **HTTPS cổng 443** (cổng 80 tự chuyển hướng sang https), và **ẩn cổng db/backend khỏi host** (an toàn hơn).
 - **Kỳ vọng:** hiện 3 dòng `Started` / `Running` cho `db`, `backend`, `frontend`.
+- ❗ **Điều kiện:** phải có sẵn `certs/fullchain.pem` + `certs/privkey.pem`. Nếu chưa có (máy mới), sinh trước bằng:
+  ```bash
+  bash scripts/gen-prod-cert.sh
+  ```
+  Chi tiết cài CA lên máy nhân viên + gia hạn: xem `docs/deploy/https-cert-noi-bo.md`.
+- (Muốn chạy tạm HTTP:80 không SSL thì bỏ `-f docker-compose.prod.yml`.)
 
 ---
 
