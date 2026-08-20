@@ -116,28 +116,28 @@ const App: React.FC = () => {
               <Route path="system-health" element={<RequirePermission anyOf={['SYSTEM_HEALTH_VIEW']}><SystemHealth /></RequirePermission>} />
               <Route path="system/storage" element={<RequirePermission anyOf={['SYSTEM_SETTING_VIEW', 'SYSTEM_SETTING_MANAGE']}><SystemStoragePage /></RequirePermission>} />
               {/* Phase 1B.1-K — Account Management UI */}
-              <Route path="security/accounts" element={<AccountManagementPage />} />
-              <Route path="security/accounts/:accountId" element={<AccountDetailPage />} />
+              <Route path="security/accounts" element={<RequirePermission anyOf={['SECURITY_ACCOUNT_MANAGE']}><AccountManagementPage /></RequirePermission>} />
+              <Route path="security/accounts/:accountId" element={<RequirePermission anyOf={['SECURITY_ACCOUNT_MANAGE']}><AccountDetailPage /></RequirePermission>} />
               {/* Phase 1B.1-N — Permission Assignment UI */}
-              <Route path="security/permissions/assignments" element={<PermissionAssignmentPage />} />
+              <Route path="security/permissions/assignments" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><PermissionAssignmentPage /></RequirePermission>} />
               {/* Phase 1B.1-O — Audit Viewer UI */}
-              <Route path="security/audit" element={<AuditViewerPage />} />
+              <Route path="security/audit" element={<RequirePermission anyOf={['SECURITY_AUDIT_VIEW']}><AuditViewerPage /></RequirePermission>} />
               {/* Phase 1B.1-P1 — Role Management UI */}
-              <Route path="security/roles" element={<RoleManagementPage />} />
+              <Route path="security/roles" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><RoleManagementPage /></RequirePermission>} />
               {/* Phase 1B.1-Q1 — User Role Assignments UI */}
-              <Route path="security/users/:userId/role-assignments" element={<UserRoleAssignmentsPage />} />
+              <Route path="security/users/:userId/role-assignments" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><UserRoleAssignmentsPage /></RequirePermission>} />
               {/* Phase 1B.1-P2 — Admin Group Management UI */}
-              <Route path="security/admin-groups" element={<AdminGroupManagementPage />} />
+              <Route path="security/admin-groups" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><AdminGroupManagementPage /></RequirePermission>} />
               {/* Phase 1B.1-Q2 — User Admin Group Memberships UI */}
-              <Route path="security/users/:userId/admin-group-assignments" element={<UserAdminGroupAssignmentsPage />} />
+              <Route path="security/users/:userId/admin-group-assignments" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><UserAdminGroupAssignmentsPage /></RequirePermission>} />
               {/* Phase 1B.1-R — Department Baseline Permission Management UI */}
-              <Route path="security/departments/permissions" element={<DepartmentPermissionsPage />} />
+              <Route path="security/departments/permissions" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><DepartmentPermissionsPage /></RequirePermission>} />
               {/* Phase 1B.1-S — Effective Permission Diagnostics UI */}
-              <Route path="security/effective-permissions" element={<EffectivePermissionDiagnosticsPage />} />
+              <Route path="security/effective-permissions" element={<RequirePermission anyOf={['SECURITY_ADMIN_MANAGE']}><EffectivePermissionDiagnosticsPage /></RequirePermission>} />
 
-              <Route path="organizations/companies" element={<CompanyManagementPage />} />
-              <Route path="organizations/departments" element={<DepartmentManagementPage />} />
-              <Route path="organizations/users" element={<UserManagementPage />} />
+              <Route path="organizations/companies" element={<RequirePermission anyOf={['ORGANIZATION_COMPANY_MANAGE']}><CompanyManagementPage /></RequirePermission>} />
+              <Route path="organizations/departments" element={<RequirePermission anyOf={['ORGANIZATION_DEPARTMENT_MANAGE']}><DepartmentManagementPage /></RequirePermission>} />
+              <Route path="organizations/users" element={<RequirePermission anyOf={['ORGANIZATION_USER_MANAGE']}><UserManagementPage /></RequirePermission>} />
               {/* Phase 1B.2-B2 — Customer Frontend UI */}
               <Route path="customers" element={<CustomersPage />} />
               <Route path="relationships" element={<RelationshipsPage />} />
