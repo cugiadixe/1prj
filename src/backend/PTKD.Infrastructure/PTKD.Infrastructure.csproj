@@ -18,7 +18,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
     <PackageReference Include="PDFsharp" Version="6.2.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="4.1.0" />
+    <!-- Ghim 2.1.x: dòng cuối còn giấy phép Apache-2.0 (miễn phí, không nghĩa vụ thương mại).
+         Từ 3.0 trở đi SixLabors đổi sang "Six Labors Split License" đòi mua license cho DN vượt
+         ngưỡng doanh thu. 2.1.13 = bản 2.1.x mới nhất, có đủ vá bảo mật backport. API dùng
+         (Image.Load<Rgba32>/ProcessPixelRows/Mutate.Resize/SaveAsJpeg|Png) tương thích. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.13" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
   </ItemGroup>
 
