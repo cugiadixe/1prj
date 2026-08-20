@@ -160,7 +160,7 @@ const App: React.FC = () => {
               <Route path="graves/:graveId/edit" element={<GraveEditPage />} />
               {/* Phase 1B.8-C — Card Reprint UI */}
               <Route path="cards" element={<CardsPage />} />
-              <Route path="cards/watermarks" element={<RequirePermission anyOf={['CARD_ISSUE']}><CemeteryWatermarkPage /></RequirePermission>} />
+              <Route path="cards/watermarks" element={<RequirePermission anyOf={['CARD_WATERMARK_MANAGE']}><CemeteryWatermarkPage /></RequirePermission>} />
               <Route path="cards/reprints" element={<CardReprintRequestsPage />} />
               <Route path="cards/reprints/new" element={<CardReprintRequestCreatePage />} />
               <Route path="cards/reprints/:id" element={<CardReprintRequestDetailPage />} />

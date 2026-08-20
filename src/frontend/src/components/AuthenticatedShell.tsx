@@ -385,7 +385,7 @@ const AuthenticatedShell: React.FC = () => {
     } : null,
     // ── Cài đặt hệ thống: gom mọi mục danh mục/cấu hình vào 1 nhóm cho dễ quản lý ──
     (hasPermission('RELATIONSHIP_KIND_MANAGE') || hasPermission('SERVICE_TYPE_MANAGE')
-      || hasPermission('TAG_MANAGE') || hasPermission('CARD_ISSUE')
+      || hasPermission('TAG_MANAGE') || hasPermission('CARD_WATERMARK_MANAGE')
       || hasPermission('SYSTEM_SETTING_MANAGE') || hasPermission('SYSTEM_HEALTH_VIEW')) ? {
       key: 'settings-group',
       icon: <SettingOutlined />,
@@ -409,7 +409,7 @@ const AuthenticatedShell: React.FC = () => {
           icon: <TagsOutlined />,
           onClick: () => navigate('/tags'),
         } : null,
-        hasPermission('CARD_ISSUE') ? {
+        hasPermission('CARD_WATERMARK_MANAGE') ? {
           key: '/cards/watermarks',
           label: navLabel('nav-cards-watermarks', 'Hoa văn thẻ'),
           icon: <CreditCardOutlined />,

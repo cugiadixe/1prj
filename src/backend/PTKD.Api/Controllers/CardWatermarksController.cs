@@ -24,12 +24,12 @@ public class CardWatermarksController : ControllerBase
     }
 
     [HttpGet]
-    [RequirePermission(PermissionCodes.CardIssue, PermissionScope.Company)]
+    [RequirePermission(PermissionCodes.CardWatermarkManage, PermissionScope.Company)]
     public async Task<IActionResult> GetAll([FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)
         => Ok(await _service.ListAsync(companyId, ct));
 
     [HttpPost]
-    [RequirePermission(PermissionCodes.CardIssue, PermissionScope.Company)]
+    [RequirePermission(PermissionCodes.CardWatermarkManage, PermissionScope.Company)]
     [RequestSizeLimit(4_000_000)]
     public async Task<IActionResult> Upload(
         [FromHeader(Name = "X-Company-Id")] long companyId,
@@ -47,7 +47,7 @@ public class CardWatermarksController : ControllerBase
     }
 
     [HttpGet("{id}/content")]
-    [RequirePermission(PermissionCodes.CardIssue, PermissionScope.Company)]
+    [RequirePermission(PermissionCodes.CardWatermarkManage, PermissionScope.Company)]
     public async Task<IActionResult> Content(long id, [FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)
     {
         var content = await _service.GetContentAsync(id, companyId, ct);
@@ -56,7 +56,7 @@ public class CardWatermarksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [RequirePermission(PermissionCodes.CardIssue, PermissionScope.Company)]
+    [RequirePermission(PermissionCodes.CardWatermarkManage, PermissionScope.Company)]
     public async Task<IActionResult> Delete(long id, [FromHeader(Name = "X-Company-Id")] long companyId, CancellationToken ct)
     {
         await _service.DeleteAsync(id, companyId, GetActorUserId(), ct);
