@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Card, Image, Popconfirm, Space, Spin, Typography, Upload, message } from 'antd';
+import { Alert, Button, Card, Image, Popconfirm, Space, Spin, Tooltip, Typography, Upload, message } from 'antd';
 import { DeleteOutlined, FilePdfOutlined, UploadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UploadProps } from 'antd';
@@ -12,7 +12,7 @@ const { Text } = Typography;
 const MAX_MB = 10;
 const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
-const GraveAttachmentsSection: React.FC<{ graveId: number }> = ({ graveId }) => {
+const GraveAttachmentsSection: React.FC<{ graveId: number; hasOwner: boolean }> = ({ graveId, hasOwner }) => {
   const { hasPermission } = usePermissions();
   const canManage = hasPermission('GRAVE_ATTACHMENT_MANAGE');
   const queryClient = useQueryClient();
@@ -99,9 +99,11 @@ const GraveAttachmentsSection: React.FC<{ graveId: number }> = ({ graveId }) => 
       style={{ marginTop: 16 }}
       data-testid="grave-attachments-card"
       extra={canManage && (
-        <Upload {...uploadProps}>
-          <Button type="primary" icon={<UploadOutlined />} data-testid="upload-attachment-btn">Tải lên</Button>
-        </Upload>
+        <Tooltip title={hasOwner ? '' : 'Cần có chủ mộ trước khi tải ảnh/tài liệu'}>
+          <Upload {...uploadProps} disabled={!hasOwner}>
+            <Button type="primary" icon={<UploadOutlined />} disabled={!hasOwner} data-testid="upload-attachment-btn">Tải lên</Button>
+          </Upload>
+        </Tooltip>
       )}
     >
       {isLoading && <Spin />}

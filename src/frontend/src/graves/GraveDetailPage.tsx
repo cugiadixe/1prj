@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Alert, Button, Card, DatePicker, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, Typography, Upload, message,
+  Alert, Button, Card, DatePicker, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, Tooltip, Typography, Upload, message,
 } from 'antd';
 import { DeleteOutlined, EditOutlined, PhoneOutlined, PlusOutlined, SwapOutlined, UploadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -329,6 +329,9 @@ const GraveDetailPage: React.FC = () => {
   if (error || !data) return <Alert type="error" message={getErrorMessage(error)} />;
 
   const emergencyContacts = data.emergencyContacts ?? [];
+  // Chưa có chủ mộ thì chưa thao tác gán được: khóa thêm liên hệ / người an táng / tải tài liệu.
+  const hasOwner = !!data.ownerCustomerId;
+  const noOwnerHint = 'Cần có chủ mộ trước. Dùng "Chỉnh sửa" hoặc gán chủ từ trang khách hàng.';
 
   const occupantColumns = [
     {
@@ -455,9 +458,11 @@ const GraveDetailPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px' }}>
           <Typography.Text strong>Liên hệ khẩn cấp ({emergencyContacts.length})</Typography.Text>
           {canUpdate && (
-            <Button size="small" type="primary" icon={<PlusOutlined />} onClick={openEcAdd} data-testid="add-emergency-contact-btn">
-              Thêm liên hệ
-            </Button>
+            <Tooltip title={hasOwner ? '' : noOwnerHint}>
+              <Button size="small" type="primary" icon={<PlusOutlined />} onClick={openEcAdd} disabled={!hasOwner} data-testid="add-emergency-contact-btn">
+                Thêm liên hệ
+              </Button>
+            </Tooltip>
           )}
         </div>
         {emergencyContacts.length > 0 ? (
@@ -513,9 +518,11 @@ const GraveDetailPage: React.FC = () => {
         title={`Người an táng (${data.occupants.length})`}
         data-testid="grave-occupants-card"
         extra={canUpdate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd} data-testid="add-occupant-btn">
-            Thêm người an táng
-          </Button>
+          <Tooltip title={hasOwner ? '' : noOwnerHint}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd} disabled={!hasOwner} data-testid="add-occupant-btn">
+              Thêm người an táng
+            </Button>
+          </Tooltip>
         )}
       >
         {data.occupants.length > 0 ? (
@@ -575,7 +582,7 @@ const GraveDetailPage: React.FC = () => {
         testId="grave-tags-section"
       />
 
-      <GraveAttachmentsSection graveId={id} />
+      <GraveAttachmentsSection graveId={id} hasOwner={hasOwner} />
 
       {canTransfer && history && history.length > 0 && (
         <Card title="Lịch sử chuyển quyền sở hữu" style={{ marginTop: 16 }} data-testid="ownership-history-card">
