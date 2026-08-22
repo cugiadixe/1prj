@@ -34,6 +34,22 @@ public class GravesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("lookups/companies")]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetCompanyLookups(CancellationToken ct)
+    {
+        var companies = await _graveService.GetCompanyLookupsAsync(GetActorUserId(), ct);
+        return Ok(companies);
+    }
+
+    [HttpGet("lookups/zones")]
+    [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
+    public async Task<IActionResult> GetZoneLookups([FromQuery] long companyId, CancellationToken ct)
+    {
+        var zones = await _graveService.GetZoneLookupsAsync(companyId, GetActorUserId(), ct);
+        return Ok(zones);
+    }
+
     [HttpGet("attachments-summary")]
     [RequirePermission(PermissionCodes.GraveView, PermissionScope.ServiceFiltered)]
     public async Task<IActionResult> AttachmentSummary([FromQuery] GraveAttachmentSummaryRequest request, CancellationToken ct)

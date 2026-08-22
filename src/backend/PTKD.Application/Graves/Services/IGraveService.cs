@@ -7,6 +7,10 @@ namespace PTKD.Application.Graves.Services;
 public interface IGraveService
 {
     Task<PagedResult<GraveListItemDto>> SearchGravesAsync(GraveSearchRequest request, long actorUserId, CancellationToken ct = default);
+    /// <summary>Danh sách công ty (qua nghĩa trang) trong phạm vi GRAVE_VIEW của người gọi — để đổ vào bộ lọc.</summary>
+    Task<GraveCompanyLookupDto[]> GetCompanyLookupsAsync(long actorUserId, CancellationToken ct = default);
+    /// <summary>Các KHU có mộ thuộc một CÔNG TY (trong phạm vi GRAVE_VIEW) — bộ lọc Khu ăn theo công ty đã chọn.</summary>
+    Task<string[]> GetZoneLookupsAsync(long companyId, long actorUserId, CancellationToken ct = default);
     /// <summary>Bảng tổng hợp giấy tờ/tài liệu theo mộ (đếm theo loại), lọc theo công ty.</summary>
     Task<PagedResult<GraveAttachmentSummaryDto>> GetAttachmentSummaryAsync(GraveAttachmentSummaryRequest request, long actorUserId, CancellationToken ct = default);
     /// <summary>Danh sách người từng tải tài liệu lên (trong phạm vi công ty) — để lọc.</summary>

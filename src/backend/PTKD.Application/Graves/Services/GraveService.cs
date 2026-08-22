@@ -69,6 +69,24 @@ public class GraveService : IGraveService
             query = query.Where(g => g.GraveType == request.GraveType);
         if (request.OwnerCustomerId.HasValue)
             query = query.Where(g => g.OwnerCustomerId == request.OwnerCustomerId.Value);
+        if (request.CompanyId.HasValue)
+            query = query.Where(g => g.Cemetery!.CompanyId == request.CompanyId.Value);
+        // Lọc theo tương quan giữa SỐ NGƯỜI AN TÁNG (cốt ACTIVE) và SỐ CỐT của mộ.
+        if (!string.IsNullOrWhiteSpace(request.Capacity))
+        {
+            switch (request.Capacity)
+            {
+                case "UNDER":
+                    query = query.Where(g => g.Occupants.Count(o => o.Status == GraveOccupant.StatusActive) < g.CotCount);
+                    break;
+                case "FULL":
+                    query = query.Where(g => g.Occupants.Count(o => o.Status == GraveOccupant.StatusActive) == g.CotCount);
+                    break;
+                case "OVER":
+                    query = query.Where(g => g.Occupants.Count(o => o.Status == GraveOccupant.StatusActive) > g.CotCount);
+                    break;
+            }
+        }
         if (request.TagIds != null && request.TagIds.Length > 0)
         {
             var tagIds = request.TagIds;
@@ -104,7 +122,10 @@ public class GraveService : IGraveService
                 Status = g.Status,
                 OwnerCustomerId = g.OwnerCustomerId,
                 OwnerName = g.Owner != null ? g.Owner.Profile.FullName : null,
-                OccupantCount = g.Occupants.Count,
+                // "Người an táng" = số người ĐANG được gán vào mộ (suất ACTIVE), KHÔNG tính suất đã bốc/cải táng.
+                OccupantCount = g.Occupants.Count(o => o.Status == GraveOccupant.StatusActive),
+                CompanyId = g.Cemetery != null ? g.Cemetery.CompanyId : (long?)null,
+                CompanyName = g.Cemetery != null && g.Cemetery.Company != null ? g.Cemetery.Company.Name : null,
                 CreatedAt = g.CreatedAt,
                 Tags = context.GraveTags
                     .Where(x => x.GraveId == g.Id)
@@ -124,6 +145,49 @@ public class GraveService : IGraveService
             Page = request.Page,
             PageSize = request.PageSize
         };
+    }
+
+    public async Task<GraveCompanyLookupDto[]> GetCompanyLookupsAsync(long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        // Chỉ liệt kê công ty người gọi được phủ (qua nghĩa trang chứa mộ) — dùng CÙNG scope với danh sách mộ.
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        var scopedGraves = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope);
+
+        var companyIds = await scopedGraves
+            .Select(g => g.Cemetery!.CompanyId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (companyIds.Count == 0) return Array.Empty<GraveCompanyLookupDto>();
+
+        return await context.Companies
+            .AsNoTracking()
+            .Where(co => companyIds.Contains(co.Id))
+            .OrderBy(co => co.Name)
+            .Select(co => new GraveCompanyLookupDto { Id = co.Id, Name = co.Name })
+            .ToArrayAsync(ct);
+    }
+
+    public async Task<string[]> GetZoneLookupsAsync(long companyId, long actorUserId, CancellationToken ct = default)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+
+        // Cùng scope với danh sách mộ; chỉ khu thuộc CÔNG TY đã chọn (không lộ khu công ty khác).
+        var scope = await _permissionEvaluator.ResolveAsync(actorUserId, ViewPermission, ct);
+        if (!GraveCompanyScope.AllowsCompany(scope, companyId))
+            return Array.Empty<string>();
+
+        var scopedGraves = GraveCompanyScope.ApplyScope(context.Graves.AsNoTracking(), scope);
+
+        var zones = await scopedGraves
+            .Where(g => g.Cemetery!.CompanyId == companyId)
+            .Select(g => g.Zone)
+            .Distinct()
+            .OrderBy(z => z)
+            .ToArrayAsync(ct);
+
+        return zones;
     }
 
     public async Task<PagedResult<GraveAttachmentSummaryDto>> GetAttachmentSummaryAsync(GraveAttachmentSummaryRequest request, long actorUserId, CancellationToken ct = default)

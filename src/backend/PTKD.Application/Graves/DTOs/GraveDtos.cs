@@ -47,8 +47,17 @@ public class GraveListItemDto
     public long? OwnerCustomerId { get; set; }
     public string? OwnerName { get; set; }
     public int OccupantCount { get; set; }
+    public long? CompanyId { get; set; }
+    public string? CompanyName { get; set; }
     public DateTime CreatedAt { get; set; }
     public TagDto[] Tags { get; set; } = Array.Empty<TagDto>();
+}
+
+/// <summary>Công ty (qua nghĩa trang) để đổ vào bộ lọc danh sách mộ — chỉ công ty người gọi được phủ.</summary>
+public class GraveCompanyLookupDto
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = null!;
 }
 
 public class GraveDetailDto
@@ -239,6 +248,9 @@ public class GraveSearchRequest
     public string? Status { get; set; }
     public string? GraveType { get; set; }
     public long? OwnerCustomerId { get; set; }
+    public long? CompanyId { get; set; }
+    /// <summary>So sánh SỐ NGƯỜI AN TÁNG (cốt ACTIVE) với SỐ CỐT: UNDER = còn chỗ (&lt;), FULL = đã đủ (=), OVER = vượt số cốt (&gt;).</summary>
+    public string? Capacity { get; set; }
     public long[]? TagIds { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;

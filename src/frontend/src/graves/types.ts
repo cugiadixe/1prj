@@ -56,9 +56,23 @@ export interface GraveListItem {
   ownerCustomerId: number | null;
   ownerName: string | null;
   occupantCount: number;
+  companyId: number | null;
+  companyName: string | null;
   createdAt: string;
   tags?: import('../tags/types').Tag[];
 }
+
+export interface GraveCompanyLookup {
+  id: number;
+  name: string;
+}
+
+// Lọc theo tương quan số người an táng (cốt ACTIVE) với số cốt.
+export const GRAVE_CAPACITY_FILTER: Record<string, string> = {
+  UNDER: 'Còn chỗ (ít hơn số cốt)',
+  FULL: 'Đã đủ (bằng số cốt)',
+  OVER: 'Vượt số cốt',
+};
 
 export interface GraveOccupant {
   id: number;
@@ -227,6 +241,8 @@ export interface GraveSearchParams {
   status?: string;
   graveType?: string;
   ownerCustomerId?: number;
+  companyId?: number;
+  capacity?: string;
   tagIds?: number[];
   page?: number;
   pageSize?: number;

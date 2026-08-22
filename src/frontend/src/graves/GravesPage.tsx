@@ -3,14 +3,14 @@ import { Alert, Button, Input, Select, Space, Spin, Table, Tag, Typography } fro
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePermissions } from '../auth/AuthProvider';
-import { searchGraves } from './gravesApi';
+import { searchGraves, getGraveCompanyLookups, getGraveZoneLookups } from './gravesApi';
 import { getErrorMessage, isPermissionDenied } from './errorMessages';
 import {
+  GRAVE_CAPACITY_FILTER,
   GRAVE_STATUS_COLORS,
   GRAVE_STATUSES,
   GRAVE_TYPES,
   GRAVE_TYPE_FILTER,
-  GRAVE_ZONES,
   type GraveListItem,
 } from './types';
 import { listTags } from '../tags/tagsApi';
@@ -25,13 +25,15 @@ const GravesPage: React.FC = () => {
   const [zone, setZone] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [graveType, setGraveType] = useState<string | undefined>(undefined);
+  const [companyFilter, setCompanyFilter] = useState<number | undefined>(undefined);
+  const [capacityFilter, setCapacityFilter] = useState<string | undefined>(undefined);
   const [tagFilter, setTagFilter] = useState<number[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['graves', search, zone, status, graveType, tagFilter, page, pageSize],
-    queryFn: () => searchGraves({ search, zone, status, graveType, tagIds: tagFilter, page, pageSize }),
+    queryKey: ['graves', search, zone, status, graveType, companyFilter, capacityFilter, tagFilter, page, pageSize],
+    queryFn: () => searchGraves({ search, zone, status, graveType, companyId: companyFilter, capacity: capacityFilter, tagIds: tagFilter, page, pageSize }),
   });
 
   const { data: tagOptions } = useQuery({
@@ -39,6 +41,26 @@ const GravesPage: React.FC = () => {
     queryFn: () => listTags('GRAVE'),
     staleTime: 5 * 60 * 1000,
   });
+
+  const { data: companyOptions } = useQuery({
+    queryKey: ['grave-company-lookups'],
+    queryFn: getGraveCompanyLookups,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Khu ăn theo CÔNG TY đã chọn: chỉ nạp khi có công ty; đổi công ty thì bỏ chọn khu cũ.
+  const { data: zoneOptions } = useQuery({
+    queryKey: ['grave-zone-lookups', companyFilter],
+    queryFn: () => getGraveZoneLookups(companyFilter!),
+    enabled: companyFilter != null,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const handleCompanyChange = (val: number | undefined) => {
+    setCompanyFilter(val);
+    setZone(undefined);
+    setPage(1);
+  };
 
   if (isPermissionDenied(error)) {
     return <Alert type="error" message="Bạn không có quyền xem danh sách mộ." data-testid="permission-denied" />;
@@ -72,10 +94,20 @@ const GravesPage: React.FC = () => {
       render: (n: string | null) => n ?? '—',
     },
     {
+      title: 'Công ty',
+      dataIndex: 'companyName',
+      key: 'companyName',
+      render: (n: string | null) => n ?? '—',
+    },
+    {
       title: 'Người an táng',
       dataIndex: 'occupantCount',
       key: 'occupantCount',
-      render: (c: number) => c,
+      render: (c: number, r: GraveListItem) => (
+        <span style={c > r.cotCount ? { color: '#cf1322', fontWeight: 600 } : undefined}>
+          {c}
+        </span>
+      ),
     },
     {
       title: 'Trạng thái',
@@ -101,6 +133,7 @@ const GravesPage: React.FC = () => {
         )}
       </Space>
 
+      {/* Thứ tự lọc theo phễu: Tìm kiếm → Công ty → Khu (ăn theo công ty) → Loại mộ → Trạng thái → Sức chứa → Thẻ. */}
       <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search
           placeholder="Tìm mã mộ, số mộ, tên người an táng, chủ mộ..."
@@ -110,12 +143,35 @@ const GravesPage: React.FC = () => {
           data-testid="grave-search"
         />
         <Select
-          placeholder="Khu"
+          placeholder="Công ty"
           allowClear
-          style={{ width: 110 }}
+          showSearch
+          optionFilterProp="label"
+          style={{ minWidth: 200 }}
+          value={companyFilter}
+          onChange={handleCompanyChange}
+          data-testid="grave-company-filter"
+          options={(companyOptions ?? []).map((c) => ({ label: c.name, value: c.id }))}
+        />
+        <Select
+          placeholder={companyFilter == null ? 'Khu (chọn công ty trước)' : 'Khu'}
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          disabled={companyFilter == null}
+          style={{ width: 190 }}
           value={zone}
           onChange={(val) => { setZone(val); setPage(1); }}
-          options={GRAVE_ZONES.map((z) => ({ label: `Khu ${z}`, value: z }))}
+          data-testid="grave-zone-filter"
+          options={(zoneOptions ?? []).map((z) => ({ label: `Khu ${z}`, value: z }))}
+        />
+        <Select
+          placeholder="Loại mộ"
+          allowClear
+          style={{ width: 170 }}
+          value={graveType}
+          onChange={(val) => { setGraveType(val); setPage(1); }}
+          options={Object.entries(GRAVE_TYPE_FILTER).map(([value, label]) => ({ label, value }))}
         />
         <Select
           placeholder="Trạng thái"
@@ -126,12 +182,13 @@ const GravesPage: React.FC = () => {
           options={Object.entries(GRAVE_STATUSES).map(([value, label]) => ({ label, value }))}
         />
         <Select
-          placeholder="Loại mộ"
+          placeholder="Sức chứa (người an táng / số cốt)"
           allowClear
-          style={{ width: 170 }}
-          value={graveType}
-          onChange={(val) => { setGraveType(val); setPage(1); }}
-          options={Object.entries(GRAVE_TYPE_FILTER).map(([value, label]) => ({ label, value }))}
+          style={{ width: 250 }}
+          value={capacityFilter}
+          onChange={(val) => { setCapacityFilter(val); setPage(1); }}
+          data-testid="grave-capacity-filter"
+          options={Object.entries(GRAVE_CAPACITY_FILTER).map(([value, label]) => ({ label, value }))}
         />
         <Select
           mode="multiple"

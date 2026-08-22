@@ -3,6 +3,7 @@ import type {
   AssignableGrave,
   CreateEmergencyContactRequest,
   CreateGraveRequest,
+  GraveCompanyLookup,
   GraveDetail,
   GraveEmergencyContact,
   GraveListItem,
@@ -34,11 +35,25 @@ export async function searchGraves(
       status: params.status || undefined,
       graveType: params.graveType || undefined,
       ownerCustomerId: params.ownerCustomerId || undefined,
+      companyId: params.companyId || undefined,
+      capacity: params.capacity || undefined,
       tagIds: params.tagIds && params.tagIds.length > 0 ? params.tagIds : undefined,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 20,
     },
     paramsSerializer: { indexes: null },
+  });
+  return data;
+}
+
+export async function getGraveCompanyLookups(): Promise<GraveCompanyLookup[]> {
+  const { data } = await axiosClient.get<GraveCompanyLookup[]>(`${BASE}/lookups/companies`);
+  return data;
+}
+
+export async function getGraveZoneLookups(companyId: number): Promise<string[]> {
+  const { data } = await axiosClient.get<string[]>(`${BASE}/lookups/zones`, {
+    params: { companyId },
   });
   return data;
 }
